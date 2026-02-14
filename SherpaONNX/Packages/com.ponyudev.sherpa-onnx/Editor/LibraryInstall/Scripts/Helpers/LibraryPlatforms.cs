@@ -4,6 +4,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 {
     internal static class LibraryPlatforms
     {
+        /// <summary>
+        /// URL for the iOS-specific managed DLL (with __Internal binding).
+        /// Downloaded as sherpa-onnx.zip containing sherpa-onnx.dll.
+        /// Tag format: sherpa-v{version}
+        /// </summary>
+        public const string IosManagedDllUrl =
+            "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases/download/sherpa-v{0}/sherpa-onnx.zip";
+
         public static readonly LibraryArch ManagedLibrary =
             new()
             {

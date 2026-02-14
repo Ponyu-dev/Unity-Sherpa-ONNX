@@ -123,6 +123,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
             if (!s_nativeRidMap.TryGetValue(rid, out var mapping))
                 return;
 
+            // Configure xcframeworks
             string[] subDirs = Directory.GetDirectories(directoryAssetPath);
             foreach (string subDir in subDirs)
             {
@@ -141,6 +142,27 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
 
                 importer.SaveAndReimport();
             }
+
+            // Configure iOS managed DLL (sherpa-onnx.dll with __Internal binding)
+            ConfigureIosManagedDll(directoryAssetPath);
+        }
+
+        private static void ConfigureIosManagedDll(string iosDirectoryPath)
+        {
+            string dllPath = Path.Combine(iosDirectoryPath,
+                ConstantsInstallerPaths.ManagedDllFileName);
+            string assetPath = dllPath.Replace('\\', '/');
+
+            var importer = AssetImporter.GetAtPath(assetPath) as PluginImporter;
+            if (importer == null)
+                return;
+
+            importer.SetCompatibleWithAnyPlatform(false);
+            importer.SetCompatibleWithEditor(false);
+            importer.SetCompatibleWithPlatform(BuildTarget.iOS, true);
+            importer.SetPlatformData(BuildTarget.iOS, "CPU", "AnyCPU");
+
+            importer.SaveAndReimport();
         }
 
         private static void ConfigureNativeDirectory(string directoryAssetPath, string rid)
