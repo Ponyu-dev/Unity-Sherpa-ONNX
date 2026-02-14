@@ -1,10 +1,12 @@
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers;
+using UnityEngine;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 {
@@ -81,6 +83,72 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 
             var handler = new iOSNativeContentHandler(arch.Name);
             await handler.HandleAsync(buildIosPath, ct);
+
+            // Download iOS-specific managed DLL (with __Internal binding)
+            await DownloadIosManagedDllAsync(version, ct);
+        }
+
+        /// <summary>
+        /// Downloads sherpa-onnx.zip from our GitHub releases, extracts
+        /// sherpa-onnx.dll and copies it into Assets/Plugins/SherpaOnnx/iOS/.
+        /// </summary>
+        private static async Task DownloadIosManagedDllAsync(
+            string version,
+            CancellationToken ct)
+        {
+            string url = string.Format(LibraryPlatforms.IosManagedDllUrl, version);
+            const string fileName = "sherpa-onnx.zip";
+
+            string tempDir = Path.Combine(Application.temporaryCachePath, "SherpaOnnx_iOSDll");
+
+            try
+            {
+                Debug.Log("[SherpaOnnx] Downloading iOS managed DLL...");
+
+                Directory.CreateDirectory(tempDir);
+
+                var downloader = new UnityWebRequestFileDownloader();
+                await downloader.DownloadAsync(url, tempDir, fileName, ct);
+
+                string zipPath = Path.Combine(tempDir, fileName);
+
+                if (!File.Exists(zipPath))
+                    throw new FileNotFoundException(
+                        $"Failed to download iOS managed DLL from {url}. " +
+                        "Make sure the GitHub release exists.", zipPath);
+
+                string extractDir = Path.Combine(tempDir, "extracted");
+                Directory.CreateDirectory(extractDir);
+
+                using var extractor = new ArchiveExtractor();
+                await extractor.ExtractAsync(zipPath, extractDir, ct);
+
+                string dllSource = Path.Combine(extractDir, ConstantsInstallerPaths.ManagedDllFileName);
+
+                if (!File.Exists(dllSource))
+                    throw new FileNotFoundException("sherpa-onnx.dll not found in zip.", dllSource);
+
+                string destDir = Path.Combine(
+                    ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, "iOS");
+                Directory.CreateDirectory(destDir);
+
+                string destPath = Path.Combine(destDir, ConstantsInstallerPaths.ManagedDllFileName);
+                File.Copy(dllSource, destPath, overwrite: true);
+
+                Debug.Log("[SherpaOnnx] iOS managed DLL installed.");
+            }
+            finally
+            {
+                try
+                {
+                    if (Directory.Exists(tempDir))
+                        Directory.Delete(tempDir, recursive: true);
+                }
+                catch
+                {
+                    // ignore cleanup errors
+                }
+            }
         }
 
         internal static string BuildUrl(LibraryArch arch, string version)
