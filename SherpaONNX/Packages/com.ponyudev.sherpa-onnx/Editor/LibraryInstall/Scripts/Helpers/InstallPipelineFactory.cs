@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
+using PonyuDev.SherpaOnnx.Common.IO;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers;
 using UnityEngine;
@@ -46,20 +47,32 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         internal static async Task RunAndroidInstallAsync(
             LibraryArch arch,
             string version,
-            CancellationToken ct)
+            CancellationToken ct,
+            Action<string> onStatus = null,
+            Action<float> onProgress = null)
         {
-            string url = BuildUrl(arch, version);
-            string fileName = BuildFileName(arch);
+            IArchiveCache cache = AndroidArchiveCache.Cache;
+            SubscribeCache(cache, onStatus, onProgress);
+            try
+            {
+                string url = BuildUrl(arch, version);
+                string fileName = BuildFileName(arch);
 
-            await AndroidArchiveCache.EnsureExtractedAsync(url, fileName, ct);
+                await AndroidArchiveCache.EnsureExtractedAsync(url, fileName, ct);
 
-            string jniLibsPath = AndroidArchiveCache.FindJniLibsPath();
+                string jniLibsPath = AndroidArchiveCache.FindJniLibsPath();
 
-            if (string.IsNullOrEmpty(jniLibsPath))
-                throw new InvalidOperationException("jniLibs directory not found in Android cache.");
+                if (string.IsNullOrEmpty(jniLibsPath))
+                    throw new InvalidOperationException(
+                        "jniLibs directory not found in Android cache.");
 
-            var handler = new AndroidNativeContentHandler(arch.Name);
-            await handler.HandleAsync(jniLibsPath, ct);
+                var handler = new AndroidNativeContentHandler(arch.Name);
+                await handler.HandleAsync(jniLibsPath, ct);
+            }
+            finally
+            {
+                UnsubscribeCache(cache, onStatus, onProgress);
+            }
         }
 
         /// <summary>
@@ -69,23 +82,52 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         internal static async Task RuniOSInstallAsync(
             LibraryArch arch,
             string version,
-            CancellationToken ct)
+            CancellationToken ct,
+            Action<string> onStatus = null,
+            Action<float> onProgress = null)
         {
-            string url = BuildUrl(arch, version);
-            string fileName = BuildFileName(arch);
+            IArchiveCache cache = iOSArchiveCache.Cache;
+            SubscribeCache(cache, onStatus, onProgress);
+            try
+            {
+                string url = BuildUrl(arch, version);
+                string fileName = BuildFileName(arch);
 
-            await iOSArchiveCache.EnsureExtractedAsync(url, fileName, ct);
+                await iOSArchiveCache.EnsureExtractedAsync(url, fileName, ct);
 
-            string buildIosPath = iOSArchiveCache.FindBuildIosPath();
+                string buildIosPath = iOSArchiveCache.FindBuildIosPath();
 
-            if (string.IsNullOrEmpty(buildIosPath))
-                throw new InvalidOperationException("build-ios directory not found in iOS cache.");
+                if (string.IsNullOrEmpty(buildIosPath))
+                    throw new InvalidOperationException(
+                        "build-ios directory not found in iOS cache.");
 
-            var handler = new iOSNativeContentHandler(arch.Name);
-            await handler.HandleAsync(buildIosPath, ct);
+                var handler = new iOSNativeContentHandler(arch.Name);
+                await handler.HandleAsync(buildIosPath, ct);
 
-            // Download iOS-specific managed DLL (with __Internal binding)
-            await DownloadIosManagedDllAsync(version, ct);
+                await DownloadIosManagedDllAsync(version, ct);
+            }
+            finally
+            {
+                UnsubscribeCache(cache, onStatus, onProgress);
+            }
+        }
+
+        private static void SubscribeCache(
+            IArchiveCache cache,
+            Action<string> onStatus,
+            Action<float> onProgress)
+        {
+            if (onStatus != null) cache.OnStatus += onStatus;
+            if (onProgress != null) cache.OnProgress01 += onProgress;
+        }
+
+        private static void UnsubscribeCache(
+            IArchiveCache cache,
+            Action<string> onStatus,
+            Action<float> onProgress)
+        {
+            if (onStatus != null) cache.OnStatus -= onStatus;
+            if (onProgress != null) cache.OnProgress01 -= onProgress;
         }
 
         /// <summary>
@@ -139,15 +181,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             }
             finally
             {
-                try
-                {
-                    if (Directory.Exists(tempDir))
-                        Directory.Delete(tempDir, recursive: true);
-                }
-                catch
-                {
-                    // ignore cleanup errors
-                }
+                FileSystemHelper.TryDeleteDirectory(tempDir);
             }
         }
 
