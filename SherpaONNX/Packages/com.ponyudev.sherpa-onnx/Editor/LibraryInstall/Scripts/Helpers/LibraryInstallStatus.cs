@@ -12,6 +12,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             if (arch == LibraryPlatforms.ManagedLibrary)
                 return IsManagedDllPresent();
 
+            if (InstallPipelineFactory.IsIOS(arch))
+                return IsIosInstalled(arch);
+
             string dir = GetInstallDirectory(arch);
             return Directory.Exists(dir)
                    && Directory.GetFiles(dir).Length > 0;
@@ -41,6 +44,27 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             return GetInstallDirectory(arch);
         }
 
+        /// <summary>
+        /// iOS installs share one folder. arm64 is installed when ios-arm64/
+        /// subfolder exists inside any xcframework. Simulator checks for
+        /// ios-arm64_x86_64-simulator/.
+        /// </summary>
+        private static bool IsIosInstalled(LibraryArch arch)
+        {
+            string iosDir = Path.Combine(
+                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, "iOS");
+
+            if (!Directory.Exists(iosDir))
+                return false;
+
+            string marker = arch.Name == "arm64"
+                ? "ios-arm64"
+                : "ios-arm64_x86_64-simulator";
+
+            string[] dirs = Directory.GetDirectories(iosDir, marker, SearchOption.AllDirectories);
+            return dirs.Length > 0;
+        }
+
         internal static string GetInstallDirectory(LibraryArch arch)
         {
             if (InstallPipelineFactory.IsAndroid(arch))
@@ -49,6 +73,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                     ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
                     "Android",
                     arch.Name);
+            }
+
+            if (InstallPipelineFactory.IsIOS(arch))
+            {
+                return Path.Combine(
+                    ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                    "iOS");
             }
 
             return Path.Combine(

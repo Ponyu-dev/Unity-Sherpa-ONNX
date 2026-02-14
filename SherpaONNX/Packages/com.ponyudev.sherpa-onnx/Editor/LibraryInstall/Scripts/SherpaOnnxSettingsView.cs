@@ -28,6 +28,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private Button _cleanCacheButton;
         private Button _openCacheButton;
 
+        private Button _cleanIosCacheButton;
+        private Button _openIosCacheButton;
+
         internal SherpaOnnxSettingsView(string mainUxmlPath, string templateUxmlPath)
         {
             _mainUxmlPath = mainUxmlPath;
@@ -88,26 +91,11 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
                 if (platform.PlatformName == "Android")
                 {
-                    var helpBox = new HelpBox(
-                        "Android libraries are downloaded as a single archive containing all architectures. "
-                        + "The extracted archive is cached so each architecture can be installed without re-downloading. "
-                        + "Use 'Clean cache' to remove the cached archive and free disk space.",
-                        HelpBoxMessageType.Info);
-                    foldout.Add(helpBox);
-
-                    _cleanCacheButton = new Button(HandleCleanAndroidCache)
-                    {
-                        text = "Clean cache"
-                    };
-                    _cleanCacheButton.SetEnabled(AndroidArchiveCache.IsReady);
-                    foldout.Add(_cleanCacheButton);
-
-                    _openCacheButton = new Button(HandleOpenAndroidCache)
-                    {
-                        text = "Open cache"
-                    };
-                    _openCacheButton.SetEnabled(AndroidArchiveCache.IsReady);
-                    foldout.Add(_openCacheButton);
+                    AddAndroidCacheUi(foldout);
+                }
+                else if (platform.PlatformName == "iOS")
+                {
+                    AddiOSCacheUi(foldout);
                 }
 
                 foreach (LibraryArch arch in platform.Arches)
@@ -124,21 +112,74 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
         }
 
+        private void AddAndroidCacheUi(Foldout foldout)
+        {
+            var helpBox = new HelpBox(
+                "Android libraries are downloaded as a single archive containing all architectures. "
+                + "The extracted archive is cached so each architecture can be installed without re-downloading. "
+                + "Use 'Clean cache' to remove the cached archive and free disk space.",
+                HelpBoxMessageType.Info);
+            foldout.Add(helpBox);
+
+            _cleanCacheButton = new Button(HandleCleanAndroidCache) { text = "Clean cache" };
+            _cleanCacheButton.SetEnabled(AndroidArchiveCache.IsReady);
+            foldout.Add(_cleanCacheButton);
+
+            _openCacheButton = new Button(HandleOpenAndroidCache) { text = "Open cache" };
+            _openCacheButton.SetEnabled(AndroidArchiveCache.IsReady);
+            foldout.Add(_openCacheButton);
+        }
+
+        private void AddiOSCacheUi(Foldout foldout)
+        {
+            var helpBox = new HelpBox(
+                "iOS libraries are downloaded as a single archive containing both device and simulator frameworks. "
+                + "The extracted archive is cached so each architecture can be installed without re-downloading. "
+                + "Use 'Clean cache' to remove the cached archive and free disk space.",
+                HelpBoxMessageType.Info);
+            foldout.Add(helpBox);
+
+            _cleanIosCacheButton = new Button(HandleCleanIosCache) { text = "Clean cache" };
+            _cleanIosCacheButton.SetEnabled(iOSArchiveCache.IsReady);
+            foldout.Add(_cleanIosCacheButton);
+
+            _openIosCacheButton = new Button(HandleOpenIosCache) { text = "Open cache" };
+            _openIosCacheButton.SetEnabled(iOSArchiveCache.IsReady);
+            foldout.Add(_openIosCacheButton);
+        }
+
         private void HandleCleanAndroidCache()
         {
             AndroidArchiveCache.Clean();
         }
 
-        private void HandleCacheChanged()
+        private static void HandleOpenAndroidCache()
+        {
+            EditorUtility.RevealInFinder(AndroidArchiveCache.CachePath);
+        }
+
+        private void HandleAndroidCacheChanged()
         {
             bool ready = AndroidArchiveCache.IsReady;
             _cleanCacheButton?.SetEnabled(ready);
             _openCacheButton?.SetEnabled(ready);
         }
 
-        private static void HandleOpenAndroidCache()
+        private void HandleCleanIosCache()
         {
-            EditorUtility.RevealInFinder(AndroidArchiveCache.CachePath);
+            iOSArchiveCache.Clean();
+        }
+
+        private static void HandleOpenIosCache()
+        {
+            EditorUtility.RevealInFinder(iOSArchiveCache.CachePath);
+        }
+
+        private void HandleIosCacheChanged()
+        {
+            bool ready = iOSArchiveCache.IsReady;
+            _cleanIosCacheButton?.SetEnabled(ready);
+            _openIosCacheButton?.SetEnabled(ready);
         }
 
         private void BindSettingsToUi()
@@ -159,7 +200,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField?.RegisterValueChangedCallback(HandleVersionChanged);
             _strictToggle?.RegisterValueChangedCallback(HandleStrictChanged);
             _macToggle?.RegisterValueChangedCallback(HandleMacChanged);
-            AndroidArchiveCache.OnCacheChanged += HandleCacheChanged;
+            AndroidArchiveCache.OnCacheChanged += HandleAndroidCacheChanged;
+            iOSArchiveCache.OnCacheChanged += HandleIosCacheChanged;
         }
 
         private void UnsubscribeUi()
@@ -168,7 +210,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField?.UnregisterValueChangedCallback(HandleVersionChanged);
             _strictToggle?.UnregisterValueChangedCallback(HandleStrictChanged);
             _macToggle?.UnregisterValueChangedCallback(HandleMacChanged);
-            AndroidArchiveCache.OnCacheChanged -= HandleCacheChanged;
+            AndroidArchiveCache.OnCacheChanged -= HandleAndroidCacheChanged;
+            iOSArchiveCache.OnCacheChanged -= HandleIosCacheChanged;
         }
 
         private void HandleDetachFromPanel(DetachFromPanelEvent evt)
@@ -218,6 +261,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _macToggle = null;
             _cleanCacheButton = null;
             _openCacheButton = null;
+            _cleanIosCacheButton = null;
+            _openIosCacheButton = null;
             _root = null;
         }
     }
