@@ -25,6 +25,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
             ["armeabi-v7a"] = (BuildTarget.Android, "ARMv7"),
             ["x86"] = (BuildTarget.Android, "x86"),
             ["x86_64"] = (BuildTarget.Android, "x86_64"),
+            ["arm64"] = (BuildTarget.iOS, "ARM64"),
+            ["x86_64-simulator"] = (BuildTarget.iOS, "x86_64"),
         };
 
         /// <summary>
@@ -46,6 +48,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
                     "Android",
                     arch.Name);
                 ConfigureNativeDirectory(dirPath, arch.Name);
+            }
+            else if (InstallPipelineFactory.IsIOS(arch))
+            {
+                string dirPath = Path.Combine(
+                    ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                    "iOS");
+                ConfigureIosXcframeworks(dirPath, arch.Name);
             }
             else
             {
@@ -88,12 +97,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
 
             importer.SetCompatibleWithAnyPlatform(false);
 
-            bool isAndroid = mapping.Target == BuildTarget.Android;
+            bool isMobile = mapping.Target == BuildTarget.Android
+                            || mapping.Target == BuildTarget.iOS;
 
-            // Android plugins are not compatible with Editor
-            importer.SetCompatibleWithEditor(!isAndroid);
+            // Mobile plugins are not compatible with Editor
+            importer.SetCompatibleWithEditor(!isMobile);
 
-            if (!isAndroid)
+            if (!isMobile)
             {
                 importer.SetEditorData("OS", GetEditorOs(mapping.Target));
                 importer.SetEditorData("CPU", mapping.Cpu);
@@ -103,6 +113,34 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
             importer.SetPlatformData(mapping.Target, "CPU", mapping.Cpu);
 
             importer.SaveAndReimport();
+        }
+
+        private static void ConfigureIosXcframeworks(string directoryAssetPath, string rid)
+        {
+            if (!Directory.Exists(directoryAssetPath))
+                return;
+
+            if (!s_nativeRidMap.TryGetValue(rid, out var mapping))
+                return;
+
+            string[] subDirs = Directory.GetDirectories(directoryAssetPath);
+            foreach (string subDir in subDirs)
+            {
+                if (!subDir.EndsWith(".xcframework"))
+                    continue;
+
+                string assetPath = subDir.Replace('\\', '/');
+                var importer = AssetImporter.GetAtPath(assetPath) as PluginImporter;
+                if (importer == null)
+                    continue;
+
+                importer.SetCompatibleWithAnyPlatform(false);
+                importer.SetCompatibleWithEditor(false);
+                importer.SetCompatibleWithPlatform(mapping.Target, true);
+                importer.SetPlatformData(mapping.Target, "CPU", mapping.Cpu);
+
+                importer.SaveAndReimport();
+            }
         }
 
         private static void ConfigureNativeDirectory(string directoryAssetPath, string rid)

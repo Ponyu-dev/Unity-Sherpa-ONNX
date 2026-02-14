@@ -19,6 +19,11 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             return arch.Url != null && arch.Url.Contains("android.tar.bz2");
         }
 
+        internal static bool IsIOS(LibraryArch arch)
+        {
+            return arch.Url != null && arch.Url.Contains("ios.tar.bz2");
+        }
+
         internal static PackageInstallPipeline Create(LibraryArch arch)
         {
             IExtractedContentHandler handler = arch == LibraryPlatforms.ManagedLibrary
@@ -55,6 +60,29 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             await handler.HandleAsync(jniLibsPath, ct);
         }
 
+        /// <summary>
+        /// iOS-specific install: uses shared cache, does not re-download
+        /// if archive is already extracted.
+        /// </summary>
+        internal static async Task RuniOSInstallAsync(
+            LibraryArch arch,
+            string version,
+            CancellationToken ct)
+        {
+            string url = BuildUrl(arch, version);
+            string fileName = BuildFileName(arch);
+
+            await iOSArchiveCache.EnsureExtractedAsync(url, fileName, ct);
+
+            string buildIosPath = iOSArchiveCache.FindBuildIosPath();
+
+            if (string.IsNullOrEmpty(buildIosPath))
+                throw new InvalidOperationException("build-ios directory not found in iOS cache.");
+
+            var handler = new iOSNativeContentHandler(arch.Name);
+            await handler.HandleAsync(buildIosPath, ct);
+        }
+
         internal static string BuildUrl(LibraryArch arch, string version)
         {
             return string.Format(arch.Url, version, version);
@@ -64,6 +92,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         {
             if (IsAndroid(arch))
                 return "sherpa-onnx-android.tar.bz2";
+
+            if (IsIOS(arch))
+                return "sherpa-onnx-ios.tar.bz2";
 
             return arch.Name + ".nupkg";
         }

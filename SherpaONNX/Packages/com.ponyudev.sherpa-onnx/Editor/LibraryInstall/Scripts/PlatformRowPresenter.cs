@@ -123,6 +123,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 {
                     await InstallAndroidFlow(version, ct);
                 }
+                else if (InstallPipelineFactory.IsIOS(_libraryArch))
+                {
+                    await InstalliOSFlow(version, ct);
+                }
                 else
                 {
                     await InstallStandardFlow(version, ct);
@@ -173,6 +177,25 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 AndroidArchiveCache.OnStatus -= SetStatus;
                 AndroidArchiveCache.OnProgress01 -= SetProgress01;
                 AndroidArchiveCache.OnError -= HandlePipelineError;
+            }
+        }
+
+        private async Task InstalliOSFlow(string version, CancellationToken ct)
+        {
+            iOSArchiveCache.OnStatus += SetStatus;
+            iOSArchiveCache.OnProgress01 += SetProgress01;
+            iOSArchiveCache.OnError += HandlePipelineError;
+
+            try
+            {
+                await InstallPipelineFactory.RuniOSInstallAsync(
+                    _libraryArch, version, ct);
+            }
+            finally
+            {
+                iOSArchiveCache.OnStatus -= SetStatus;
+                iOSArchiveCache.OnProgress01 -= SetProgress01;
+                iOSArchiveCache.OnError -= HandlePipelineError;
             }
         }
 
