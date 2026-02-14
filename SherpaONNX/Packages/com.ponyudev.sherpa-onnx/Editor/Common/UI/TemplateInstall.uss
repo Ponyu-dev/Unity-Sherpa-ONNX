@@ -41,6 +41,10 @@
     color: rgb(128, 208, 128);
 }
 
+.status-label--update {
+    color: rgb(220, 200, 100);
+}
+
 .btn {
     min-width: 70px;
 }

@@ -30,6 +30,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
         private Button _cleanIosCacheButton;
         private Button _openIosCacheButton;
+        private Button _updateAllButton;
 
         internal SherpaOnnxSettingsView(string mainUxmlPath, string templateUxmlPath)
         {
@@ -66,8 +67,29 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             BindSettingsToUi();
             SubscribeUi();
 
+            AddUpdateAllButton();
             AddManagedDll();
             BuildPlatformRows();
+
+            RefreshUpdateAllButton();
+        }
+
+        private void AddUpdateAllButton()
+        {
+            _updateAllButton = new Button(HandleUpdateAllClicked) { text = "Update All" };
+            _updateAllButton.AddToClassList("btn");
+            _updateAllButton.AddToClassList("btn-warning");
+
+            VisualElement parent = _versionField?.parent;
+            if (parent != null)
+            {
+                int idx = parent.IndexOf(_versionField) + 1;
+                parent.Insert(idx, _updateAllButton);
+            }
+            else
+            {
+                _root?.Add(_updateAllButton);
+            }
         }
 
         private void AddManagedDll()
@@ -224,6 +246,39 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             var s = SherpaOnnxProjectSettings.instance;
             s.version = evt.newValue;
             s.SaveSettings();
+
+            for (int i = 0; i < _presenters.Count; i++)
+                _presenters[i].RefreshStatus();
+
+            RefreshUpdateAllButton();
+        }
+
+        private void HandleUpdateAllClicked()
+        {
+            for (int i = 0; i < _presenters.Count; i++)
+            {
+                if (_presenters[i].NeedsUpdate())
+                    _presenters[i].TriggerInstall();
+            }
+        }
+
+        private void RefreshUpdateAllButton()
+        {
+            if (_updateAllButton == null)
+                return;
+
+            bool anyNeedsUpdate = false;
+
+            for (int i = 0; i < _presenters.Count; i++)
+            {
+                if (_presenters[i].NeedsUpdate())
+                {
+                    anyNeedsUpdate = true;
+                    break;
+                }
+            }
+
+            _updateAllButton.SetEnabled(anyNeedsUpdate);
         }
 
         private void HandleStrictChanged(ChangeEvent<bool> evt)
@@ -263,6 +318,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _openCacheButton = null;
             _cleanIosCacheButton = null;
             _openIosCacheButton = null;
+            _updateAllButton = null;
             _root = null;
         }
     }

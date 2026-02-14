@@ -70,6 +70,10 @@
     color: rgb(128, 208, 128);
 }
 
+.status-label--update {
+    color: rgb(220, 200, 100);
+}
+
 .btn {
     min-width: 70px;
 }
@@ -80,6 +84,10 @@
 
 .btn-secondary {
     background-color: rgb(58, 48, 48);
+}
+
+.btn-warning {
+    background-color: rgb(140, 120, 40);
 }
 
 .platform-foldout {
