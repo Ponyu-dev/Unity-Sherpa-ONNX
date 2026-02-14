@@ -25,6 +25,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private PlatformRowPresenter _managedDllPresenter;
         private readonly List<PlatformRowPresenter> _presenters = new(64);
 
+        private Button _cleanCacheButton;
+        private Button _openCacheButton;
+
         internal SherpaOnnxSettingsView(string mainUxmlPath, string templateUxmlPath)
         {
             _mainUxmlPath = mainUxmlPath;
@@ -83,10 +86,33 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     value = true
                 };
 
+                if (platform.PlatformName == "Android")
+                {
+                    var helpBox = new HelpBox(
+                        "Android libraries are downloaded as a single archive containing all architectures. "
+                        + "The extracted archive is cached so each architecture can be installed without re-downloading. "
+                        + "Use 'Clean cache' to remove the cached archive and free disk space.",
+                        HelpBoxMessageType.Info);
+                    foldout.Add(helpBox);
+
+                    _cleanCacheButton = new Button(HandleCleanAndroidCache)
+                    {
+                        text = "Clean cache"
+                    };
+                    _cleanCacheButton.SetEnabled(AndroidArchiveCache.IsReady);
+                    foldout.Add(_cleanCacheButton);
+
+                    _openCacheButton = new Button(HandleOpenAndroidCache)
+                    {
+                        text = "Open cache"
+                    };
+                    _openCacheButton.SetEnabled(AndroidArchiveCache.IsReady);
+                    foldout.Add(_openCacheButton);
+                }
+
                 foreach (LibraryArch arch in platform.Arches)
                 {
                     VisualElement rowRoot = _templateAsset.CloneTree();
-
                     var presenter = new PlatformRowPresenter(arch, GetVersion);
                     presenter.Build(rowRoot);
 
@@ -96,6 +122,23 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
                 _root.Add(foldout);
             }
+        }
+
+        private void HandleCleanAndroidCache()
+        {
+            AndroidArchiveCache.Clean();
+        }
+
+        private void HandleCacheChanged()
+        {
+            bool ready = AndroidArchiveCache.IsReady;
+            _cleanCacheButton?.SetEnabled(ready);
+            _openCacheButton?.SetEnabled(ready);
+        }
+
+        private static void HandleOpenAndroidCache()
+        {
+            EditorUtility.RevealInFinder(AndroidArchiveCache.CachePath);
         }
 
         private void BindSettingsToUi()
@@ -116,6 +159,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField?.RegisterValueChangedCallback(HandleVersionChanged);
             _strictToggle?.RegisterValueChangedCallback(HandleStrictChanged);
             _macToggle?.RegisterValueChangedCallback(HandleMacChanged);
+            AndroidArchiveCache.OnCacheChanged += HandleCacheChanged;
         }
 
         private void UnsubscribeUi()
@@ -124,6 +168,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField?.UnregisterValueChangedCallback(HandleVersionChanged);
             _strictToggle?.UnregisterValueChangedCallback(HandleStrictChanged);
             _macToggle?.UnregisterValueChangedCallback(HandleMacChanged);
+            AndroidArchiveCache.OnCacheChanged -= HandleCacheChanged;
         }
 
         private void HandleDetachFromPanel(DetachFromPanelEvent evt)
@@ -171,6 +216,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField = null;
             _strictToggle = null;
             _macToggle = null;
+            _cleanCacheButton = null;
+            _openCacheButton = null;
             _root = null;
         }
     }

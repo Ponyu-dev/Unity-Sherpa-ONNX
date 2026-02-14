@@ -118,18 +118,15 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             try
             {
                 string version = _getVersion();
-                string url = InstallPipelineFactory.BuildUrl(_libraryArch, version);
-                string fileName = InstallPipelineFactory.BuildFileName(_libraryArch);
 
-                Debug.Log($"[SherpaOnnx] InstallFlow: {_libraryArch.Name}, url={url}, file={fileName}");
-
-                using var pipeline = InstallPipelineFactory.Create(_libraryArch);
-
-                pipeline.OnStatus += SetStatus;
-                pipeline.OnProgress01 += SetProgress01;
-                pipeline.OnError += HandlePipelineError;
-
-                await pipeline.RunAsync(url, fileName, ct);
+                if (InstallPipelineFactory.IsAndroid(_libraryArch))
+                {
+                    await InstallAndroidFlow(version, ct);
+                }
+                else
+                {
+                    await InstallStandardFlow(version, ct);
+                }
 
                 AssetDatabase.Refresh();
                 PluginImportConfigurator.Configure(_libraryArch);
@@ -143,6 +140,39 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             {
                 _isBusy = false;
                 RefreshStatus();
+            }
+        }
+
+        private async Task InstallStandardFlow(string version, CancellationToken ct)
+        {
+            string url = InstallPipelineFactory.BuildUrl(_libraryArch, version);
+            string fileName = InstallPipelineFactory.BuildFileName(_libraryArch);
+
+            using var pipeline = InstallPipelineFactory.Create(_libraryArch);
+
+            pipeline.OnStatus += SetStatus;
+            pipeline.OnProgress01 += SetProgress01;
+            pipeline.OnError += HandlePipelineError;
+
+            await pipeline.RunAsync(url, fileName, ct);
+        }
+
+        private async Task InstallAndroidFlow(string version, CancellationToken ct)
+        {
+            AndroidArchiveCache.OnStatus += SetStatus;
+            AndroidArchiveCache.OnProgress01 += SetProgress01;
+            AndroidArchiveCache.OnError += HandlePipelineError;
+
+            try
+            {
+                await InstallPipelineFactory.RunAndroidInstallAsync(
+                    _libraryArch, version, ct);
+            }
+            finally
+            {
+                AndroidArchiveCache.OnStatus -= SetStatus;
+                AndroidArchiveCache.OnProgress01 -= SetProgress01;
+                AndroidArchiveCache.OnError -= HandlePipelineError;
             }
         }
 

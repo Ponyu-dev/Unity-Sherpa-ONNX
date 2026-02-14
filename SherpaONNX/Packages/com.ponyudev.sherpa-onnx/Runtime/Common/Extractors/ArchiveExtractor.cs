@@ -64,6 +64,9 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
 
             string lower = archivePath.ToLowerInvariant();
 
+            if (lower.EndsWith(".tar.bz2"))
+                return new TarBz2ArchiveExtractor();
+
             if (lower.EndsWith(".tar.gz"))
                 return new TarGzArchiveExtractor();
 

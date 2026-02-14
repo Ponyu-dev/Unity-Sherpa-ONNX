@@ -43,6 +43,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 
         internal static string GetInstallDirectory(LibraryArch arch)
         {
+            if (InstallPipelineFactory.IsAndroid(arch))
+            {
+                return Path.Combine(
+                    ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                    "Android",
+                    arch.Name);
+            }
+
             return Path.Combine(
                 ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
                 arch.Name);
