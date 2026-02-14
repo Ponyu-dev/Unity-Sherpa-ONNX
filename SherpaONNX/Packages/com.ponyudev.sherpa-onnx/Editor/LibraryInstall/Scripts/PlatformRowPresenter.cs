@@ -68,6 +68,49 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _deleteButton = null;
         }
 
+        internal bool NeedsUpdate()
+        {
+            if (!LibraryInstallStatus.IsInstalled(_libraryArch))
+                return false;
+
+            string installedVer = SherpaOnnxProjectSettings.instance.installedVersion;
+            string currentVer = _getVersion();
+            return !string.IsNullOrEmpty(installedVer) && installedVer != currentVer;
+        }
+
+        internal void TriggerInstall() => HandleInstallClicked();
+
+        internal void RefreshStatus()
+        {
+            bool installed = LibraryInstallStatus.IsInstalled(_libraryArch);
+            bool canOperate = LibraryInstallStatus.CanOperate(_libraryArch);
+            bool needsUpdate = NeedsUpdate();
+
+            if (needsUpdate)
+            {
+                SetStatus("Update available");
+                ApplyStatusStyle("update");
+                SetInstallButtonText("Update");
+                _installButton?.SetEnabled(canOperate);
+            }
+            else if (installed)
+            {
+                SetStatus("Installed");
+                ApplyStatusStyle("installed");
+                SetInstallButtonText("Install");
+                _installButton?.SetEnabled(false);
+            }
+            else
+            {
+                SetStatus("Not installed");
+                ApplyStatusStyle("notinstalled");
+                SetInstallButtonText("Install");
+                _installButton?.SetEnabled(canOperate);
+            }
+
+            _deleteButton?.SetEnabled(canOperate && installed);
+        }
+
         private void Subscribe()
         {
             if (_installButton != null)
@@ -120,17 +163,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 string version = _getVersion();
 
                 if (InstallPipelineFactory.IsAndroid(_libraryArch))
-                {
-                    await InstallAndroidFlow(version, ct);
-                }
+                    await InstallPipelineFactory.RunAndroidInstallAsync(
+                        _libraryArch, version, ct, SetStatus, SetProgress01);
                 else if (InstallPipelineFactory.IsIOS(_libraryArch))
-                {
-                    await InstalliOSFlow(version, ct);
-                }
+                    await InstallPipelineFactory.RuniOSInstallAsync(
+                        _libraryArch, version, ct, SetStatus, SetProgress01);
                 else
-                {
                     await InstallStandardFlow(version, ct);
-                }
 
                 AssetDatabase.Refresh();
                 PluginImportConfigurator.Configure(_libraryArch);
@@ -142,7 +181,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             catch (Exception ex)
             {
                 SetStatus("Error");
-                Debug.LogError($"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
+                Debug.LogError(
+                    $"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
             {
@@ -163,44 +203,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             pipeline.OnError += HandlePipelineError;
 
             await pipeline.RunAsync(url, fileName, ct);
-        }
-
-        private async Task InstallAndroidFlow(string version, CancellationToken ct)
-        {
-            AndroidArchiveCache.OnStatus += SetStatus;
-            AndroidArchiveCache.OnProgress01 += SetProgress01;
-            AndroidArchiveCache.OnError += HandlePipelineError;
-
-            try
-            {
-                await InstallPipelineFactory.RunAndroidInstallAsync(
-                    _libraryArch, version, ct);
-            }
-            finally
-            {
-                AndroidArchiveCache.OnStatus -= SetStatus;
-                AndroidArchiveCache.OnProgress01 -= SetProgress01;
-                AndroidArchiveCache.OnError -= HandlePipelineError;
-            }
-        }
-
-        private async Task InstalliOSFlow(string version, CancellationToken ct)
-        {
-            iOSArchiveCache.OnStatus += SetStatus;
-            iOSArchiveCache.OnProgress01 += SetProgress01;
-            iOSArchiveCache.OnError += HandlePipelineError;
-
-            try
-            {
-                await InstallPipelineFactory.RuniOSInstallAsync(
-                    _libraryArch, version, ct);
-            }
-            finally
-            {
-                iOSArchiveCache.OnStatus -= SetStatus;
-                iOSArchiveCache.OnProgress01 -= SetProgress01;
-                iOSArchiveCache.OnError -= HandlePipelineError;
-            }
         }
 
         private void DeleteFlow()
@@ -225,62 +227,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             catch (Exception ex)
             {
                 SetStatus("Error");
-                Debug.LogError($"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
+                Debug.LogError(
+                    $"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
             {
                 _isBusy = false;
                 RefreshStatus();
             }
-        }
-
-        internal bool NeedsUpdate()
-        {
-            if (!LibraryInstallStatus.IsInstalled(_libraryArch))
-                return false;
-
-            string installedVer = SherpaOnnxProjectSettings.instance.installedVersion;
-            string currentVer = _getVersion();
-            return !string.IsNullOrEmpty(installedVer) && installedVer != currentVer;
-        }
-
-        internal void TriggerInstall()
-        {
-            HandleInstallClicked();
-        }
-
-        internal void RefreshStatus()
-        {
-            bool installed = LibraryInstallStatus.IsInstalled(_libraryArch);
-            bool canOperate = LibraryInstallStatus.CanOperate(_libraryArch);
-            bool needsUpdate = NeedsUpdate();
-
-            if (needsUpdate)
-            {
-                SetStatus("Update available");
-                ApplyStatusStyle("update");
-                if (_installButton != null)
-                    _installButton.text = "Update";
-                _installButton?.SetEnabled(canOperate);
-            }
-            else if (installed)
-            {
-                SetStatus("Installed");
-                ApplyStatusStyle("installed");
-                if (_installButton != null)
-                    _installButton.text = "Install";
-                _installButton?.SetEnabled(false);
-            }
-            else
-            {
-                SetStatus("Not installed");
-                ApplyStatusStyle("notinstalled");
-                if (_installButton != null)
-                    _installButton.text = "Install";
-                _installButton?.SetEnabled(canOperate);
-            }
-
-            _deleteButton?.SetEnabled(canOperate && installed);
         }
 
         private void ApplyStatusStyle(string state)
@@ -304,6 +258,12 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
+        }
+
+        private void SetInstallButtonText(string text)
+        {
+            if (_installButton != null)
+                _installButton.text = text;
         }
 
         private void SetProgress01(float p01)

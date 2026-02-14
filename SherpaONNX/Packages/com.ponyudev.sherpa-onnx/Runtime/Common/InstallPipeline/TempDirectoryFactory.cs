@@ -1,5 +1,5 @@
 using System;
-using System.IO;
+using PonyuDev.SherpaOnnx.Common.IO;
 
 namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
 {
@@ -29,38 +29,17 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
             public TempDirectory(string path)
             {
                 Path = path;
-                EnsureCreatedEmpty(path);
+                FileSystemHelper.EnsureCreatedEmpty(path);
             }
 
             public void Clean()
             {
-                EnsureCreatedEmpty(Path);
+                FileSystemHelper.EnsureCreatedEmpty(Path);
             }
 
             public void Dispose()
             {
-                TryDeleteDirectory(Path);
-            }
-
-            private static void EnsureCreatedEmpty(string path)
-            {
-                if (Directory.Exists(path))
-                    Directory.Delete(path, recursive: true);
-
-                Directory.CreateDirectory(path);
-            }
-
-            private static void TryDeleteDirectory(string path)
-            {
-                try
-                {
-                    if (Directory.Exists(path))
-                        Directory.Delete(path, recursive: true);
-                }
-                catch
-                {
-                    // ignore
-                }
+                FileSystemHelper.TryDeleteDirectory(Path);
             }
         }
     }
