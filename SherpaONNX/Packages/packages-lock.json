@@ -4,7 +4,9 @@
       "version": "file:com.ponyudev.sherpa-onnx",
       "depth": 0,
       "source": "embedded",
-      "dependencies": {}
+      "dependencies": {
+        "com.unity.sharp-zip-lib": "1.4.1"
+      }
     },
     "com.unity.ext.nunit": {
       "version": "2.0.5",
@@ -37,6 +39,13 @@
       "dependencies": {
         "com.unity.modules.uielements": "1.0.0"
       },
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.sharp-zip-lib": {
+      "version": "1.4.1",
+      "depth": 1,
+      "source": "registry",
+      "dependencies": {},
       "url": "https://packages.unity.com"
     },
     "com.unity.test-framework": {

@@ -14,5 +14,8 @@
   ],
   "author": {
     "name": "PonyuDev"
+  },
+  "dependencies": {
+    "com.unity.sharp-zip-lib": "1.4.1"
   }
 }
