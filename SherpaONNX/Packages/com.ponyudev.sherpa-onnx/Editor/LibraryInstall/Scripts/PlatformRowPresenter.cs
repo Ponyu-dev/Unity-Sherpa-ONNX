@@ -173,6 +173,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
                 AssetDatabase.Refresh();
                 PluginImportConfigurator.Configure(_libraryArch);
+                ScriptingDefineHelper.EnsureDefine();
 
                 var s = SherpaOnnxProjectSettings.instance;
                 s.installedVersion = version;
@@ -222,6 +223,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     var s = SherpaOnnxProjectSettings.instance;
                     s.installedVersion = "";
                     s.SaveSettings();
+                    ScriptingDefineHelper.RemoveDefine();
                 }
             }
             catch (Exception ex)

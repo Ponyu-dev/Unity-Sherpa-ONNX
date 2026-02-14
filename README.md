@@ -12,6 +12,7 @@ Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx
 | Version management & Update All | ✅ Done |
 | Archive caching (Android, iOS) | ✅ Done |
 | iOS managed DLL with `__Internal` binding | ✅ Done |
+| `SHERPA_ONNX` scripting define symbol | ✅ Done |
 | TTS model installer (Editor UI) | 🚧 In Progress |
 | Text-to-Speech (TTS) | 📋 Planned |
 | Speech Recognition (ASR) | 📋 Planned |
@@ -67,6 +68,18 @@ To solve this, the `Tools/` scripts in this repository:
 4. Publish it as a GitHub release with tag `sherpa-v{version}`
 
 The plugin's iOS install pipeline downloads this patched DLL automatically.
+
+## Scripting Define Symbol
+
+After installing any library, the plugin automatically adds **`SHERPA_ONNX`** to Scripting Define Symbols for all build targets. This allows you to guard runtime code that depends on sherpa-onnx:
+
+```csharp
+#if SHERPA_ONNX
+    var recognizer = new OnlineRecognizer(config);
+#endif
+```
+
+The define is removed automatically when all libraries are uninstalled.
 
 ## Requirements
 
