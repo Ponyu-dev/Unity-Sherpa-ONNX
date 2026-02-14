@@ -21,6 +21,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
             ["osx-arm64"] = (BuildTarget.StandaloneOSX, "ARM64"),
             ["linux-x64"] = (BuildTarget.StandaloneLinux64, "x86_64"),
             ["linux-arm64"] = (BuildTarget.StandaloneLinux64, "ARM64"),
+            ["arm64-v8a"] = (BuildTarget.Android, "ARM64"),
+            ["armeabi-v7a"] = (BuildTarget.Android, "ARMv7"),
+            ["x86"] = (BuildTarget.Android, "x86"),
+            ["x86_64"] = (BuildTarget.Android, "x86_64"),
         };
 
         /// <summary>
@@ -34,6 +38,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
                     ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
                     ConstantsInstallerPaths.ManagedDllFileName);
                 ConfigureManagedDll(assetPath);
+            }
+            else if (InstallPipelineFactory.IsAndroid(arch))
+            {
+                string dirPath = Path.Combine(
+                    ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                    "Android",
+                    arch.Name);
+                ConfigureNativeDirectory(dirPath, arch.Name);
             }
             else
             {
@@ -75,10 +87,17 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
                 return;
 
             importer.SetCompatibleWithAnyPlatform(false);
-            importer.SetCompatibleWithEditor(true);
 
-            importer.SetEditorData("OS", GetEditorOs(mapping.Target));
-            importer.SetEditorData("CPU", mapping.Cpu);
+            bool isAndroid = mapping.Target == BuildTarget.Android;
+
+            // Android plugins are not compatible with Editor
+            importer.SetCompatibleWithEditor(!isAndroid);
+
+            if (!isAndroid)
+            {
+                importer.SetEditorData("OS", GetEditorOs(mapping.Target));
+                importer.SetEditorData("CPU", mapping.Cpu);
+            }
 
             importer.SetCompatibleWithPlatform(mapping.Target, true);
             importer.SetPlatformData(mapping.Target, "CPU", mapping.Cpu);
