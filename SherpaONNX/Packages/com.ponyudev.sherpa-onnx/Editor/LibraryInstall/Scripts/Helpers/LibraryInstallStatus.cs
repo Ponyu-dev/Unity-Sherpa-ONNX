@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 {
@@ -25,6 +26,16 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             return File.Exists(Path.Combine(
                 ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
                 ConstantsInstallerPaths.ManagedDllFileName));
+        }
+
+        internal static bool HasAnyInstalled()
+        {
+            if (IsManagedDllPresent())
+                return true;
+
+            return LibraryPlatforms.Platforms
+                .SelectMany(p => p.Arches)
+                .Any(IsInstalled);
         }
 
         internal static bool CanOperate(LibraryArch arch)

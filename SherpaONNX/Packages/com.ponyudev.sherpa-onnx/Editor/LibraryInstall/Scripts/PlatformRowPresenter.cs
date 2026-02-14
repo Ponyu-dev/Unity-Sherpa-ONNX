@@ -134,6 +134,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
                 AssetDatabase.Refresh();
                 PluginImportConfigurator.Configure(_libraryArch);
+
+                var s = SherpaOnnxProjectSettings.instance;
+                s.installedVersion = version;
+                s.SaveSettings();
             }
             catch (Exception ex)
             {
@@ -210,6 +214,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 pipeline.Run(LibraryInstallStatus.GetDeleteTargetPath(_libraryArch));
 
                 AssetDatabase.Refresh();
+
+                if (!LibraryInstallStatus.HasAnyInstalled())
+                {
+                    var s = SherpaOnnxProjectSettings.instance;
+                    s.installedVersion = "";
+                    s.SaveSettings();
+                }
             }
             catch (Exception ex)
             {
@@ -223,28 +234,64 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
         }
 
-        private void RefreshStatus()
+        internal bool NeedsUpdate()
+        {
+            if (!LibraryInstallStatus.IsInstalled(_libraryArch))
+                return false;
+
+            string installedVer = SherpaOnnxProjectSettings.instance.installedVersion;
+            string currentVer = _getVersion();
+            return !string.IsNullOrEmpty(installedVer) && installedVer != currentVer;
+        }
+
+        internal void TriggerInstall()
+        {
+            HandleInstallClicked();
+        }
+
+        internal void RefreshStatus()
         {
             bool installed = LibraryInstallStatus.IsInstalled(_libraryArch);
             bool canOperate = LibraryInstallStatus.CanOperate(_libraryArch);
+            bool needsUpdate = NeedsUpdate();
 
-            SetStatus(installed ? "Installed" : "Not installed");
-            ApplyStatusStyle(installed);
+            if (needsUpdate)
+            {
+                SetStatus("Update available");
+                ApplyStatusStyle("update");
+                if (_installButton != null)
+                    _installButton.text = "Update";
+                _installButton?.SetEnabled(canOperate);
+            }
+            else if (installed)
+            {
+                SetStatus("Installed");
+                ApplyStatusStyle("installed");
+                if (_installButton != null)
+                    _installButton.text = "Install";
+                _installButton?.SetEnabled(false);
+            }
+            else
+            {
+                SetStatus("Not installed");
+                ApplyStatusStyle("notinstalled");
+                if (_installButton != null)
+                    _installButton.text = "Install";
+                _installButton?.SetEnabled(canOperate);
+            }
 
-            _installButton?.SetEnabled(canOperate && !installed);
             _deleteButton?.SetEnabled(canOperate && installed);
         }
 
-        private void ApplyStatusStyle(bool installed)
+        private void ApplyStatusStyle(string state)
         {
             if (_statusLabel == null)
                 return;
 
             _statusLabel.RemoveFromClassList("status-label--installed");
             _statusLabel.RemoveFromClassList("status-label--notinstalled");
-            _statusLabel.AddToClassList(installed
-                ? "status-label--installed"
-                : "status-label--notinstalled");
+            _statusLabel.RemoveFromClassList("status-label--update");
+            _statusLabel.AddToClassList("status-label--" + state);
         }
 
         private void HandlePipelineError(string message)
