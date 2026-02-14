@@ -18,12 +18,12 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
     {
         internal static bool IsAndroid(LibraryArch arch)
         {
-            return arch.Url != null && arch.Url.Contains("android.tar.bz2");
+            return arch.Platform == PlatformType.Android;
         }
 
         internal static bool IsIOS(LibraryArch arch)
         {
-            return arch.Url != null && arch.Url.Contains("ios.tar.bz2");
+            return arch.Platform == PlatformType.iOS;
         }
 
         internal static PackageInstallPipeline Create(LibraryArch arch)

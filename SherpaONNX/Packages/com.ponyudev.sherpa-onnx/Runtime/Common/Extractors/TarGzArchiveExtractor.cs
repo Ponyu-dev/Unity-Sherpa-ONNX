@@ -2,7 +2,6 @@ using System;
 using System.Buffers;
 using System.IO;
 using System.IO.Compression;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,7 +14,6 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
         public event Action<string> OnCompleted;
         public event Action<string> OnError;
 
-        private const int TarBlockSize = 512;
         private const int CopyBufferSize = 64 * 1024;
 
         private bool _disposed;
@@ -38,20 +36,20 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
                 await using (var file = File.OpenRead(archivePath))
                 await using (var gz = new GZipStream(file, CompressionMode.Decompress))
                 {
-                    byte[] header = new byte[TarBlockSize];
+                    byte[] header = new byte[TarUtils.BlockSize];
 
                     while (true)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
-                        int read = ReadExact(gz, header, 0, TarBlockSize);
+                        int read = TarUtils.ReadExact(gz, header, 0, TarUtils.BlockSize);
                         if (read == 0)
                             break;
 
-                        if (read < TarBlockSize)
+                        if (read < TarUtils.BlockSize)
                             throw new InvalidDataException("Invalid tar header.");
 
-                        if (IsAllZeroBlock(header))
+                        if (TarUtils.IsAllZeroBlock(header))
                             break;
 
                         TarHeader tarHeader = TarHeader.Parse(header);
@@ -59,7 +57,7 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
                         if (string.IsNullOrEmpty(tarHeader.Name))
                             throw new InvalidDataException("Tar entry has empty name.");
 
-                        string safeName = NormalizeEntryPath(tarHeader.Name);
+                        string safeName = TarUtils.NormalizeEntryPath(tarHeader.Name);
                         string outPath = Path.Combine(tempDirectoryPath, safeName);
 
                         if (tarHeader.IsDirectory)
@@ -118,42 +116,6 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
             Directory.CreateDirectory(path);
         }
 
-        private static int ReadExact(Stream s, byte[] buffer, int offset, int count)
-        {
-            int total = 0;
-            while (total < count)
-            {
-                int r = s.Read(buffer, offset + total, count - total);
-                if (r <= 0)
-                    return total;
-                total += r;
-            }
-            return total;
-        }
-
-        private static bool IsAllZeroBlock(byte[] block)
-        {
-            for (int i = 0; i < block.Length; i++)
-            {
-                if (block[i] != 0)
-                    return false;
-            }
-            return true;
-        }
-
-        private static string NormalizeEntryPath(string name)
-        {
-            // Prevent traversal like "../../"
-            name = name.Replace('\\', '/');
-            while (name.StartsWith("/", StringComparison.Ordinal))
-                name = name.Substring(1);
-
-            if (name.Contains(".."))
-                throw new InvalidDataException("Tar entry contains invalid path: " + name);
-
-            return name;
-        }
-
         private static async Task ExtractFileAsync(Stream tarStream, string outPath, long size, CancellationToken ct)
         {
             byte[] buffer = ArrayPool<byte>.Shared.Rent(CopyBufferSize);
@@ -187,12 +149,12 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
 
         private static void SkipPadding(Stream tarStream, long fileSize, CancellationToken ct)
         {
-            long pad = fileSize % TarBlockSize;
+            long pad = fileSize % TarUtils.BlockSize;
             if (pad == 0)
                 return;
 
-            long toSkip = TarBlockSize - pad;
-            byte[] skip = ArrayPool<byte>.Shared.Rent((int)TarBlockSize);
+            long toSkip = TarUtils.BlockSize - pad;
+            byte[] skip = ArrayPool<byte>.Shared.Rent(TarUtils.BlockSize);
 
             try
             {
@@ -215,71 +177,5 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
         }
 
         private void RaiseError(string msg) => OnError?.Invoke(msg);
-
-        private readonly struct TarHeader
-        {
-            public readonly string Name;
-            public readonly long Size;
-            public readonly byte TypeFlag;
-
-            public bool IsDirectory => TypeFlag == (byte)'5' || Name.EndsWith("/", StringComparison.Ordinal);
-
-            private TarHeader(string name, long size, byte typeFlag)
-            {
-                Name = name;
-                Size = size;
-                TypeFlag = typeFlag;
-            }
-
-            public static TarHeader Parse(byte[] header)
-            {
-                string name = ReadNullTerminatedString(header, 0, 100);
-                string sizeOctal = ReadNullTerminatedString(header, 124, 12);
-                byte typeFlag = header[156];
-
-                // ustar prefix (optional)
-                string prefix = ReadNullTerminatedString(header, 345, 155);
-                if (!string.IsNullOrEmpty(prefix))
-                    name = prefix + "/" + name;
-
-                long size = ParseOctalLong(sizeOctal);
-
-                // Regular files usually have '0' or '\0'
-                if (typeFlag == 0)
-                    typeFlag = (byte)'0';
-
-                return new TarHeader(name, size, typeFlag);
-            }
-
-            private static string ReadNullTerminatedString(byte[] bytes, int offset, int length)
-            {
-                int end = offset;
-                int max = offset + length;
-
-                while (end < max && bytes[end] != 0)
-                    end++;
-
-                return Encoding.ASCII.GetString(bytes, offset, end - offset).Trim();
-            }
-
-            private static long ParseOctalLong(string octal)
-            {
-                if (string.IsNullOrEmpty(octal))
-                    return 0;
-
-                octal = octal.Trim();
-
-                long value = 0;
-                for (int i = 0; i < octal.Length; i++)
-                {
-                    char c = octal[i];
-                    if (c < '0' || c > '7')
-                        break;
-
-                    value = (value << 3) + (c - '0');
-                }
-                return value;
-            }
-        }
     }
 }
