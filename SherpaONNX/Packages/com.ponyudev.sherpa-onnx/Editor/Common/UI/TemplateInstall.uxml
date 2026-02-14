@@ -1,0 +1,12 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/TemplateInstall.uss?fileID=7433441132597879392&amp;guid=47353cc50f5674f2baa01691eee1c248&amp;type=3#TemplateInstall"/>
+    <ui:VisualElement name="Template" class="platform-row-wrap">
+        <ui:VisualElement class="platform-row row row--space">
+            <ui:VisualElement name="progress" class="progress"/>
+            <ui:Label text="iOS" name="platformType" class="platform-label"/>
+            <ui:Label name="status" text="Not installed" class="status-label status-label--notinstalled"/>
+            <ui:Button name="btnInstall" text="Install" class="btn btn-primary"/>
+            <ui:Button name="btnDelete" text="Delete" class="btn btn-secondary"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

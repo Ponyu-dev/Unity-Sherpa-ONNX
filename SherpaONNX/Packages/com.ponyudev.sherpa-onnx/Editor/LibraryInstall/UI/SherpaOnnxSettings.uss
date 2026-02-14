@@ -1,0 +1,119 @@
+.sherpa-root {
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 8px 10px;
+}
+
+.sherpa-root > .header-block {
+    margin-bottom: 6px;
+}
+
+.header-block {
+    flex-direction: column;
+}
+
+.header-block > .header-title {
+    margin-bottom: 4px;
+}
+
+.row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.row--space {
+    justify-content: space-between;
+}
+
+.row--space > * {
+    margin-right: 6px;
+}
+
+.field-label {
+    width: 90px;
+}
+
+.field-input {
+    flex-grow: 0;
+}
+
+.option-toggle {
+    margin-left: 2px;
+}
+
+.section {
+    margin-top: 6px;
+    margin-bottom: 2px;
+}
+
+.section-header {
+    padding: 4px 6px;
+    background-color: rgb(37, 37, 37);
+    border-radius: 2px;
+}
+
+.section-title {
+    unity-font-style: bold;
+}
+
+.status-label {
+    min-width: 90px;
+    text-align: right;
+    margin-right: 4px;
+}
+
+.status-label--notinstalled {
+    color: rgb(208, 128, 128);
+}
+
+.status-label--installed {
+    color: rgb(128, 208, 128);
+}
+
+.btn {
+    min-width: 70px;
+}
+
+.btn-primary {
+    background-color: rgb(47, 95, 63);
+}
+
+.btn-secondary {
+    background-color: rgb(58, 48, 48);
+}
+
+.platform-foldout {
+    margin-top: 6px;
+}
+
+.platform-row-wrap {
+    flex-direction: column;
+    margin-top: 2px;
+}
+
+.platform-row {
+    padding: 3px 6px;
+    background-color: rgb(32, 32, 32);
+    margin-top: 2px;
+    border-radius: 2px;
+}
+
+.install-progress-container {
+    flex-direction: column;
+    padding: 4px 8px;
+    margin-left: 6px;
+    margin-top: 2px;
+}
+
+.progress-label {
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.install-progress-bar {
+    height: 6px;
+}
+
+.platform-label {
+    flex-grow: 1;
+}

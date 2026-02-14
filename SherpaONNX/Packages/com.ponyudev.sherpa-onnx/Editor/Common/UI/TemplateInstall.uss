@@ -1,0 +1,66 @@
+.platform-row-wrap {
+    flex-direction: column;
+    margin-top: 2px;
+}
+
+.platform-row {
+    padding: 3px 6px;
+    background-color: rgb(32, 32, 32);
+    margin-top: 2px;
+    border-radius: 2px;
+}
+
+.row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.row--space {
+    justify-content: space-between;
+}
+
+.row--space > * {
+    margin-right: 6px;
+}
+
+.platform-label {
+    flex-grow: 1;
+}
+
+.status-label {
+    min-width: 90px;
+    text-align: right;
+    margin-right: 4px;
+}
+
+.status-label--notinstalled {
+    color: rgb(208, 128, 128);
+}
+
+.status-label--installed {
+    color: rgb(128, 208, 128);
+}
+
+.btn {
+    min-width: 70px;
+}
+
+.btn-primary {
+    background-color: rgb(47, 95, 63);
+}
+
+.btn-secondary {
+    background-color: rgb(58, 48, 48);
+}
+
+.progress {
+    flex-grow: 1;
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-color: rgb(37, 89, 27);
+    transform-origin: left;
+    scale: 0 1;
+}
