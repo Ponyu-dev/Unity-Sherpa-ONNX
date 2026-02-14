@@ -106,6 +106,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                         Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-android.tar.bz2",
                         RootPath = "",
                         IsManagedDllRoot = true,
+                        Platform = PlatformType.Android,
                     },
                     new()
                     {
@@ -113,6 +114,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                         Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-android.tar.bz2",
                         RootPath = "",
                         IsManagedDllRoot = true,
+                        Platform = PlatformType.Android,
                     },
                     new()
                     {
@@ -120,6 +122,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                         Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-android.tar.bz2",
                         RootPath = "",
                         IsManagedDllRoot = true,
+                        Platform = PlatformType.Android,
                     },
                     new()
                     {
@@ -127,6 +130,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                         Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-android.tar.bz2",
                         RootPath = "",
                         IsManagedDllRoot = true,
+                        Platform = PlatformType.Android,
                     }
                 }
             },
@@ -142,6 +146,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                         Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-ios.tar.bz2",
                         RootPath = "",
                         IsManagedDllRoot = false,
+                        Platform = PlatformType.iOS,
                     },
                     new()
                     {
@@ -149,6 +154,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                         Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-ios.tar.bz2",
                         RootPath = "",
                         IsManagedDllRoot = false,
+                        Platform = PlatformType.iOS,
                     },
                 }
             }
@@ -161,11 +167,19 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         public List<LibraryArch> Arches = new();
     }
     
+    internal enum PlatformType
+    {
+        Desktop,
+        Android,
+        iOS
+    }
+
     internal class LibraryArch
     {
         public string Name;
         public string Url;
         public string RootPath;
         public bool IsManagedDllRoot;
+        public PlatformType Platform = PlatformType.Desktop;
     }
 }
