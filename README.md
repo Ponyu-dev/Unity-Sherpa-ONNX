@@ -13,7 +13,7 @@ Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx
 | Archive caching (Android, iOS) | ✅ Done |
 | iOS managed DLL with `__Internal` binding | ✅ Done |
 | `SHERPA_ONNX` scripting define symbol | ✅ Done |
-| TTS model installer (Editor UI) | 🚧 In Progress |
+| TTS model installer (Editor UI) | ✅ Done |
 | Text-to-Speech (TTS) | 📋 Planned |
 | Speech Recognition (ASR) | 📋 Planned |
 
@@ -50,6 +50,24 @@ Libraries are downloaded from:
 - **Desktop** (Windows, macOS, Linux): [NuGet](https://www.nuget.org/packages?q=org.k2fsa.sherpa.onnx.runtime)
 - **Android / iOS native**: [sherpa-onnx GitHub releases](https://github.com/k2-fsa/sherpa-onnx/releases)
 - **iOS managed DLL**: this repository's [GitHub releases](https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases) (see below)
+
+### Setting Up TTS Models
+
+1. Open **Project Settings > Sherpa-ONNX > TTS**
+2. Click **Import from URL** and paste a model archive link
+3. The importer downloads, extracts, and auto-configures the profile
+4. Select the **Active profile** to use at runtime
+
+Key features of the TTS model installer:
+
+- **6 model architectures** — Vits (Piper), Matcha, Kokoro, Kitten, ZipVoice, Pocket
+- **Auto-detection** — model type and paths are configured automatically from the archive
+- **Int8 quantization** — one-click switch between normal and int8 models
+- **Flexible deployment** — Local (StreamingAssets), Remote (runtime download), or LocalZip (compressed at build time)
+- **Matcha vocoder selector** — choose and download vocoders independently
+- **Cache pooling** — configurable pools for audio buffers, AudioClips, and AudioSources
+
+For the full setup guide, see [Docs/tts-models-setup.md](SherpaONNX/Packages/com.ponyudev.sherpa-onnx/Docs/tts-models-setup.md).
 
 ## Why the iOS Managed DLL Is Hosted Here
 
