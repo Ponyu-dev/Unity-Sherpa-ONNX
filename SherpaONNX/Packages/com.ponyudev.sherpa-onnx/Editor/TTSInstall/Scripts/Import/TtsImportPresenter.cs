@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private readonly MatchaVocoderImportField _vocoderField = new MatchaVocoderImportField();
 
         private TextField _urlField;
+        private VisualElement _optionsRow;
         private Toggle _int8Toggle;
         private Button _importButton;
         private Button _cancelButton;
@@ -41,47 +42,58 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         internal void Build(VisualElement parent)
         {
-            var row = new VisualElement();
-            row.AddToClassList("tts-import-row");
+            var container = new VisualElement();
+            container.AddToClassList("tts-import-row");
 
             _urlField = new TextField("Model archive URL");
             _urlField.AddToClassList("tts-import-url");
             _urlField.RegisterValueChangedCallback(HandleUrlChanged);
-            row.Add(_urlField);
+            container.Add(_urlField);
 
-            row.Add(_vocoderField.Build());
+            _optionsRow = new VisualElement();
+            _optionsRow.style.flexDirection = FlexDirection.Row;
+            _optionsRow.style.alignItems = Align.Center;
+            _optionsRow.style.display = DisplayStyle.None;
+
+            _optionsRow.Add(_vocoderField.Build());
 
             _int8Toggle = new Toggle("Use int8 models");
             _int8Toggle.style.display = DisplayStyle.None;
-            _int8Toggle.style.flexShrink = 0;
-            row.Add(_int8Toggle);
+            _optionsRow.Add(_int8Toggle);
+
+            container.Add(_optionsRow);
+
+            var buttonsRow = new VisualElement();
+            buttonsRow.style.flexDirection = FlexDirection.Row;
+            buttonsRow.style.justifyContent = Justify.FlexEnd;
+            buttonsRow.style.marginTop = 4;
 
             _importButton = new Button { text = "Import" };
             _importButton.AddToClassList("btn");
             _importButton.AddToClassList("btn-primary");
-            _importButton.style.flexShrink = 0;
             _importButton.clicked += HandleImportClicked;
-            row.Add(_importButton);
+            buttonsRow.Add(_importButton);
 
             _cancelButton = new Button { text = "Cancel" };
             _cancelButton.AddToClassList("btn");
             _cancelButton.AddToClassList("btn-secondary");
-            _cancelButton.style.flexShrink = 0;
             _cancelButton.clicked += HandleCancelClicked;
             _cancelButton.style.display = DisplayStyle.None;
-            row.Add(_cancelButton);
+            buttonsRow.Add(_cancelButton);
 
-            parent.Add(row);
+            container.Add(buttonsRow);
 
             _progressBar = new ProgressBar { title = "" };
             _progressBar.AddToClassList("tts-import-progress");
             _progressBar.style.display = DisplayStyle.None;
-            parent.Add(_progressBar);
+            container.Add(_progressBar);
 
             _statusLabel = new Label();
             _statusLabel.AddToClassList("tts-import-status");
             _statusLabel.style.display = DisplayStyle.None;
-            parent.Add(_statusLabel);
+            container.Add(_statusLabel);
+
+            parent.Add(container);
         }
 
         public void Dispose()
@@ -97,6 +109,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             _importButton = null;
             _cancelButton = null;
             _urlField = null;
+            _optionsRow = null;
             _int8Toggle = null;
             _progressBar = null;
             _statusLabel = null;
@@ -147,13 +160,26 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         private void HandleUrlChanged(ChangeEvent<string> evt)
         {
-            string archiveName = ArchiveNameParser.GetArchiveName(evt.newValue ?? "");
-            TtsModelType? detected = TtsModelTypeDetector.Detect(archiveName);
+            string url = evt.newValue?.Trim() ?? "";
+            TtsModelType? detected = null;
 
-            _vocoderField.SetVisible(detected == TtsModelType.Matcha);
+            if (!string.IsNullOrEmpty(url))
+            {
+                string archiveName = ArchiveNameParser.GetArchiveName(url);
+                detected = TtsModelTypeDetector.Detect(archiveName);
+            }
+
+            bool isMatcha = detected == TtsModelType.Matcha;
+            bool hasModel = detected.HasValue;
+
+            _vocoderField.SetVisible(isMatcha);
 
             if (_int8Toggle != null)
-                _int8Toggle.style.display = detected.HasValue
+                _int8Toggle.style.display = hasModel
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (_optionsRow != null)
+                _optionsRow.style.display = hasModel
                     ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
