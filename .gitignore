@@ -102,3 +102,7 @@
 # Tools build artifacts
 Tools/output/
 Tools/.build-ios/
+
+# Override global *~ ignore for UPM Samples~ convention
+!**/Samples~
+!**/Samples~/**

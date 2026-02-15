@@ -14,7 +14,7 @@ namespace PonyuDev.SherpaOnnx.Tts
     /// manual instantiation from a MonoBehaviour.
     /// Never throws at runtime — logs errors instead.
     /// </summary>
-    public sealed class TtsService : ITtsService
+    public sealed partial class TtsService : ITtsService
     {
         private TtsSettingsData _settings;
         private ITtsEngine _engine;

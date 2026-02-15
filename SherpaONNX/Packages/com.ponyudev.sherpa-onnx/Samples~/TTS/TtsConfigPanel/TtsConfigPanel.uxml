@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="TtsConfigPanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="TTS with Config" class="sample-title"/>
+
+        <ui:TextField name="textField" label="Text" multiline="true"
+                      value="Advanced generation with extra configuration parameters."
+                      class="sample-text-field"/>
+
+        <ui:VisualElement class="sample-params-row">
+            <ui:FloatField name="speedField" label="Speed" value="1.0"
+                           class="sample-param"/>
+            <ui:IntegerField name="speakerIdField" label="Speaker ID" value="0"
+                             class="sample-param"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="sample-params-row">
+            <ui:FloatField name="silenceScaleField" label="Silence Scale"
+                           value="0.2" class="sample-param"/>
+            <ui:IntegerField name="numStepsField" label="Num Steps"
+                             value="5" class="sample-param"/>
+        </ui:VisualElement>
+
+        <ui:Button name="generateButton" text="Generate with Config"
+                   class="sample-generate-btn"/>
+
+        <ui:ProgressBar name="progressBar" title="Progress"
+                        low-value="0" high-value="100" value="0"
+                        class="sample-progress-bar"/>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>

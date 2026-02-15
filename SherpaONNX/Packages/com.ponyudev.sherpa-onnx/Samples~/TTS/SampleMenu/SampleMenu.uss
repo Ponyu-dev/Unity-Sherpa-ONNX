@@ -1,0 +1,31 @@
+/* ── SampleMenu styles ── */
+
+.menu-card {
+    padding: 24px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    background-color: rgba(60, 60, 60, 0.8);
+    border-width: 1px;
+    border-color: rgba(100, 100, 100, 0.5);
+    flex-direction: column;
+    align-items: flex-start;
+    min-height: 100px;
+}
+
+.menu-card:hover {
+    background-color: rgba(80, 80, 80, 0.9);
+    border-color: rgba(140, 140, 140, 0.7);
+}
+
+.menu-card-title {
+    font-size: 32px;
+    -unity-font-style: bold;
+    margin-bottom: 8px;
+    color: rgb(220, 220, 220);
+}
+
+.menu-card-desc {
+    font-size: 24px;
+    color: rgb(160, 160, 160);
+    white-space: normal;
+}
