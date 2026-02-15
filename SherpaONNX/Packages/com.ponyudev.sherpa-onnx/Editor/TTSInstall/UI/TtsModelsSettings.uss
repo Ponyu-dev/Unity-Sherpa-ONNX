@@ -129,6 +129,10 @@
     align-items: center;
 }
 
+.tts-active-profile-section {
+    margin-bottom: 8px;
+}
+
 .tts-import-section {
     margin-bottom: 8px;
 }

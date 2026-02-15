@@ -106,11 +106,22 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             DeleteModelDirectory(profile.profileName);
 
             _settings.data.profiles.RemoveAt(index);
+            AdjustActiveIndexAfterRemove(index);
             _settings.SaveSettings();
 
             _listView.selectedIndex = -1;
             SelectionChanged?.Invoke(-1);
             RefreshList();
+        }
+
+        private void AdjustActiveIndexAfterRemove(int removedIndex)
+        {
+            int active = _settings.data.activeProfileIndex;
+
+            if (active == removedIndex)
+                _settings.data.activeProfileIndex = -1;
+            else if (active > removedIndex)
+                _settings.data.activeProfileIndex = active - 1;
         }
 
         private static void DeleteModelDirectory(string profileName)
