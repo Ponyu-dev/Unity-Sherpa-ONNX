@@ -152,7 +152,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                     ProfileFieldBuilder.BuildVits(_detailContent, b);
                     break;
                 case TtsModelType.Matcha:
-                    ProfileFieldBuilder.BuildMatcha(_detailContent, b);
+                    ProfileFieldBuilder.BuildMatcha(
+                        _detailContent, b, _settings, HandleRefreshProfile);
                     break;
                 case TtsModelType.Kokoro:
                     ProfileFieldBuilder.BuildKokoro(_detailContent, b);
@@ -213,6 +214,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             else
                 TtsInt8Switcher.SwitchToInt8(profile, modelDir);
             _settings.SaveSettings();
+            ShowProfile(_currentIndex);
+        }
+
+        private void HandleRefreshProfile()
+        {
             ShowProfile(_currentIndex);
         }
 
