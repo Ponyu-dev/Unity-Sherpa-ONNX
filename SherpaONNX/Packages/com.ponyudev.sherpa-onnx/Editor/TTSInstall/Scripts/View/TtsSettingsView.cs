@@ -52,7 +52,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             TtsProjectSettings settings = TtsProjectSettings.instance;
 
-            BuildLinks(hostRoot);
+            BindLinks(hostRoot);
             BuildCacheSection(hostRoot, settings);
             BuildProfilePresenters(hostRoot, settings);
         }
@@ -82,39 +82,23 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         // ── Links ──
 
-        private static void BuildLinks(VisualElement root)
+        private static void BindLinks(VisualElement root)
         {
-            var header = root.Q<VisualElement>("tts-header");
-            if (header?.parent == null)
-                return;
+            RegisterLink(root, "linkModels", GitHubModelsUrl);
+            RegisterLink(root, "linkTryVoices", HuggingFaceUrl);
+        }
 
-            VisualElement container = header.parent;
-            int insertIndex = container.IndexOf(header) + 1;
+        private static void RegisterLink(VisualElement root, string name, string url)
+        {
+            var label = root.Q<Label>(name);
+            if (label == null) return;
 
-            var linksRow = new VisualElement
-            {
-                style =
-                {
-                    flexDirection = FlexDirection.Row,
-                    marginTop = 4,
-                    marginBottom = 8
-                }
-            };
+            label.RegisterCallback<PointerUpEvent, string>(HandleLinkClicked, url);
+        }
 
-            linksRow.Add(new LinkLabel("Pre-trained TTS models", GitHubModelsUrl));
-
-            var separator = new Label("  |  ")
-            {
-                style =
-                {
-                    opacity = 0.4f
-                }
-            };
-            
-            linksRow.Add(separator);
-            linksRow.Add(new LinkLabel("Try voices online", HuggingFaceUrl));
-            
-            container.Insert(insertIndex, linksRow);
+        private static void HandleLinkClicked(PointerUpEvent evt, string url)
+        {
+            Application.OpenURL(url);
         }
 
         // ── Cache ──
@@ -167,7 +151,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");
-            _importSection.style.display = DisplayStyle.None;
             _importPresenter = new TtsImportPresenter(settings, HandleImportCompleted);
             _importPresenter.Build(_importSection);
 
@@ -191,10 +174,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         {
             if (_importSection == null) return;
 
-            bool isVisible = _importSection.style.display == DisplayStyle.Flex;
-            _importSection.style.display = isVisible
-                ? DisplayStyle.None
-                : DisplayStyle.Flex;
+            _importSection.ToggleInClassList("hidden");
         }
 
         private void HandleImportCompleted()

@@ -1,13 +1,10 @@
 using System;
-using System.IO;
-using System.IO.Compression;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEditor;
-using UnityEngine;
 using UnityEngine.UIElements;
-using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 {
@@ -23,6 +20,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private TtsProfileListPresenter _listPresenter;
         private int _currentIndex = -1;
+        private bool _disposed;
 
         internal TtsProfileDetailPresenter(
             VisualElement detailContent,
@@ -63,20 +61,24 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             _detailContent.Clear();
         }
 
-        public void Dispose() => Clear();
+        public void Dispose()
+        {
+            _disposed = true;
+            Clear();
+        }
 
         // ── Sections ──
 
         private void BuildAutoConfigureButton(TtsProfile profile)
         {
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-            if (!Directory.Exists(modelDir))
+            if (!ModelFileService.ModelDirExists(modelDir))
                 return;
 
             var button = new Button { text = "Auto-configure paths" };
             button.AddToClassList("btn");
             button.AddToClassList("btn-primary");
-            button.style.marginBottom = 8;
+            button.AddToClassList("tts-btn-spaced");
             button.clicked += HandleAutoConfigureClicked;
             _detailContent.Add(button);
         }
@@ -84,7 +86,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         private void BuildInt8SwitchButton(TtsProfile profile)
         {
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-            if (!Directory.Exists(modelDir)) return;
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
             if (!TtsInt8Switcher.HasInt8Alternative(profile, modelDir)) return;
 
             bool usingInt8 = TtsInt8Switcher.IsUsingInt8(profile);
@@ -92,8 +94,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
             var button = new Button { text = label };
             button.AddToClassList("btn");
-            button.AddToClassList("btn-secondary");
-            button.style.marginBottom = 8;
+            button.AddToClassList(usingInt8 ? "btn-secondary" : "btn-accent");
+            button.AddToClassList("tts-btn-spaced");
             button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
         }
@@ -141,8 +143,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         private void AddSectionHeader(string text)
         {
             var header = new Label(text);
-            header.style.unityFontStyleAndWeight = FontStyle.Bold;
-            header.style.marginTop = 8;
+            header.AddToClassList("tts-section-header");
             _detailContent.Add(header);
         }
 
@@ -188,9 +189,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 : profile.remoteBaseUrl.TrimEnd('/') + "/" + profile.profileName + ".zip";
 
             var urlPreview = new Label("Archive URL: " + archiveUrl);
-            urlPreview.style.opacity = 0.6f;
-            urlPreview.style.fontSize = 11;
-            urlPreview.style.whiteSpace = WhiteSpace.Normal;
+            urlPreview.AddToClassList("tts-url-preview");
             _detailContent.Add(urlPreview);
         }
 
@@ -204,19 +203,14 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             var infoLabel = new Label(
                 "Model files will be zipped at build time and extracted " +
                 "from StreamingAssets to persistentDataPath on first launch.");
-            infoLabel.style.opacity = 0.7f;
-            infoLabel.style.whiteSpace = WhiteSpace.Normal;
-            infoLabel.style.marginBottom = 4;
+            infoLabel.AddToClassList("tts-info-label");
             _detailContent.Add(infoLabel);
 
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-            if (!Directory.Exists(modelDir))
+            if (!ModelFileService.ModelDirExists(modelDir))
                 return;
 
-            string zipPath = modelDir + ".zip";
-            bool zipExists = File.Exists(zipPath);
-
-            if (zipExists)
+            if (ModelFileService.ZipExists(modelDir))
             {
                 var deleteButton = new Button { text = "Delete zip" };
                 deleteButton.AddToClassList("btn");
@@ -238,14 +232,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void HandleAutoConfigureClicked()
         {
-            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
-                return;
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            TtsProfile profile = _settings.data.profiles[_currentIndex];
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-
-            if (!Directory.Exists(modelDir))
-                return;
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
 
             TtsProfileAutoFiller.Fill(profile, modelDir);
             _settings.SaveSettings();
@@ -254,14 +244,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void HandleInt8SwitchClicked()
         {
-            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
-                return;
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            TtsProfile profile = _settings.data.profiles[_currentIndex];
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-
-            if (!Directory.Exists(modelDir))
-                return;
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
 
             if (TtsInt8Switcher.IsUsingInt8(profile))
                 TtsInt8Switcher.SwitchToNormal(profile, modelDir);
@@ -273,58 +259,20 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void HandlePackToZipClicked()
         {
-            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
-                return;
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            TtsProfile profile = _settings.data.profiles[_currentIndex];
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-
-            if (!Directory.Exists(modelDir))
-                return;
-
-            string zipPath = modelDir + ".zip";
-
-            try
-            {
-                if (File.Exists(zipPath))
-                    File.Delete(zipPath);
-
-                ZipFile.CreateFromDirectory(
-                    modelDir, zipPath, CompressionLevel.Optimal, false);
-
-                Debug.Log($"[SherpaOnnx] Packed '{profile.profileName}' → {zipPath}");
-            }
-            catch (Exception ex)
-            {
-                Debug.LogError($"[SherpaOnnx] Pack to zip failed: {ex}");
-            }
-
-            int idx = _currentIndex;
-            AssetDatabase.Refresh();
-            EditorApplication.delayCall += () => ShowProfile(idx);
+            ModelFileService.PackToZip(modelDir);
+            RefreshAfterAssetChange();
         }
 
         private void HandleDeleteZipClicked()
         {
-            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
-                return;
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            TtsProfile profile = _settings.data.profiles[_currentIndex];
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-            string zipPath = modelDir + ".zip";
-
-            if (File.Exists(zipPath))
-                File.Delete(zipPath);
-
-            string metaPath = zipPath + ".meta";
-            if (File.Exists(metaPath))
-                File.Delete(metaPath);
-
-            Debug.Log($"[SherpaOnnx] Deleted zip for '{profile.profileName}'");
-
-            int idx = _currentIndex;
-            AssetDatabase.Refresh();
-            EditorApplication.delayCall += () => ShowProfile(idx);
+            ModelFileService.DeleteZip(modelDir);
+            RefreshAfterAssetChange();
         }
 
         private void HandleRefreshProfile()
@@ -337,22 +285,47 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             _listPresenter?.RefreshList();
         }
 
+        // ── Helpers ──
+
+        private bool TryGetCurrentProfile(out TtsProfile profile)
+        {
+            profile = null;
+            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
+                return false;
+
+            profile = _settings.data.profiles[_currentIndex];
+            return true;
+        }
+
+        private void RefreshAfterAssetChange()
+        {
+            if (_disposed) return;
+
+            int idx = _currentIndex;
+            AssetDatabase.Refresh();
+            EditorApplication.delayCall += HandleDelayedRefresh;
+
+            void HandleDelayedRefresh()
+            {
+                if (_disposed) return;
+                ShowProfile(idx);
+            }
+        }
+
         private void HandleModelTypeChanged(ChangeEvent<Enum> evt)
         {
-            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
-                return;
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            _settings.data.profiles[_currentIndex].modelType = (TtsModelType)evt.newValue;
+            profile.modelType = (TtsModelType)evt.newValue;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }
 
         private void HandleModelSourceChanged(ChangeEvent<Enum> evt)
         {
-            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
-                return;
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            _settings.data.profiles[_currentIndex].modelSource = (TtsModelSource)evt.newValue;
+            profile.modelSource = (TtsModelSource)evt.newValue;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }

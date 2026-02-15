@@ -29,25 +29,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             _settings = settings;
             _field = field;
 
-            style.borderBottomWidth = 1;
-            style.borderBottomColor = new Color(1f, 1f, 1f, 0.08f);
-            style.paddingBottom = 6;
-            style.marginBottom = 6;
+            AddToClassList("tts-cache-group");
 
             var toggle = new Toggle(title) { value = enabled };
             Add(toggle);
 
             var desc = new Label(description);
-            desc.style.opacity = 0.5f;
-            desc.style.fontSize = 11;
-            desc.style.marginLeft = 20;
-            desc.style.marginTop = 2;
-            desc.style.whiteSpace = WhiteSpace.Normal;
+            desc.AddToClassList("tts-cache-description");
             Add(desc);
 
             _sizeField = new IntegerField("Pool size") { value = poolSize };
-            _sizeField.style.marginLeft = 20;
-            _sizeField.style.marginTop = 4;
+            _sizeField.AddToClassList("tts-cache-size-field");
             _sizeField.style.display = enabled
                 ? DisplayStyle.Flex : DisplayStyle.None;
             _sizeField.RegisterValueChangedCallback(HandlePoolSizeChanged);

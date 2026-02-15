@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -38,12 +39,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         internal VisualElement Build()
         {
             var container = new VisualElement();
-            container.style.marginTop = 4;
-            container.style.marginBottom = 4;
+            container.AddToClassList("tts-vocoder-container");
 
             var row = new VisualElement();
-            row.style.flexDirection = FlexDirection.Row;
-            row.style.alignItems = Align.Center;
+            row.AddToClassList("tts-vocoder-row");
 
             var choices = new List<MatchaVocoderOption>
             {
@@ -60,20 +59,20 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 MatchaVocoderOptionExtensions.GetDisplayName,
                 MatchaVocoderOptionExtensions.GetDisplayName);
 
-            _dropdown.style.flexGrow = 1;
+            _dropdown.AddToClassList("tts-vocoder-dropdown");
             row.Add(_dropdown);
 
             _downloadButton = new Button { text = "Download" };
             _downloadButton.AddToClassList("btn");
             _downloadButton.AddToClassList("btn-secondary");
-            _downloadButton.style.flexShrink = 0;
+            _downloadButton.AddToClassList("tts-vocoder-download-btn");
             _downloadButton.clicked += HandleDownloadClicked;
             row.Add(_downloadButton);
 
             container.Add(row);
 
             _statusLabel = new Label();
-            _statusLabel.style.display = DisplayStyle.None;
+            _statusLabel.AddToClassList("hidden");
             container.Add(_statusLabel);
 
             return container;
@@ -99,7 +98,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
                 try
                 {
-                    DeleteOldVocoder(modelDir);
+                    string oldPath = Path.Combine(modelDir, _profile.matchaVocoder ?? "");
+                    ModelFileService.DeleteFile(oldPath);
 
                     MatchaVocoderOption option = _dropdown.value;
                     string fileName = await downloader.DownloadAsync(
@@ -150,17 +150,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             if (current.Contains("hifigan_v3")) return MatchaVocoderOption.HifiganV3;
 
             return MatchaVocoderOption.Vocos22khz;
-        }
-
-        private void DeleteOldVocoder(string modelDir)
-        {
-            string oldName = _profile.matchaVocoder;
-            if (string.IsNullOrEmpty(oldName)) return;
-
-            string oldPath = Path.Combine(modelDir, oldName);
-            if (!File.Exists(oldPath)) return;
-
-            File.Delete(oldPath);
         }
 
         private void SetStatus(string text)

@@ -30,7 +30,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 MatchaVocoderOptionExtensions.GetDisplayName,
                 MatchaVocoderOptionExtensions.GetDisplayName);
 
-            _field.style.display = DisplayStyle.None;
+            _field.AddToClassList("hidden");
             return _field;
         }
 
