@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using UnityEngine;
@@ -53,6 +54,8 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
             if (_disposed)
                 throw new ObjectDisposedException(nameof(PackageInstallPipeline));
 
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Install pipeline started: {url}");
+
             try
             {
                 ChangeStage(PipelineStage.Preparing);
@@ -81,14 +84,17 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
                 CleanupTemps();
 
                 ChangeStage(PipelineStage.Completed);
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Install pipeline completed: {url}");
                 OnCompleted?.Invoke();
             }
             catch (OperationCanceledException)
             {
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] Install pipeline canceled.");
                 Fail("Pipeline canceled.");
             }
             catch (Exception ex)
             {
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] Install pipeline failed: {ex}");
                 Fail(ex.Message);
             }
             finally
@@ -192,7 +198,12 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
             OnError?.Invoke(message);
 
             // best effort cleanup
-            try { CleanupTemps(); } catch { }
+            try { CleanupTemps(); }
+            catch (Exception cleanupEx)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    $"[SherpaOnnx] Cleanup after pipeline failure: {cleanupEx.Message}");
+            }
         }
 
         // -----------------------

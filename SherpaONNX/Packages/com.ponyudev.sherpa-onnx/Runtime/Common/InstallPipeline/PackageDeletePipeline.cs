@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using PonyuDev.SherpaOnnx.Common;
 
 namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
 {
@@ -14,6 +15,8 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
 
         public void Run(string targetPath)
         {
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Delete started: {targetPath}");
+
             try
             {
                 OnStatus?.Invoke($"Deleting: {targetPath}");
@@ -21,11 +24,14 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
                 DeleteDirectoryWithMeta(targetPath);
                 DeleteFileWithMeta(targetPath);
 
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Delete completed: {targetPath}");
                 OnStatus?.Invoke("Deleted.");
                 OnCompleted?.Invoke();
             }
             catch (Exception ex)
             {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] Delete failed for '{targetPath}': {ex}");
                 OnError?.Invoke(ex.Message);
             }
         }

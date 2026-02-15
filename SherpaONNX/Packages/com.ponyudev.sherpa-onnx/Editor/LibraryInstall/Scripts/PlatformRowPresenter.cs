@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
@@ -129,7 +130,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
         private void HandleInstallClicked()
         {
-            Debug.Log($"[SherpaOnnx] Install clicked: {_libraryArch.Name}, isBusy={_isBusy}");
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Install clicked: {_libraryArch.Name}, isBusy={_isBusy}");
 
             if (_isBusy)
                 return;
@@ -158,6 +159,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
         private async Task InstallFlow(CancellationToken ct)
         {
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] InstallFlow started: {_libraryArch.Name}");
+
             try
             {
                 string version = _getVersion();
@@ -178,11 +181,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 var s = SherpaOnnxProjectSettings.instance;
                 s.installedVersion = version;
                 s.SaveSettings();
+
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] InstallFlow completed: {_libraryArch.Name} v{version}");
             }
             catch (Exception ex)
             {
                 SetStatus("Error");
-                Debug.LogError(
+                SherpaOnnxLog.EditorError(
                     $"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
@@ -208,6 +213,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
         private void DeleteFlow()
         {
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] DeleteFlow started: {_libraryArch.Name}");
+
             try
             {
                 var pipeline = new PackageDeletePipeline();
@@ -225,11 +232,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     s.SaveSettings();
                     ScriptingDefineHelper.RemoveDefine();
                 }
+
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] DeleteFlow completed: {_libraryArch.Name}");
             }
             catch (Exception ex)
             {
                 SetStatus("Error");
-                Debug.LogError(
+                SherpaOnnxLog.EditorError(
                     $"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
@@ -253,7 +262,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private void HandlePipelineError(string message)
         {
             SetStatus("Error");
-            Debug.LogError($"[SherpaOnnx] {_libraryArch.Name}: {message}");
+            SherpaOnnxLog.EditorError($"[SherpaOnnx] {_libraryArch.Name}: {message}");
         }
 
         private void SetStatus(string text)
