@@ -1,4 +1,6 @@
 using System;
+using System.IO;
+using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEngine;
@@ -43,6 +45,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             TtsProfile profile = _settings.data.profiles[index];
             var binder = new ProfileFieldBinder(profile, _settings);
 
+            BuildAutoConfigureButton(profile);
             BuildIdentitySection(profile, binder);
             BuildCommonSection(binder);
             BuildModelFieldsSection(profile, binder);
@@ -58,6 +61,20 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         public void Dispose() => Clear();
 
         // ── Sections ──
+
+        private void BuildAutoConfigureButton(TtsProfile profile)
+        {
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            if (!Directory.Exists(modelDir))
+                return;
+
+            var button = new Button { text = "Auto-configure paths" };
+            button.AddToClassList("btn");
+            button.AddToClassList("btn-primary");
+            button.style.marginBottom = 8;
+            button.clicked += HandleAutoConfigureClicked;
+            _detailContent.Add(button);
+        }
 
         private void BuildIdentitySection(TtsProfile profile, ProfileFieldBinder binder)
         {
@@ -145,6 +162,22 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         }
 
         // ── Handlers ──
+
+        private void HandleAutoConfigureClicked()
+        {
+            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
+                return;
+
+            TtsProfile profile = _settings.data.profiles[_currentIndex];
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+
+            if (!Directory.Exists(modelDir))
+                return;
+
+            TtsProfileAutoFiller.Fill(profile, modelDir);
+            _settings.SaveSettings();
+            ShowProfile(_currentIndex);
+        }
 
         private void HandleNameFocusOut(FocusOutEvent evt)
         {

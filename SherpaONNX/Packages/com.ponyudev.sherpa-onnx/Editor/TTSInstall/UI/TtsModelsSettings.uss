@@ -17,7 +17,7 @@
 }
 
 .tts-header-title {
-    unity-font-style: bold;
+    -unity-font-style: bold;
     font-size: 15px;
     margin-bottom: 4px;
 }
@@ -47,7 +47,7 @@
 }
 
 .tts-list-label {
-    unity-font-style: bold;
+    -unity-font-style: bold;
     font-size: 12px;
     margin-bottom: 4px;
 }
@@ -69,7 +69,7 @@
 }
 
 .tts-detail-label {
-    unity-font-style: bold;
+    -unity-font-style: bold;
     font-size: 12px;
     margin-bottom: 4px;
 }
@@ -127,4 +127,31 @@
 .row {
     flex-direction: row;
     align-items: center;
+}
+
+.tts-import-section {
+    margin-bottom: 8px;
+}
+
+.tts-import-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.tts-import-url {
+    flex-grow: 1;
+    flex-shrink: 1;
+    overflow: hidden;
+    margin-right: 8px;
+}
+
+.tts-import-progress {
+    height: 4px;
+    margin-top: 4px;
+}
+
+.tts-import-status {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 2px;
 }

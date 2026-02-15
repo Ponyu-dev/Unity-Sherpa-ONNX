@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -23,6 +24,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private TtsProfileListPresenter _listPresenter;
         private TtsProfileDetailPresenter _detailPresenter;
+        private TtsImportPresenter _importPresenter;
 
         internal TtsSettingsView(string uxmlPath)
         {
@@ -54,6 +56,12 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         public void Dispose()
         {
+            _importPresenter?.Dispose();
+            _importPresenter = null;
+
+            if (_listPresenter != null)
+                _listPresenter.SelectionChanged -= HandleSelectionChanged;
+
             _listPresenter?.Dispose();
             _listPresenter = null;
 
@@ -143,6 +151,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private void BuildProfilePresenters(
             VisualElement root, TtsProjectSettings settings)
         {
+            var importSection = root.Q<VisualElement>("importSection");
+            _importPresenter = new TtsImportPresenter(settings, HandleImportCompleted);
+            _importPresenter.Build(importSection);
+
             var listView = root.Q<ListView>("profilesListView");
             var addButton = root.Q<Button>("addProfileButton");
             var removeButton = root.Q<Button>("removeProfileButton");
@@ -154,6 +166,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             _listPresenter.SelectionChanged += HandleSelectionChanged;
             _listPresenter.Build(listView, addButton, removeButton);
+        }
+
+        private void HandleImportCompleted()
+        {
+            _listPresenter.RefreshList();
         }
 
         private void HandleSelectionChanged(int index)
