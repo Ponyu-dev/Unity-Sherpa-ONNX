@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
+using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
+using UnityEditor;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
@@ -99,12 +102,31 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             if (index < 0 || index >= _settings.data.profiles.Count)
                 return;
 
+            TtsProfile profile = _settings.data.profiles[index];
+            DeleteModelDirectory(profile.profileName);
+
             _settings.data.profiles.RemoveAt(index);
             _settings.SaveSettings();
 
             _listView.selectedIndex = -1;
             SelectionChanged?.Invoke(-1);
             RefreshList();
+        }
+
+        private static void DeleteModelDirectory(string profileName)
+        {
+            if (string.IsNullOrEmpty(profileName)) return;
+
+            string modelDir = TtsModelPaths.GetModelDir(profileName);
+            if (!Directory.Exists(modelDir)) return;
+
+            Directory.Delete(modelDir, true);
+
+            string metaPath = modelDir + ".meta";
+            if (File.Exists(metaPath))
+                File.Delete(metaPath);
+
+            AssetDatabase.Refresh();
         }
     }
 }
