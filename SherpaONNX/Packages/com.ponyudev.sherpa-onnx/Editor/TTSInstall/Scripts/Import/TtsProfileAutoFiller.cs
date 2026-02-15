@@ -37,6 +37,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Matcha:
                     FillMatcha(profile, dir);
                     break;
+                case TtsModelType.Kokoro:
+                    FillKokoro(profile, dir);
+                    break;
             }
         }
 
@@ -59,24 +62,31 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.matchaLengthScale = 1.0f;
         }
 
+        private static void FillKokoro(TtsProfile profile, string dir)
+        {
+            profile.kokoroModel = FindOnnxModelWithInt8Fallback(dir);
+            profile.kokoroVoices = FindFileIfExists(dir, "voices.bin");
+            profile.kokoroTokens = FindFileIfExists(dir, "tokens.txt");
+            profile.kokoroDataDir = FindSubDir(dir, "espeak-ng-data");
+            profile.kokoroDictDir = FindSubDir(dir, "dict");
+            profile.kokoroLexicon = JoinFileNames(dir, "lexicon-*.txt");
+            profile.kokoroLengthScale = 1.0f;
+        }
+
         // ── Rule files ──
 
         private static void FillRuleFsts(TtsProfile profile, string dir)
         {
-            string[] fstFiles = FindFiles(dir, "*.fst");
-            if (fstFiles.Length == 0) return;
-
-            profile.ruleFsts = string.Join(",",
-                fstFiles.Select(Path.GetFileName));
+            string joined = JoinFileNames(dir, "*.fst");
+            if (!string.IsNullOrEmpty(joined))
+                profile.ruleFsts = joined;
         }
 
         private static void FillRuleFars(TtsProfile profile, string dir)
         {
-            string[] farFiles = FindFiles(dir, "*.far");
-            if (farFiles.Length == 0) return;
-
-            profile.ruleFars = string.Join(",",
-                farFiles.Select(Path.GetFileName));
+            string joined = JoinFileNames(dir, "*.far");
+            if (!string.IsNullOrEmpty(joined))
+                profile.ruleFars = joined;
         }
 
         // ── Shared helpers (reusable by future model fillers) ──
@@ -90,6 +100,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
             string primary = allOnnx.FirstOrDefault(IsNotInt8Onnx);
             return primary ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Prefers non-int8 .onnx, falls back to .int8.onnx if no other found.
+        /// </summary>
+        internal static string FindOnnxModelWithInt8Fallback(string dir)
+        {
+            string[] allOnnx = GetOnnxFileNames(dir);
+            if (allOnnx.Length == 0) return string.Empty;
+
+            return allOnnx.FirstOrDefault(IsNotInt8Onnx) ?? allOnnx[0];
         }
 
         /// <summary>
@@ -141,6 +162,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
             string jsonName = modelFileName + ".json";
             return FindFileIfExists(dir, jsonName);
+        }
+
+        /// <summary>
+        /// Finds files matching <paramref name="pattern"/> and joins their names with commas.
+        /// Returns empty string if no matches found.
+        /// </summary>
+        internal static string JoinFileNames(string dir, string pattern)
+        {
+            string[] files = FindFiles(dir, pattern);
+            if (files.Length == 0) return string.Empty;
+
+            return string.Join(",", files.Select(Path.GetFileName));
         }
 
         /// <summary>
