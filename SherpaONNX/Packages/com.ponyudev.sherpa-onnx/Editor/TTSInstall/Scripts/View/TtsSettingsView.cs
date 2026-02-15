@@ -22,6 +22,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private readonly string _uxmlPath;
 
+        private ActiveProfilePresenter _activeProfilePresenter;
         private TtsProfileListPresenter _listPresenter;
         private TtsProfileDetailPresenter _detailPresenter;
         private TtsImportPresenter _importPresenter;
@@ -56,6 +57,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         public void Dispose()
         {
+            _activeProfilePresenter?.Dispose();
+            _activeProfilePresenter = null;
+
             _importPresenter?.Dispose();
             _importPresenter = null;
 
@@ -151,6 +155,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private void BuildProfilePresenters(
             VisualElement root, TtsProjectSettings settings)
         {
+            var activeSection = root.Q<VisualElement>("activeProfileSection");
+            _activeProfilePresenter = new ActiveProfilePresenter(settings);
+            _activeProfilePresenter.Build(activeSection);
+
             var importSection = root.Q<VisualElement>("importSection");
             _importPresenter = new TtsImportPresenter(settings, HandleImportCompleted);
             _importPresenter.Build(importSection);
@@ -171,6 +179,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private void HandleImportCompleted()
         {
             _listPresenter.RefreshList();
+            _activeProfilePresenter?.Refresh();
         }
 
         private void HandleSelectionChanged(int index)
@@ -179,6 +188,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
                 _detailPresenter.ShowProfile(index);
             else
                 _detailPresenter.Clear();
+
+            _activeProfilePresenter?.Refresh();
         }
     }
 }

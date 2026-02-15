@@ -10,6 +10,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
     [Serializable]
     public sealed class TtsSettingsData
     {
+        public int activeProfileIndex = -1;
         public TtsCacheSettings cache = new();
         public List<TtsProfile> profiles = new();
     }
