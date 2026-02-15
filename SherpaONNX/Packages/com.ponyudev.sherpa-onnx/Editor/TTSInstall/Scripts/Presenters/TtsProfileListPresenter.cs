@@ -1,10 +1,9 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
-using UnityEditor;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
@@ -35,7 +34,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             _listView.makeItem = MakeItem;
             _listView.bindItem = BindItem;
             _listView.selectionChanged += HandleSelectionChanged;
-
             _addButton.clicked += HandleAdd;
             _removeButton.clicked += HandleRemove;
 
@@ -66,7 +64,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private static VisualElement MakeItem()
         {
-            return new Label { style = { unityTextAlign = UnityEngine.TextAnchor.MiddleLeft } };
+            var label = new Label();
+            label.AddToClassList("tts-list-item");
+            return label;
         }
 
         private void BindItem(VisualElement element, int index)
@@ -84,7 +84,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             int index = _listView.selectedIndex;
             _removeButton?.SetEnabled(index >= 0);
             SelectionChanged?.Invoke(index);
-            PingModelFolder(index, _settings);
+            PingSelectedProfile(index);
         }
 
         private void HandleAdd()
@@ -104,7 +104,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 return;
 
             TtsProfile profile = _settings.data.profiles[index];
-            DeleteModelDirectory(profile.profileName);
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            ModelFileService.DeleteModelDirectory(modelDir);
 
             _settings.data.profiles.RemoveAt(index);
             AdjustActiveIndexAfterRemove(index);
@@ -115,29 +116,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             RefreshList();
         }
 
-        private static void PingModelFolder(int index, TtsProjectSettings settings)
+        private void PingSelectedProfile(int index)
         {
-            if (index < 0 || index >= settings.data.profiles.Count)
+            if (index < 0 || index >= _settings.data.profiles.Count)
                 return;
 
-            string profileName = settings.data.profiles[index].profileName;
+            string profileName = _settings.data.profiles[index].profileName;
             if (string.IsNullOrEmpty(profileName))
                 return;
 
             string modelDir = TtsModelPaths.GetModelDir(profileName);
-            if (!Directory.Exists(modelDir))
-                return;
-
-            string[] files = Directory.GetFiles(modelDir);
-            if (files.Length == 0)
-                return;
-
-            string assetPath = files[0].Replace('\\', '/');
-            var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
-            if (asset == null)
-                return;
-
-            EditorGUIUtility.PingObject(asset);
+            ModelFileService.PingFirstAsset(modelDir);
         }
 
         private void AdjustActiveIndexAfterRemove(int removedIndex)
@@ -148,22 +137,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 _settings.data.activeProfileIndex = -1;
             else if (active > removedIndex)
                 _settings.data.activeProfileIndex = active - 1;
-        }
-
-        private static void DeleteModelDirectory(string profileName)
-        {
-            if (string.IsNullOrEmpty(profileName)) return;
-
-            string modelDir = TtsModelPaths.GetModelDir(profileName);
-            if (!Directory.Exists(modelDir)) return;
-
-            Directory.Delete(modelDir, true);
-
-            string metaPath = modelDir + ".meta";
-            if (File.Exists(metaPath))
-                File.Delete(metaPath);
-
-            AssetDatabase.Refresh();
         }
     }
 }

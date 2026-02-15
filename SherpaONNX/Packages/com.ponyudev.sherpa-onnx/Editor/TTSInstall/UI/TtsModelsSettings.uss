@@ -52,11 +52,6 @@
     margin-bottom: 4px;
 }
 
-.tts-profiles-scroll {
-    flex-grow: 1;
-    min-height: 200px;
-}
-
 .tts-profiles-list {
     flex-grow: 1;
     min-height: 120px;
@@ -166,4 +161,114 @@
     font-size: 11px;
     opacity: 0.7;
     margin-top: 2px;
+}
+
+.tts-import-options-row {
+    flex-direction: row;
+    align-items: center;
+    display: none;
+}
+
+.tts-import-buttons-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+/* ── Utility ── */
+
+.hidden {
+    display: none;
+}
+
+/* ── Section headers & labels ── */
+
+.tts-section-header {
+    -unity-font-style: bold;
+    margin-top: 8px;
+}
+
+.tts-info-label {
+    opacity: 0.7;
+    white-space: normal;
+    margin-bottom: 4px;
+}
+
+.tts-url-preview {
+    opacity: 0.6;
+    font-size: 11px;
+    white-space: normal;
+}
+
+.tts-btn-spaced {
+    margin-bottom: 8px;
+}
+
+/* ── Links ── */
+
+.tts-links-row {
+    flex-direction: row;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.tts-separator {
+    opacity: 0.4;
+}
+
+.tts-link-label {
+    color: rgba(115, 166, 255, 1);
+    -unity-font-style: normal;
+}
+
+.tts-link-label:hover {
+    color: rgba(153, 204, 255, 1);
+}
+
+/* ── Cache ── */
+
+.tts-cache-group {
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+}
+
+.tts-cache-description {
+    opacity: 0.5;
+    font-size: 11px;
+    margin-left: 20px;
+    margin-top: 2px;
+    white-space: normal;
+}
+
+.tts-cache-size-field {
+    margin-left: 20px;
+    margin-top: 4px;
+}
+
+/* ── Vocoder ── */
+
+.tts-vocoder-container {
+    margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.tts-vocoder-row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.tts-vocoder-dropdown {
+    flex-grow: 1;
+}
+
+.tts-vocoder-download-btn {
+    flex-shrink: 0;
+}
+
+/* ── List ── */
+
+.tts-list-item {
+    -unity-text-align: middle-left;
 }

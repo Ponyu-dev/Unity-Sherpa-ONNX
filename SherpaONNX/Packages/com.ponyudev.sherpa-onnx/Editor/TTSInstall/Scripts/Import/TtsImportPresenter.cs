@@ -42,58 +42,22 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         internal void Build(VisualElement parent)
         {
-            var container = new VisualElement();
-            container.AddToClassList("tts-import-row");
-
-            _urlField = new TextField("Model archive URL");
-            _urlField.AddToClassList("tts-import-url");
+            _urlField = parent.Q<TextField>("importUrlField");
             _urlField.RegisterValueChangedCallback(HandleUrlChanged);
-            container.Add(_urlField);
 
-            _optionsRow = new VisualElement();
-            _optionsRow.style.flexDirection = FlexDirection.Row;
-            _optionsRow.style.alignItems = Align.Center;
-            _optionsRow.style.display = DisplayStyle.None;
+            _optionsRow = parent.Q<VisualElement>("importOptionsRow");
+            _optionsRow.Insert(0, _vocoderField.Build());
 
-            _optionsRow.Add(_vocoderField.Build());
+            _int8Toggle = parent.Q<Toggle>("importInt8Toggle");
 
-            _int8Toggle = new Toggle("Use int8 models");
-            _int8Toggle.style.display = DisplayStyle.None;
-            _optionsRow.Add(_int8Toggle);
-
-            container.Add(_optionsRow);
-
-            var buttonsRow = new VisualElement();
-            buttonsRow.style.flexDirection = FlexDirection.Row;
-            buttonsRow.style.justifyContent = Justify.FlexEnd;
-            buttonsRow.style.marginTop = 4;
-
-            _importButton = new Button { text = "Import" };
-            _importButton.AddToClassList("btn");
-            _importButton.AddToClassList("btn-primary");
+            _importButton = parent.Q<Button>("importButton");
             _importButton.clicked += HandleImportClicked;
-            buttonsRow.Add(_importButton);
 
-            _cancelButton = new Button { text = "Cancel" };
-            _cancelButton.AddToClassList("btn");
-            _cancelButton.AddToClassList("btn-secondary");
+            _cancelButton = parent.Q<Button>("importCancelButton");
             _cancelButton.clicked += HandleCancelClicked;
-            _cancelButton.style.display = DisplayStyle.None;
-            buttonsRow.Add(_cancelButton);
 
-            container.Add(buttonsRow);
-
-            _progressBar = new ProgressBar { title = "" };
-            _progressBar.AddToClassList("tts-import-progress");
-            _progressBar.style.display = DisplayStyle.None;
-            container.Add(_progressBar);
-
-            _statusLabel = new Label();
-            _statusLabel.AddToClassList("tts-import-status");
-            _statusLabel.style.display = DisplayStyle.None;
-            container.Add(_statusLabel);
-
-            parent.Add(container);
+            _progressBar = parent.Q<ProgressBar>("importProgressBar");
+            _statusLabel = parent.Q<Label>("importStatusLabel");
         }
 
         public void Dispose()
