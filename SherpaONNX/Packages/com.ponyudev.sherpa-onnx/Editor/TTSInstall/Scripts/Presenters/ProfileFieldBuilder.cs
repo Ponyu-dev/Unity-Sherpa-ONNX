@@ -1,3 +1,4 @@
+using System;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEngine.UIElements;
@@ -24,10 +25,16 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         }
 
         internal static void BuildMatcha(
-            VisualElement root, ProfileFieldBinder b)
+            VisualElement root, ProfileFieldBinder b,
+            TtsProjectSettings settings, Action onRefresh)
         {
             root.Add(b.BindText("Acoustic model", b.Profile.matchaAcousticModel, ProfileField.MatchaAcousticModel));
             root.Add(b.BindText("Vocoder", b.Profile.matchaVocoder, ProfileField.MatchaVocoder));
+
+            var vocoderField = new MatchaVocoderProfileField(
+                b.Profile, settings, onRefresh);
+            root.Add(vocoderField.Build());
+
             root.Add(b.BindText("Tokens", b.Profile.matchaTokens, ProfileField.MatchaTokens));
             root.Add(b.BindText("Lexicon", b.Profile.matchaLexicon, ProfileField.MatchaLexicon));
             root.Add(b.BindText("Data dir", b.Profile.matchaDataDir, ProfileField.MatchaDataDir));
