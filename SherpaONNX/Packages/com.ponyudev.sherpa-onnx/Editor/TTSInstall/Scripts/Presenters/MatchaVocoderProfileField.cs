@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
@@ -87,6 +88,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             string modelDir = TtsModelPaths.GetModelDir(_profile.profileName);
             _cts = new CancellationTokenSource();
             _downloadButton.SetEnabled(false);
+            SherpaOnnxLog.EditorLog("[SherpaOnnx] Vocoder download started.");
 
             try
             {
@@ -108,6 +110,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                     _profile.matchaVocoder = fileName;
                     _settings.SaveSettings();
 
+                    SherpaOnnxLog.EditorLog($"[SherpaOnnx] Vocoder download completed: {option.GetDisplayName()}");
                     SetStatus($"Vocoder changed to {option.GetDisplayName()}");
                     _onDownloaded?.Invoke();
                 }
@@ -120,11 +123,12 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             catch (OperationCanceledException)
             {
                 SetStatus("Download canceled.");
+                SherpaOnnxLog.EditorWarning("[SherpaOnnx] Vocoder download canceled by user.");
             }
             catch (Exception ex)
             {
                 SetStatus($"Error: {ex.Message}");
-                Debug.LogError($"[SherpaOnnx] Vocoder download failed: {ex}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Vocoder download failed: {ex}");
             }
             finally
             {

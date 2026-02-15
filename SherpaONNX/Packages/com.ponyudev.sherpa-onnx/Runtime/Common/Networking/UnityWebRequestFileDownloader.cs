@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using UnityEngine.Networking;
 
 namespace PonyuDev.SherpaOnnx.Common.Networking
@@ -50,6 +51,7 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
                 throw new ArgumentException("File name is null or empty.", nameof(fileName));
 
             string fullPath = BuildFullPath(directoryPath, fileName);
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Download started: {url}");
 
             try
             {
@@ -73,17 +75,20 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
                     return;
                 }
 
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Download completed: {url}");
                 OnProgress?.Invoke(url, 1f, GetDownloadedBytes(request), GetTotalBytes(request));
                 OnCompleted?.Invoke(url, fullPath);
             }
             catch (OperationCanceledException)
             {
                 TryDeletePartial(fullPath);
+                SherpaOnnxLog.RuntimeWarning($"[SherpaOnnx] Download canceled: {url}");
                 RaiseError(url, "Download canceled.");
             }
             catch (Exception ex)
             {
                 TryDeletePartial(fullPath);
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] Download failed for '{url}': {ex}");
                 RaiseError(url, ex.Message);
             }
         }
@@ -190,9 +195,10 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
                 if (File.Exists(fullPath))
                     File.Delete(fullPath);
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignore cleanup errors.
+                SherpaOnnxLog.RuntimeWarning(
+                    $"[SherpaOnnx] Failed to delete partial file '{fullPath}': {ex.Message}");
             }
         }
 

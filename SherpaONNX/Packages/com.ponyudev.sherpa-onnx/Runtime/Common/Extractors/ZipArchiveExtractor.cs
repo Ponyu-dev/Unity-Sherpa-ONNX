@@ -3,6 +3,7 @@ using System.IO;
 using System.IO.Compression;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 
 namespace PonyuDev.SherpaOnnx.Common.Extractors
 {
@@ -22,6 +23,8 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
 
             if (!File.Exists(archivePath))
                 throw new FileNotFoundException("Archive not found.", archivePath);
+
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Zip extraction started: {archivePath}");
 
             try
             {
@@ -66,14 +69,17 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
                     }
                 }
 
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Zip extraction completed: {archivePath}");
                 OnCompleted?.Invoke(tempDirectoryPath);
             }
             catch (OperationCanceledException)
             {
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] Zip extraction canceled.");
                 RaiseError("Extraction canceled.");
             }
             catch (Exception ex)
             {
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] Zip extraction error: {ex}");
                 RaiseError(ex.Message);
             }
         }
