@@ -46,6 +46,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             var binder = new ProfileFieldBinder(profile, _settings);
 
             BuildAutoConfigureButton(profile);
+            BuildInt8SwitchButton(profile);
             BuildIdentitySection(profile, binder);
             BuildCommonSection(binder);
             BuildModelFieldsSection(profile, binder);
@@ -73,6 +74,23 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             button.AddToClassList("btn-primary");
             button.style.marginBottom = 8;
             button.clicked += HandleAutoConfigureClicked;
+            _detailContent.Add(button);
+        }
+
+        private void BuildInt8SwitchButton(TtsProfile profile)
+        {
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            if (!Directory.Exists(modelDir)) return;
+            if (!TtsInt8Switcher.HasInt8Alternative(profile, modelDir)) return;
+
+            bool usingInt8 = TtsInt8Switcher.IsUsingInt8(profile);
+            string label = usingInt8 ? "Use normal models" : "Use int8 models";
+
+            var button = new Button { text = label };
+            button.AddToClassList("btn");
+            button.AddToClassList("btn-secondary");
+            button.style.marginBottom = 8;
+            button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
         }
 
@@ -175,6 +193,25 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 return;
 
             TtsProfileAutoFiller.Fill(profile, modelDir);
+            _settings.SaveSettings();
+            ShowProfile(_currentIndex);
+        }
+
+        private void HandleInt8SwitchClicked()
+        {
+            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
+                return;
+
+            TtsProfile profile = _settings.data.profiles[_currentIndex];
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+
+            if (!Directory.Exists(modelDir))
+                return;
+
+            if (TtsInt8Switcher.IsUsingInt8(profile))
+                TtsInt8Switcher.SwitchToNormal(profile, modelDir);
+            else
+                TtsInt8Switcher.SwitchToInt8(profile, modelDir);
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }
