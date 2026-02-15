@@ -26,6 +26,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private TtsProfileListPresenter _listPresenter;
         private TtsProfileDetailPresenter _detailPresenter;
         private TtsImportPresenter _importPresenter;
+        private Button _importFromUrlButton;
+        private VisualElement _importSection;
 
         internal TtsSettingsView(string uxmlPath)
         {
@@ -62,6 +64,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             _importPresenter?.Dispose();
             _importPresenter = null;
+
+            if (_importFromUrlButton != null)
+                _importFromUrlButton.clicked -= HandleImportFromUrlClicked;
+            _importFromUrlButton = null;
+            _importSection = null;
 
             if (_listPresenter != null)
                 _listPresenter.SelectionChanged -= HandleSelectionChanged;
@@ -159,9 +166,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             _activeProfilePresenter = new ActiveProfilePresenter(settings);
             _activeProfilePresenter.Build(activeSection);
 
-            var importSection = root.Q<VisualElement>("importSection");
+            _importSection = root.Q<VisualElement>("importSection");
+            _importSection.style.display = DisplayStyle.None;
             _importPresenter = new TtsImportPresenter(settings, HandleImportCompleted);
-            _importPresenter.Build(importSection);
+            _importPresenter.Build(_importSection);
+
+            _importFromUrlButton = root.Q<Button>("importFromUrlButton");
+            _importFromUrlButton.clicked += HandleImportFromUrlClicked;
 
             var listView = root.Q<ListView>("profilesListView");
             var addButton = root.Q<Button>("addProfileButton");
@@ -174,6 +185,16 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             _listPresenter.SelectionChanged += HandleSelectionChanged;
             _listPresenter.Build(listView, addButton, removeButton);
+        }
+
+        private void HandleImportFromUrlClicked()
+        {
+            if (_importSection == null) return;
+
+            bool isVisible = _importSection.style.display == DisplayStyle.Flex;
+            _importSection.style.display = isVisible
+                ? DisplayStyle.None
+                : DisplayStyle.Flex;
         }
 
         private void HandleImportCompleted()

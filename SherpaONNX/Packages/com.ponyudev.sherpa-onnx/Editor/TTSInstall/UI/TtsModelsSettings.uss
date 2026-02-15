@@ -119,6 +119,10 @@
     background-color: #3a3030;
 }
 
+.btn-accent {
+    background-color: #2f4a5f;
+}
+
 .tts-action-buttons > Button {
     margin-right: 6px;
     margin-bottom: 4px;
@@ -134,7 +138,12 @@
 }
 
 .tts-import-section {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    padding: 8px;
+    border-width: 1px;
+    border-color: rgba(128, 128, 128, 0.4);
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.08);
 }
 
 .tts-import-row {

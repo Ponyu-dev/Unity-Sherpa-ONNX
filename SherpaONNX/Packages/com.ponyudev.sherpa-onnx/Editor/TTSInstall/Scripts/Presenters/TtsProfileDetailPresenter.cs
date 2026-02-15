@@ -1,10 +1,13 @@
 using System;
 using System.IO;
+using System.IO.Compression;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
+using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
+using CompressionLevel = System.IO.Compression.CompressionLevel;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 {
@@ -51,6 +54,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             BuildCommonSection(binder);
             BuildModelFieldsSection(profile, binder);
             BuildRemoteSection(profile, binder);
+            BuildLocalZipSection(profile);
         }
 
         internal void Clear()
@@ -178,6 +182,56 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             AddSectionHeader("Remote");
             _detailContent.Add(b.BindText(
                 "Base URL", profile.remoteBaseUrl, ProfileField.RemoteBaseUrl));
+
+            string archiveUrl = string.IsNullOrEmpty(profile.remoteBaseUrl)
+                ? "(set Base URL first)"
+                : profile.remoteBaseUrl.TrimEnd('/') + "/" + profile.profileName + ".zip";
+
+            var urlPreview = new Label("Archive URL: " + archiveUrl);
+            urlPreview.style.opacity = 0.6f;
+            urlPreview.style.fontSize = 11;
+            urlPreview.style.whiteSpace = WhiteSpace.Normal;
+            _detailContent.Add(urlPreview);
+        }
+
+        private void BuildLocalZipSection(TtsProfile profile)
+        {
+            if (profile.modelSource != TtsModelSource.LocalZip)
+                return;
+
+            AddSectionHeader("Local Zip");
+
+            var infoLabel = new Label(
+                "Model files will be zipped at build time and extracted " +
+                "from StreamingAssets to persistentDataPath on first launch.");
+            infoLabel.style.opacity = 0.7f;
+            infoLabel.style.whiteSpace = WhiteSpace.Normal;
+            infoLabel.style.marginBottom = 4;
+            _detailContent.Add(infoLabel);
+
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            if (!Directory.Exists(modelDir))
+                return;
+
+            string zipPath = modelDir + ".zip";
+            bool zipExists = File.Exists(zipPath);
+
+            if (zipExists)
+            {
+                var deleteButton = new Button { text = "Delete zip" };
+                deleteButton.AddToClassList("btn");
+                deleteButton.AddToClassList("btn-secondary");
+                deleteButton.clicked += HandleDeleteZipClicked;
+                _detailContent.Add(deleteButton);
+            }
+            else
+            {
+                var packButton = new Button { text = "Pack to zip (test)" };
+                packButton.AddToClassList("btn");
+                packButton.AddToClassList("btn-primary");
+                packButton.clicked += HandlePackToZipClicked;
+                _detailContent.Add(packButton);
+            }
         }
 
         // ── Handlers ──
@@ -215,6 +269,62 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 TtsInt8Switcher.SwitchToInt8(profile, modelDir);
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
+        }
+
+        private void HandlePackToZipClicked()
+        {
+            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
+                return;
+
+            TtsProfile profile = _settings.data.profiles[_currentIndex];
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+
+            if (!Directory.Exists(modelDir))
+                return;
+
+            string zipPath = modelDir + ".zip";
+
+            try
+            {
+                if (File.Exists(zipPath))
+                    File.Delete(zipPath);
+
+                ZipFile.CreateFromDirectory(
+                    modelDir, zipPath, CompressionLevel.Optimal, false);
+
+                Debug.Log($"[SherpaOnnx] Packed '{profile.profileName}' → {zipPath}");
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[SherpaOnnx] Pack to zip failed: {ex}");
+            }
+
+            int idx = _currentIndex;
+            AssetDatabase.Refresh();
+            EditorApplication.delayCall += () => ShowProfile(idx);
+        }
+
+        private void HandleDeleteZipClicked()
+        {
+            if (_currentIndex < 0 || _currentIndex >= _settings.data.profiles.Count)
+                return;
+
+            TtsProfile profile = _settings.data.profiles[_currentIndex];
+            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string zipPath = modelDir + ".zip";
+
+            if (File.Exists(zipPath))
+                File.Delete(zipPath);
+
+            string metaPath = zipPath + ".meta";
+            if (File.Exists(metaPath))
+                File.Delete(metaPath);
+
+            Debug.Log($"[SherpaOnnx] Deleted zip for '{profile.profileName}'");
+
+            int idx = _currentIndex;
+            AssetDatabase.Refresh();
+            EditorApplication.delayCall += () => ShowProfile(idx);
         }
 
         private void HandleRefreshProfile()

@@ -5,10 +5,16 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
     /// </summary>
     public enum TtsModelSource
     {
-        /// <summary>Model bundled in StreamingAssets for offline use.</summary>
-        Local,
+        /// <summary>Model folder bundled in StreamingAssets for offline use.</summary>
+        Local = 0,
 
         /// <summary>Model downloaded from a remote server at runtime.</summary>
-        Remote
+        Remote = 1,
+
+        /// <summary>
+        /// Model folder zipped at build time.
+        /// Extracted from StreamingAssets to persistentDataPath on first launch.
+        /// </summary>
+        LocalZip = 2
     }
 }
