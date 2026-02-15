@@ -5,11 +5,12 @@
             <ui:HelpBox text="Download models from GitHub releases (600+ models, 40+ languages). Paste the direct .tar.bz2 download URL below and click Install. You can try any model in the browser first." message-type="Info" name="HelpBox"/>
         </ui:VisualElement>
         <ui:VisualElement name="activeProfileSection" class="tts-active-profile-section"/>
-        <ui:VisualElement name="importSection" class="tts-import-section"/>
         <ui:VisualElement class="tts-toolbar row">
             <ui:Button name="addProfileButton" text="Add profile" class="btn btn-primary"/>
             <ui:Button name="removeProfileButton" text="Remove selected" class="btn btn-secondary"/>
+            <ui:Button name="importFromUrlButton" text="Import from URL" class="btn btn-accent"/>
         </ui:VisualElement>
+        <ui:VisualElement name="importSection" class="tts-import-section"/>
         <ui:VisualElement class="tts-main">
             <ui:VisualElement class="tts-list-panel">
                 <ui:Label text="Profiles" class="tts-list-label"/>
