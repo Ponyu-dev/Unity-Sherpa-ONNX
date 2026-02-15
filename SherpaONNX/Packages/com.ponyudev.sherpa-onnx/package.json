@@ -15,6 +15,13 @@
   "author": {
     "name": "PonyuDev"
   },
+  "samples": [
+    {
+      "displayName": "Samples",
+      "description": "Simple UI panel for testing TTS generation at runtime.",
+      "path": "Samples~"
+    }
+  ],
   "dependencies": {
     "com.unity.sharp-zip-lib": "1.4.1"
   }
