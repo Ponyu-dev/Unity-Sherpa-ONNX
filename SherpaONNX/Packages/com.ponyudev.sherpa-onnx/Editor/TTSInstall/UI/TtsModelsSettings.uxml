@@ -1,0 +1,46 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <ui:VisualElement class="tts-models-root">
+        <ui:VisualElement name="tts-header" class="tts-header">
+            <ui:Label text="TTS Models" class="tts-header-title"/>
+            <ui:HelpBox text="Download models from GitHub releases (600+ models, 40+ languages). Paste the direct .tar.bz2 download URL below and click Install. You can try any model in the browser first." message-type="Info" name="HelpBox"/>
+        </ui:VisualElement>
+        <ui:VisualElement class="tts-links-row">
+            <ui:Label text="Pre-trained TTS models" name="linkModels" class="tts-link-label"/>
+            <ui:Label text="  |  " class="tts-separator"/>
+            <ui:Label text="Try voices online" name="linkTryVoices" class="tts-link-label"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="activeProfileSection" class="tts-active-profile-section"/>
+        <ui:VisualElement class="tts-toolbar row">
+            <ui:Button name="addProfileButton" text="Add profile" class="btn btn-primary"/>
+            <ui:Button name="removeProfileButton" text="Remove selected" class="btn btn-secondary"/>
+            <ui:Button name="importFromUrlButton" text="Import from URL" class="btn btn-accent"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="importSection" class="tts-import-section hidden">
+            <ui:VisualElement class="tts-import-row">
+                <ui:TextField label="Model archive URL" name="importUrlField" class="tts-import-url"/>
+                <ui:VisualElement name="importOptionsRow" class="tts-import-options-row">
+                    <!-- vocoderField inserted from C# (PopupField<T>) -->
+                    <ui:Toggle label="Use int8 models" name="importInt8Toggle" class="hidden"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="tts-import-buttons-row">
+                    <ui:Button text="Import" name="importButton" class="btn btn-primary"/>
+                    <ui:Button text="Cancel" name="importCancelButton" class="btn btn-secondary hidden"/>
+                </ui:VisualElement>
+                <ui:ProgressBar name="importProgressBar" class="tts-import-progress hidden"/>
+                <ui:Label name="importStatusLabel" class="tts-import-status hidden"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="tts-main">
+            <ui:VisualElement class="tts-list-panel">
+                <ui:Label text="Profiles" class="tts-list-label"/>
+                <ui:ListView name="profilesListView" class="tts-profiles-list"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="tts-detail-panel">
+                <ui:Label text="Profile details" class="tts-detail-label"/>
+                <ui:ScrollView name="detailScrollView" class="tts-detail-scroll">
+                    <ui:VisualElement name="detailContent" class="tts-detail-content"/>
+                </ui:ScrollView>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

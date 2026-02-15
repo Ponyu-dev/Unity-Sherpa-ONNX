@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Common.IO;
@@ -51,6 +52,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             Action<string> onStatus = null,
             Action<float> onProgress = null)
         {
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Android install started: {arch.Name} v{version}");
+
             IArchiveCache cache = AndroidArchiveCache.Cache;
             SubscribeCache(cache, onStatus, onProgress);
             try
@@ -68,6 +71,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 
                 var handler = new AndroidNativeContentHandler(arch.Name);
                 await handler.HandleAsync(jniLibsPath, ct);
+
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] Android install completed: {arch.Name}");
             }
             finally
             {
@@ -86,6 +91,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             Action<string> onStatus = null,
             Action<float> onProgress = null)
         {
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] iOS install started: {arch.Name} v{version}");
+
             IArchiveCache cache = iOSArchiveCache.Cache;
             SubscribeCache(cache, onStatus, onProgress);
             try
@@ -105,6 +112,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 await handler.HandleAsync(buildIosPath, ct);
 
                 await DownloadIosManagedDllAsync(version, ct);
+
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] iOS install completed: {arch.Name}");
             }
             finally
             {
@@ -145,7 +154,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 
             try
             {
-                Debug.Log("[SherpaOnnx] Downloading iOS managed DLL...");
+                SherpaOnnxLog.EditorLog("[SherpaOnnx] Downloading iOS managed DLL...");
 
                 Directory.CreateDirectory(tempDir);
 
@@ -177,7 +186,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 string destPath = Path.Combine(destDir, ConstantsInstallerPaths.ManagedDllFileName);
                 File.Copy(dllSource, destPath, overwrite: true);
 
-                Debug.Log("[SherpaOnnx] iOS managed DLL installed.");
+                SherpaOnnxLog.EditorLog("[SherpaOnnx] iOS managed DLL installed.");
             }
             finally
             {

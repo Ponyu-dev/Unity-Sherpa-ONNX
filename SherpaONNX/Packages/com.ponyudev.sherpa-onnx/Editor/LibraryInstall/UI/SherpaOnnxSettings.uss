@@ -53,12 +53,12 @@
 }
 
 .section-title {
-    unity-font-style: bold;
+    -unity-font-style: bold;
 }
 
 .status-label {
     min-width: 90px;
-    text-align: right;
+    -unity-text-align: middle-right;
     margin-right: 4px;
 }
 
@@ -124,4 +124,13 @@
 
 .platform-label {
     flex-grow: 1;
+}
+
+.debug-section {
+    margin-top: 10px;
+    padding: 6px 8px;
+    border-width: 1px;
+    border-color: rgb(48, 48, 48);
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.08);
 }

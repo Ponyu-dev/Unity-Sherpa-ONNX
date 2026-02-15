@@ -3,6 +3,7 @@ using System.Buffers;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using Unity.SharpZipLib.BZip2;
 using UnityEngine;
 
@@ -33,6 +34,8 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
 
             if (!File.Exists(archivePath))
                 throw new FileNotFoundException("Archive not found.", archivePath);
+
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] TarBz2 extraction started: {archivePath}");
 
             try
             {
@@ -93,17 +96,17 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
                     }
                 }
 
-                Debug.Log($"[SherpaOnnx] TarBz2 extraction completed: {doneEntries} entries → {tempDirectoryPath}");
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] TarBz2 extraction completed: {doneEntries} entries → {tempDirectoryPath}");
                 OnCompleted?.Invoke(tempDirectoryPath);
             }
             catch (OperationCanceledException)
             {
-                Debug.LogWarning("[SherpaOnnx] TarBz2 extraction canceled.");
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] TarBz2 extraction canceled.");
                 RaiseError("Extraction canceled.");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SherpaOnnx] TarBz2 extraction error: {ex}");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] TarBz2 extraction error: {ex}");
                 RaiseError(ex.Message);
             }
         }

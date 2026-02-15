@@ -1,4 +1,6 @@
+using System;
 using System.IO;
+using PonyuDev.SherpaOnnx.Common;
 
 namespace PonyuDev.SherpaOnnx.Common.IO
 {
@@ -19,9 +21,10 @@ namespace PonyuDev.SherpaOnnx.Common.IO
                 if (Directory.Exists(path))
                     Directory.Delete(path, recursive: true);
             }
-            catch
+            catch (Exception ex)
             {
-                // ignore
+                SherpaOnnxLog.RuntimeWarning(
+                    $"[SherpaOnnx] TryDeleteDirectory failed for '{path}': {ex.Message}");
             }
         }
 
