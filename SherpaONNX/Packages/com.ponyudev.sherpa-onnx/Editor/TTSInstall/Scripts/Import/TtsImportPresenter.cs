@@ -22,6 +22,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         private TextField _urlField;
         private PopupField<MatchaVocoderOption> _vocoderField;
+        private Toggle _int8Toggle;
         private Button _importButton;
         private Button _cancelButton;
         private ProgressBar _progressBar;
@@ -52,6 +53,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             _vocoderField = BuildVocoderField();
             _vocoderField.style.display = DisplayStyle.None;
             row.Add(_vocoderField);
+
+            _int8Toggle = new Toggle("Use int8 models");
+            _int8Toggle.style.display = DisplayStyle.None;
+            _int8Toggle.style.flexShrink = 0;
+            row.Add(_int8Toggle);
 
             _importButton = new Button { text = "Import" };
             _importButton.AddToClassList("btn");
@@ -96,6 +102,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             _cancelButton = null;
             _urlField = null;
             _vocoderField = null;
+            _int8Toggle = null;
             _progressBar = null;
             _statusLabel = null;
         }
@@ -145,11 +152,16 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         private void HandleUrlChanged(ChangeEvent<string> evt)
         {
-            if (_vocoderField == null) return;
-
             string archiveName = ArchiveNameParser.GetArchiveName(evt.newValue ?? "");
-            bool isMatcha = TtsModelTypeDetector.Detect(archiveName) == TtsModelType.Matcha;
-            _vocoderField.style.display = isMatcha ? DisplayStyle.Flex : DisplayStyle.None;
+            TtsModelType? detected = TtsModelTypeDetector.Detect(archiveName);
+
+            if (_vocoderField != null)
+                _vocoderField.style.display = detected == TtsModelType.Matcha
+                    ? DisplayStyle.Flex : DisplayStyle.None;
+
+            if (_int8Toggle != null)
+                _int8Toggle.style.display = detected == TtsModelType.ZipVoice
+                    ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void HandlePipelineProgress(float progress01)
@@ -198,7 +210,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             if (detectedType.HasValue)
                 profile.modelType = detectedType.Value;
 
-            TtsProfileAutoFiller.Fill(profile, handler.DestinationDirectory);
+            bool useInt8 = _int8Toggle != null && _int8Toggle.value;
+            TtsProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
 
             if (detectedType == TtsModelType.Matcha)
                 await DownloadMatchaVocoderAsync(profile, handler.DestinationDirectory, ct);

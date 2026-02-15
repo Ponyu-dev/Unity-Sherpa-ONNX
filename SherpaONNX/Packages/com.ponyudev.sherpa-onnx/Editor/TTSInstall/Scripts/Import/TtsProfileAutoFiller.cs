@@ -11,10 +11,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
     /// </summary>
     internal static class TtsProfileAutoFiller
     {
-        internal static void Fill(TtsProfile profile, string modelDir)
+        internal static void Fill(TtsProfile profile, string modelDir,
+            bool useInt8 = false)
         {
             FillCommonFields(profile, modelDir);
-            FillByModelType(profile, modelDir);
+            FillByModelType(profile, modelDir, useInt8);
         }
 
         // ── Common fields (shared across model types) ──
@@ -27,7 +28,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         // ── Per-model-type fields ──
 
-        private static void FillByModelType(TtsProfile profile, string dir)
+        private static void FillByModelType(TtsProfile profile, string dir,
+            bool useInt8)
         {
             switch (profile.modelType)
             {
@@ -43,6 +45,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Kitten:
                     FillKitten(profile, dir);
                     break;
+                case TtsModelType.ZipVoice:
+                    FillZipVoice(profile, dir, useInt8);
+                    break;
             }
         }
 
@@ -50,7 +55,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         {
             profile.vitsModel = FindOnnxModel(dir);
             profile.vitsTokens = FindFileIfExists(dir, "tokens.txt");
-            profile.vitsLexicon = FindLexicon(dir, profile.vitsModel);
+            profile.vitsLexicon = FindAllLexicons(dir, profile.vitsModel);
             profile.vitsDataDir = FindSubDir(dir, "espeak-ng-data");
             profile.vitsDictDir = FindSubDir(dir, "dict");
         }
@@ -81,8 +86,22 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.kokoroTokens = FindFileIfExists(dir, "tokens.txt");
             profile.kokoroDataDir = FindSubDir(dir, "espeak-ng-data");
             profile.kokoroDictDir = FindSubDir(dir, "dict");
-            profile.kokoroLexicon = JoinFileNames(dir, "lexicon-*.txt");
+            profile.kokoroLexicon = FindAllLexicons(dir, profile.kokoroModel);
             profile.kokoroLengthScale = 1.0f;
+        }
+
+        private static void FillZipVoice(TtsProfile profile, string dir, bool useInt8)
+        {
+            profile.zipVoiceTokens = FindFileIfExists(dir, "tokens.txt");
+            profile.zipVoiceEncoder = FindEncoderOrDecoder(dir, "encoder", useInt8);
+            profile.zipVoiceDecoder = FindEncoderOrDecoder(dir, "decoder", useInt8);
+            profile.zipVoiceVocoder = FindOnnxContaining(dir, "vocos");
+            profile.zipVoiceDataDir = FindSubDir(dir, "espeak-ng-data");
+            profile.zipVoiceLexicon = FindAllLexicons(dir, profile.zipVoiceEncoder);
+            profile.zipVoiceFeatScale = 0.1f;
+            profile.zipVoiceTshift = 0.5f;
+            profile.zipVoiceTargetRms = 0.1f;
+            profile.zipVoiceGuidanceScale = 1.0f;
         }
 
         // ── Rule files ──
@@ -163,17 +182,38 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         }
 
         /// <summary>
-        /// Finds lexicon: first tries lexicon.txt, then {modelName}.onnx.json fallback.
+        /// Collects all lexicon*.txt files as comma-separated names.
+        /// Falls back to {modelName}.onnx.json if no lexicon files found.
         /// </summary>
-        internal static string FindLexicon(string dir, string modelFileName)
+        internal static string FindAllLexicons(string dir, string modelFileName)
         {
-            string lexiconTxt = FindFileIfExists(dir, "lexicon.txt");
-            if (!string.IsNullOrEmpty(lexiconTxt)) return lexiconTxt;
+            string joined = JoinFileNames(dir, "lexicon*.txt");
+            if (!string.IsNullOrEmpty(joined)) return joined;
 
             if (string.IsNullOrEmpty(modelFileName)) return string.Empty;
 
             string jsonName = modelFileName + ".json";
             return FindFileIfExists(dir, jsonName);
+        }
+
+        /// <summary>
+        /// Finds encoder or decoder .onnx by keyword.
+        /// When <paramref name="useInt8"/> is true, prefers int8 variant.
+        /// </summary>
+        internal static string FindEncoderOrDecoder(string dir, string keyword, bool useInt8)
+        {
+            string[] allOnnx = GetOnnxFileNames(dir);
+
+            var matching = allOnnx.Where(f => ContainsIgnoreCase(f, keyword));
+
+            if (useInt8)
+            {
+                string int8Match = matching.FirstOrDefault(IsInt8Onnx);
+                if (int8Match != null) return int8Match;
+            }
+
+            string normalMatch = matching.FirstOrDefault(IsNotInt8Onnx);
+            return normalMatch ?? matching.FirstOrDefault() ?? string.Empty;
         }
 
         /// <summary>
@@ -203,7 +243,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             return Directory.GetFiles(dir, pattern, SearchOption.TopDirectoryOnly);
         }
 
-        private static string[] GetOnnxFileNames(string dir)
+        internal static string[] GetOnnxFileNames(string dir)
         {
             return FindFiles(dir, "*.onnx")
                 .Select(Path.GetFileName)
@@ -212,7 +252,12 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         private static bool IsNotInt8Onnx(string fileName)
         {
-            return !fileName.EndsWith(".int8.onnx");
+            return !IsInt8Onnx(fileName);
+        }
+
+        private static bool IsInt8Onnx(string fileName)
+        {
+            return ContainsIgnoreCase(fileName, "int8");
         }
 
         private static bool ContainsIgnoreCase(string source, string value)
