@@ -84,6 +84,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             int index = _listView.selectedIndex;
             _removeButton?.SetEnabled(index >= 0);
             SelectionChanged?.Invoke(index);
+            PingModelFolder(index, _settings);
         }
 
         private void HandleAdd()
@@ -112,6 +113,31 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             _listView.selectedIndex = -1;
             SelectionChanged?.Invoke(-1);
             RefreshList();
+        }
+
+        private static void PingModelFolder(int index, TtsProjectSettings settings)
+        {
+            if (index < 0 || index >= settings.data.profiles.Count)
+                return;
+
+            string profileName = settings.data.profiles[index].profileName;
+            if (string.IsNullOrEmpty(profileName))
+                return;
+
+            string modelDir = TtsModelPaths.GetModelDir(profileName);
+            if (!Directory.Exists(modelDir))
+                return;
+
+            string[] files = Directory.GetFiles(modelDir);
+            if (files.Length == 0)
+                return;
+
+            string assetPath = files[0].Replace('\\', '/');
+            var asset = AssetDatabase.LoadAssetAtPath<UnityEngine.Object>(assetPath);
+            if (asset == null)
+                return;
+
+            EditorGUIUtility.PingObject(asset);
         }
 
         private void AdjustActiveIndexAfterRemove(int removedIndex)
