@@ -40,6 +40,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Kokoro:
                     FillKokoro(profile, dir);
                     break;
+                case TtsModelType.Kitten:
+                    FillKitten(profile, dir);
+                    break;
             }
         }
 
@@ -60,6 +63,15 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.matchaDictDir = FindSubDir(dir, "dict");
             profile.matchaNoiseScale = 0.667f;
             profile.matchaLengthScale = 1.0f;
+        }
+
+        private static void FillKitten(TtsProfile profile, string dir)
+        {
+            profile.kittenModel = FindOnnxModel(dir);
+            profile.kittenVoices = FindFileIfExists(dir, "voices.bin");
+            profile.kittenTokens = FindFileIfExists(dir, "tokens.txt");
+            profile.kittenDataDir = FindSubDir(dir, "espeak-ng-data");
+            profile.kittenLengthScale = 1.0f;
         }
 
         private static void FillKokoro(TtsProfile profile, string dir)
