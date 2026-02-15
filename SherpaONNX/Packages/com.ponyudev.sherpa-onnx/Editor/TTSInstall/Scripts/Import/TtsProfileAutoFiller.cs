@@ -48,6 +48,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.ZipVoice:
                     FillZipVoice(profile, dir, useInt8);
                     break;
+                case TtsModelType.Pocket:
+                    FillPocket(profile, dir, useInt8);
+                    break;
             }
         }
 
@@ -102,6 +105,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.zipVoiceTshift = 0.5f;
             profile.zipVoiceTargetRms = 0.1f;
             profile.zipVoiceGuidanceScale = 1.0f;
+        }
+
+        private static void FillPocket(TtsProfile profile, string dir, bool useInt8)
+        {
+            profile.pocketLmFlow = FindEncoderOrDecoder(dir, "lm_flow", useInt8);
+            profile.pocketLmMain = FindEncoderOrDecoder(dir, "lm_main", useInt8);
+            profile.pocketEncoder = FindEncoderOrDecoder(dir, "encoder", useInt8);
+            profile.pocketDecoder = FindEncoderOrDecoder(dir, "decoder", useInt8);
+            profile.pocketTextConditioner = FindFileIfExists(dir, "text_conditioner.onnx");
+            profile.pocketVocabJson = FindFileIfExists(dir, "vocab.json");
+            profile.pocketTokenScoresJson = FindFileIfExists(dir, "token_scores.json");
         }
 
         // ── Rule files ──

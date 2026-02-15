@@ -1,4 +1,5 @@
 using System.Linq;
+using System.Text.RegularExpressions;
 using PonyuDev.SherpaOnnx.Tts.Data;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
@@ -9,26 +10,23 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
     /// </summary>
     internal static class TtsInt8Switcher
     {
+        private static readonly Regex Int8Regex =
+            new Regex(@"[._\-]int8", RegexOptions.IgnoreCase);
+
         /// <summary>
-        /// Returns true if the model directory contains int8 alternatives
-        /// for the current model type's .onnx fields.
-        /// Both int8 and non-int8 variants must exist.
+        /// Returns true when at least one .onnx file has both an int8
+        /// and a normal variant sharing the same base name.
+        /// E.g. decoder.onnx + decoder.int8.onnx → true,
+        /// but decoder.int8.onnx + encoder.onnx → false.
         /// </summary>
         internal static bool HasInt8Alternative(TtsProfile profile, string dir)
         {
             string[] allOnnx = TtsProfileAutoFiller.GetOnnxFileNames(dir);
-            bool hasInt8 = allOnnx.Any(IsInt8);
-            bool hasNormal = allOnnx.Any(IsNotInt8);
 
-            if (!hasInt8 || !hasNormal) return false;
+            var int8Set = allOnnx.Where(IsInt8).Select(GetBaseName).ToArray();
+            var normalSet = allOnnx.Where(IsNotInt8).Select(GetBaseName).ToArray();
 
-            if (profile.modelType == TtsModelType.ZipVoice)
-            {
-                return allOnnx.Any(MatchesInt8Encoder)
-                    && allOnnx.Any(MatchesInt8Decoder);
-            }
-
-            return true;
+            return int8Set.Any(normalSet.Contains);
         }
 
         /// <summary>
@@ -44,6 +42,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Kitten:  return IsInt8(profile.kittenModel);
                 case TtsModelType.ZipVoice:
                     return IsInt8(profile.zipVoiceEncoder) || IsInt8(profile.zipVoiceDecoder);
+                case TtsModelType.Pocket:
+                    return IsInt8(profile.pocketLmFlow) || IsInt8(profile.pocketLmMain)
+                        || IsInt8(profile.pocketEncoder) || IsInt8(profile.pocketDecoder);
                 default: return false;
             }
         }
@@ -76,6 +77,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                     profile.zipVoiceDecoder =
                         TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "decoder", true);
                     break;
+                case TtsModelType.Pocket:
+                    SwitchPocket(profile, dir, true);
+                    break;
             }
         }
 
@@ -107,23 +111,64 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                     profile.zipVoiceDecoder =
                         TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "decoder", false);
                     break;
+                case TtsModelType.Pocket:
+                    SwitchPocket(profile, dir, false);
+                    break;
             }
         }
 
         /// <summary>
-        /// Finds the int8 counterpart for a given .onnx file name.
-        /// Simply picks the first .onnx file containing "int8" in its name.
+        /// Switches each Pocket .onnx field independently.
+        /// Each field gets int8 only if an int8 variant exists for that keyword.
+        /// </summary>
+        private static void SwitchPocket(TtsProfile profile, string dir, bool useInt8)
+        {
+            profile.pocketLmFlow =
+                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "lm_flow", useInt8);
+            profile.pocketLmMain =
+                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "lm_main", useInt8);
+            profile.pocketEncoder =
+                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "encoder", useInt8);
+            profile.pocketDecoder =
+                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "decoder", useInt8);
+        }
+
+        /// <summary>
+        /// Finds the int8 counterpart sharing the same base name.
         /// </summary>
         private static string FindInt8For(string[] allOnnx, string currentFile)
         {
             if (string.IsNullOrEmpty(currentFile)) return currentFile;
-            return allOnnx.FirstOrDefault(IsInt8) ?? currentFile;
+
+            string baseName = GetBaseName(currentFile);
+            return allOnnx.FirstOrDefault(f => IsInt8(f) && GetBaseName(f) == baseName)
+                ?? currentFile;
         }
 
+        /// <summary>
+        /// Finds the normal counterpart sharing the same base name.
+        /// </summary>
         private static string FindNormalFor(string[] allOnnx, string currentFile)
         {
             if (string.IsNullOrEmpty(currentFile)) return currentFile;
-            return allOnnx.FirstOrDefault(IsNotInt8) ?? currentFile;
+
+            string baseName = GetBaseName(currentFile);
+            return allOnnx.FirstOrDefault(f => IsNotInt8(f) && GetBaseName(f) == baseName)
+                ?? currentFile;
+        }
+
+        /// <summary>
+        /// Strips the int8 marker and .onnx extension to get a comparable base name.
+        /// E.g. "decoder.int8.onnx" → "decoder", "decoder_int8.onnx" → "decoder",
+        /// "decoder.onnx" → "decoder".
+        /// </summary>
+        private static string GetBaseName(string fileName)
+        {
+            string withoutExt = fileName.EndsWith(".onnx")
+                ? fileName.Substring(0, fileName.Length - 5)
+                : fileName;
+
+            return Int8Regex.Replace(withoutExt, "").ToLowerInvariant();
         }
 
         private static bool IsInt8(string f)
@@ -134,16 +179,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static bool IsNotInt8(string f)
         {
             return !IsInt8(f);
-        }
-
-        private static bool MatchesInt8Encoder(string f)
-        {
-            return IsInt8(f) && ContainsIgnoreCase(f, "encoder");
-        }
-
-        private static bool MatchesInt8Decoder(string f)
-        {
-            return IsInt8(f) && ContainsIgnoreCase(f, "decoder");
         }
 
         private static bool ContainsIgnoreCase(string source, string value)

@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
@@ -19,9 +18,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
     {
         private readonly TtsProjectSettings _settings;
         private readonly Action _onImportCompleted;
+        private readonly MatchaVocoderImportField _vocoderField = new MatchaVocoderImportField();
 
         private TextField _urlField;
-        private PopupField<MatchaVocoderOption> _vocoderField;
         private Toggle _int8Toggle;
         private Button _importButton;
         private Button _cancelButton;
@@ -50,9 +49,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             _urlField.RegisterValueChangedCallback(HandleUrlChanged);
             row.Add(_urlField);
 
-            _vocoderField = BuildVocoderField();
-            _vocoderField.style.display = DisplayStyle.None;
-            row.Add(_vocoderField);
+            row.Add(_vocoderField.Build());
 
             _int8Toggle = new Toggle("Use int8 models");
             _int8Toggle.style.display = DisplayStyle.None;
@@ -95,13 +92,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 _importButton.clicked -= HandleImportClicked;
             if (_cancelButton != null)
                 _cancelButton.clicked -= HandleCancelClicked;
-            if (_urlField != null)
-                _urlField.UnregisterValueChangedCallback(HandleUrlChanged);
+            _urlField?.UnregisterValueChangedCallback(HandleUrlChanged);
 
             _importButton = null;
             _cancelButton = null;
             _urlField = null;
-            _vocoderField = null;
             _int8Toggle = null;
             _progressBar = null;
             _statusLabel = null;
@@ -155,12 +150,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             string archiveName = ArchiveNameParser.GetArchiveName(evt.newValue ?? "");
             TtsModelType? detected = TtsModelTypeDetector.Detect(archiveName);
 
-            if (_vocoderField != null)
-                _vocoderField.style.display = detected == TtsModelType.Matcha
-                    ? DisplayStyle.Flex : DisplayStyle.None;
+            _vocoderField.SetVisible(detected == TtsModelType.Matcha);
 
             if (_int8Toggle != null)
-                _int8Toggle.style.display = detected == TtsModelType.ZipVoice
+                _int8Toggle.style.display = detected.HasValue
                     ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
@@ -214,7 +207,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             TtsProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
 
             if (detectedType == TtsModelType.Matcha)
-                await DownloadMatchaVocoderAsync(profile, handler.DestinationDirectory, ct);
+            {
+                await _vocoderField.DownloadAsync(
+                    profile, handler.DestinationDirectory,
+                    HandlePipelineProgress, HandlePipelineStatus, ct);
+            }
 
             _settings.data.profiles.Add(profile);
             _settings.SaveSettings();
@@ -233,41 +230,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             _onImportCompleted?.Invoke();
         }
 
-        // ── Matcha vocoder ──
-
-        private async Task DownloadMatchaVocoderAsync(
-            TtsProfile profile, string modelDir, CancellationToken ct)
-        {
-            MatchaVocoderOption option = _vocoderField != null
-                ? _vocoderField.value
-                : MatchaVocoderOption.Vocos22khz;
-
-            using (var downloader = new MatchaVocoderDownloader())
-            {
-                downloader.OnProgress += HandlePipelineProgress;
-                downloader.OnStatus += HandlePipelineStatus;
-
-                string fileName = await downloader.DownloadAsync(option, modelDir, ct);
-                profile.matchaVocoder = fileName;
-            }
-        }
-
-        private static PopupField<MatchaVocoderOption> BuildVocoderField()
-        {
-            var choices = new List<MatchaVocoderOption>
-            {
-                MatchaVocoderOption.Vocos22khz,
-                MatchaVocoderOption.HifiganV1,
-                MatchaVocoderOption.HifiganV2,
-                MatchaVocoderOption.HifiganV3
-            };
-
-            return new PopupField<MatchaVocoderOption>(
-                "Vocoder", choices, MatchaVocoderOption.Vocos22khz,
-                MatchaVocoderOptionExtensions.GetDisplayName,
-                MatchaVocoderOptionExtensions.GetDisplayName);
-        }
-
         // ── Helpers ──
 
         private void SetStatus(string text)
@@ -281,19 +243,15 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         {
             _isBusy = busy;
 
-            if (_importButton != null)
-                _importButton.SetEnabled(!busy);
-            if (_urlField != null)
-                _urlField.SetEnabled(!busy);
+            _importButton?.SetEnabled(!busy);
+            _urlField?.SetEnabled(!busy);
             if (_cancelButton != null)
                 _cancelButton.style.display = busy
                     ? DisplayStyle.Flex : DisplayStyle.None;
-            if (_progressBar != null)
-            {
-                _progressBar.style.display = busy
-                    ? DisplayStyle.Flex : DisplayStyle.None;
-                _progressBar.value = 0f;
-            }
+            if (_progressBar == null) return;
+            _progressBar.style.display = busy
+                ? DisplayStyle.Flex : DisplayStyle.None;
+            _progressBar.value = 0f;
         }
 
         private void CancelIfBusy()
