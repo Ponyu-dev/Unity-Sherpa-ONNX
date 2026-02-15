@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -11,6 +12,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private const string VersionFieldName = "versionField";
         private const string StrictToggleName = "strictValidationToggle";
         private const string MacToggleName = "macPostprocessToggle";
+        private const string DebugEditorToggleName = "debugLogEditorToggle";
+        private const string DebugRuntimeToggleName = "debugLogRuntimeToggle";
 
         private readonly string _mainUxmlPath;
         private readonly string _templateUxmlPath;
@@ -19,6 +22,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private TextField _versionField;
         private Toggle _strictToggle;
         private Toggle _macToggle;
+        private Toggle _debugEditorToggle;
+        private Toggle _debugRuntimeToggle;
         private Button _updateAllButton;
 
         private VisualTreeAsset _templateAsset;
@@ -60,6 +65,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField = hostRoot.Q<TextField>(VersionFieldName);
             _strictToggle = hostRoot.Q<Toggle>(StrictToggleName);
             _macToggle = hostRoot.Q<Toggle>(MacToggleName);
+            _debugEditorToggle = hostRoot.Q<Toggle>(DebugEditorToggleName);
+            _debugRuntimeToggle = hostRoot.Q<Toggle>(DebugRuntimeToggleName);
 
             BindSettingsToUi();
             SubscribeUi();
@@ -87,6 +94,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField = null;
             _strictToggle = null;
             _macToggle = null;
+            _debugEditorToggle = null;
+            _debugRuntimeToggle = null;
             _updateAllButton = null;
             _root = null;
         }
@@ -156,6 +165,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 _strictToggle.value = s.strictValidation;
             if (_macToggle != null)
                 _macToggle.value = s.macPostprocess;
+            if (_debugEditorToggle != null)
+                _debugEditorToggle.value = s.debugLogEditor;
+            if (_debugRuntimeToggle != null)
+                _debugRuntimeToggle.value = s.debugLogRuntime;
         }
 
         private void SubscribeUi()
@@ -164,6 +177,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField?.RegisterValueChangedCallback(HandleVersionChanged);
             _strictToggle?.RegisterValueChangedCallback(HandleStrictChanged);
             _macToggle?.RegisterValueChangedCallback(HandleMacChanged);
+            _debugEditorToggle?.RegisterValueChangedCallback(HandleDebugEditorChanged);
+            _debugRuntimeToggle?.RegisterValueChangedCallback(HandleDebugRuntimeChanged);
         }
 
         private void UnsubscribeUi()
@@ -172,6 +187,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _versionField?.UnregisterValueChangedCallback(HandleVersionChanged);
             _strictToggle?.UnregisterValueChangedCallback(HandleStrictChanged);
             _macToggle?.UnregisterValueChangedCallback(HandleMacChanged);
+            _debugEditorToggle?.UnregisterValueChangedCallback(HandleDebugEditorChanged);
+            _debugRuntimeToggle?.UnregisterValueChangedCallback(HandleDebugRuntimeChanged);
         }
 
         private void HandleDetachFromPanel(DetachFromPanelEvent evt) => Dispose();
@@ -227,6 +244,22 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             var s = SherpaOnnxProjectSettings.instance;
             s.macPostprocess = evt.newValue;
             s.SaveSettings();
+        }
+
+        private void HandleDebugEditorChanged(ChangeEvent<bool> evt)
+        {
+            var s = SherpaOnnxProjectSettings.instance;
+            s.debugLogEditor = evt.newValue;
+            s.SaveSettings();
+            SherpaOnnxLog.EditorEnabled = evt.newValue;
+        }
+
+        private void HandleDebugRuntimeChanged(ChangeEvent<bool> evt)
+        {
+            var s = SherpaOnnxProjectSettings.instance;
+            s.debugLogRuntime = evt.newValue;
+            s.SaveSettings();
+            SherpaOnnxLog.RuntimeEnabled = evt.newValue;
         }
 
         private static string GetVersion() =>

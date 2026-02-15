@@ -9,5 +9,10 @@
         <ui:TextField name="versionField" keyboard-type="NumberPad" label="Version" class="field-input"/>
         <ui:Toggle name="strictValidationToggle" text="Strict managed validation (require Assets/SherpaOnnx/sherpa-onnx.dll)" class="option-toggle"/>
         <ui:Toggle name="macPostprocessToggle" text="macOS postprocess (xattr + ad-hoc codesign, best effort)" class="option-toggle"/>
+        <ui:VisualElement class="debug-section">
+            <ui:Label text="DebugLog" class="section-title"/>
+            <ui:Toggle name="debugLogEditorToggle" text="  Editor" class="option-toggle"/>
+            <ui:Toggle name="debugLogRuntimeToggle" text="  Runtime" class="option-toggle"/>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

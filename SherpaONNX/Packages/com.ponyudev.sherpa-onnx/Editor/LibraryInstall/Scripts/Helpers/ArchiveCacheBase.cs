@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.IO;
 using PonyuDev.SherpaOnnx.Common.Networking;
@@ -54,12 +55,12 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 if (Directory.Exists(cachePath))
                     Directory.Delete(cachePath, recursive: true);
 
-                Debug.Log($"[SherpaOnnx] {PlatformLabel} cache cleaned.");
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] {PlatformLabel} cache cleaned.");
                 OnCacheChanged?.Invoke();
             }
             catch (Exception ex)
             {
-                Debug.LogError(
+                SherpaOnnxLog.EditorError(
                     $"[SherpaOnnx] Failed to clean {PlatformLabel} cache: {ex.Message}");
             }
         }
@@ -69,8 +70,11 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             string fileName,
             CancellationToken ct)
         {
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] {PlatformLabel} EnsureExtracted started: {url}");
+
             if (IsReady)
             {
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] {PlatformLabel} cache ready, skipping download.");
                 RaiseStatus($"{PlatformLabel} cache ready, skipping download.");
                 RaiseProgress(1f);
                 return;
@@ -108,6 +112,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 extractor.OnProgress -= HandleExtractProgress;
                 extractor.OnCompleted -= HandleExtractCompleted;
 
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] {PlatformLabel} EnsureExtracted completed.");
                 RaiseStatus($"{PlatformLabel} archive cached.");
                 RaiseProgress(1f);
                 OnCacheChanged?.Invoke();

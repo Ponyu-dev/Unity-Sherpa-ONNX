@@ -1,6 +1,7 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -96,19 +97,22 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
             _cts = new CancellationTokenSource();
             SetBusy(true);
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] TTS import started: {url}");
 
             try
             {
                 await ImportAsync(url, _cts.Token);
+                SherpaOnnxLog.EditorLog("[SherpaOnnx] TTS import completed.");
             }
             catch (OperationCanceledException)
             {
                 SetStatus("Import canceled.");
+                SherpaOnnxLog.EditorWarning("[SherpaOnnx] TTS import canceled by user.");
             }
             catch (Exception ex)
             {
                 SetStatus($"Error: {ex.Message}");
-                Debug.LogError($"[SherpaOnnx] TTS import failed: {ex}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] TTS import failed: {ex}");
             }
             finally
             {

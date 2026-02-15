@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using PonyuDev.SherpaOnnx.Common;
 using UnityEditor;
 using UnityEngine;
 using CompressionLevel = System.IO.Compression.CompressionLevel;
@@ -22,6 +23,8 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         {
             if (!Directory.Exists(modelDir)) return;
 
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Deleting model directory: {modelDir}");
+
             Directory.Delete(modelDir, true);
 
             string metaPath = modelDir + ".meta";
@@ -29,6 +32,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
                 File.Delete(metaPath);
 
             AssetDatabase.Refresh();
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Model directory deleted: {modelDir}");
         }
 
         internal static void DeleteFile(string filePath)
@@ -47,6 +51,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         internal static void PackToZip(string modelDir)
         {
             string zipPath = modelDir + ".zip";
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Packing to zip: {modelDir}");
 
             try
             {
@@ -54,11 +59,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
                     File.Delete(zipPath);
 
                 ZipFile.CreateFromDirectory(modelDir, zipPath, CompressionLevel.Optimal, false);
-                Debug.Log($"[SherpaOnnx] Packed → {zipPath}");
+                SherpaOnnxLog.EditorLog($"[SherpaOnnx] Packed → {zipPath}");
             }
             catch (Exception ex)
             {
-                Debug.LogError($"[SherpaOnnx] Pack to zip failed: {ex}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Pack to zip failed: {ex}");
             }
         }
 
@@ -73,7 +78,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             if (File.Exists(metaPath))
                 File.Delete(metaPath);
 
-            Debug.Log($"[SherpaOnnx] Deleted zip: {zipPath}");
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Deleted zip: {zipPath}");
         }
 
         // ── Editor ──
