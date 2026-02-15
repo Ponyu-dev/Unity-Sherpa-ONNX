@@ -17,8 +17,8 @@
   },
   "samples": [
     {
-      "displayName": "Samples",
-      "description": "Simple UI panel for testing TTS generation at runtime.",
+      "displayName": "TTS Samples",
+      "description": "Sample scene with Simple TTS, TTS with Progress, and TTS with Config panels.",
       "path": "Samples~"
     }
   ],

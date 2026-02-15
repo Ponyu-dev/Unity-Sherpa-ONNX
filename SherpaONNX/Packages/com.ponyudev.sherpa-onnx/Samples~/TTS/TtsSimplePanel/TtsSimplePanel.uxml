@@ -1,0 +1,24 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="Simple TTS" class="sample-title"/>
+
+        <ui:TextField name="textField" label="Text" multiline="true"
+                      value="Hello, this is a test of the text to speech engine."
+                      class="sample-text-field"/>
+
+        <ui:VisualElement class="sample-params-row">
+            <ui:FloatField name="speedField" label="Speed" value="1.0"
+                           class="sample-param"/>
+            <ui:IntegerField name="speakerIdField" label="Speaker ID" value="0"
+                             class="sample-param"/>
+        </ui:VisualElement>
+
+        <ui:Button name="generateButton" text="Generate"
+                   class="sample-generate-btn"/>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>
