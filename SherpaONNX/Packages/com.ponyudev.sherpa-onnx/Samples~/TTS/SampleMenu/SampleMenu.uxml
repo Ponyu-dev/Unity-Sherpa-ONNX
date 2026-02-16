@@ -24,6 +24,12 @@
                       class="menu-card-desc"/>
         </ui:Button>
 
+        <ui:Button name="btnCache" class="menu-card">
+            <ui:Label text="Cache Control" class="menu-card-title"/>
+            <ui:Label text="Toggle result/clip/source caches at runtime, generate and observe stats live."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
         <ui:Label name="infoLabel" class="sample-info"
                   style="margin-top: 24px;"/>
     </ui:VisualElement>

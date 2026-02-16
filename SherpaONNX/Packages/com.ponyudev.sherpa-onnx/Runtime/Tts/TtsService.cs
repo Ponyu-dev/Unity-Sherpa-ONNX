@@ -29,6 +29,13 @@ namespace PonyuDev.SherpaOnnx.Tts
         /// <summary>All loaded profiles (available after Initialize).</summary>
         public TtsSettingsData Settings => _settings;
 
+        /// <summary>Number of concurrent native engine instances.</summary>
+        public int EnginePoolSize
+        {
+            get => _engine?.PoolSize ?? 1;
+            set => _engine?.Resize(value);
+        }
+
         // ── Lifecycle ──
 
         /// <summary>
@@ -74,7 +81,8 @@ namespace PonyuDev.SherpaOnnx.Tts
             string modelDir = TtsModelPathResolver.GetModelDirectory(
                 profile.profileName);
 
-            _engine.Load(profile, modelDir);
+            int poolSize = _settings?.cache?.offlineTtsPoolSize ?? 1;
+            _engine.Load(profile, modelDir, poolSize);
             _activeProfile = profile;
         }
 

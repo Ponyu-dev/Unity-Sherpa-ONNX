@@ -14,10 +14,12 @@ namespace PonyuDev.SherpaOnnx.Samples
         public const string IdSimple = "simple";
         public const string IdProgress = "progress";
         public const string IdConfig = "config";
+        public const string IdCache = "cache";
 
         private Button _btnSimple;
         private Button _btnProgress;
         private Button _btnConfig;
+        private Button _btnCache;
         private Label _infoLabel;
         private Action<string> _onNavigate;
 
@@ -43,6 +45,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _btnSimple = root.Q<Button>("btnSimple");
             _btnProgress = root.Q<Button>("btnProgress");
             _btnConfig = root.Q<Button>("btnConfig");
+            _btnCache = root.Q<Button>("btnCache");
             _infoLabel = root.Q<Label>("infoLabel");
 
             if (_btnSimple != null)
@@ -51,6 +54,8 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnProgress.clicked += HandleProgress;
             if (_btnConfig != null)
                 _btnConfig.clicked += HandleConfig;
+            if (_btnCache != null)
+                _btnCache.clicked += HandleCache;
 
             UpdateInfo(service);
         }
@@ -63,10 +68,13 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnProgress.clicked -= HandleProgress;
             if (_btnConfig != null)
                 _btnConfig.clicked -= HandleConfig;
+            if (_btnCache != null)
+                _btnCache.clicked -= HandleCache;
 
             _btnSimple = null;
             _btnProgress = null;
             _btnConfig = null;
+            _btnCache = null;
             _infoLabel = null;
             _onNavigate = null;
         }
@@ -74,6 +82,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private void HandleSimple() => _onNavigate?.Invoke(IdSimple);
         private void HandleProgress() => _onNavigate?.Invoke(IdProgress);
         private void HandleConfig() => _onNavigate?.Invoke(IdConfig);
+        private void HandleCache() => _onNavigate?.Invoke(IdCache);
 
         private void UpdateInfo(ITtsService service)
         {

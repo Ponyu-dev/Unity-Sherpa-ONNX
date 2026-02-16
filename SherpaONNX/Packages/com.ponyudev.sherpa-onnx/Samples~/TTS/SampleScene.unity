@@ -381,6 +381,7 @@ MonoBehaviour:
   _simpleAsset: {fileID: 9197481963319205126, guid: 339adce95c09c4164a7ab5b189c2c04f, type: 3}
   _progressAsset: {fileID: 9197481963319205126, guid: 1d3f288cbfc74440e80f011e038ebae8, type: 3}
   _configAsset: {fileID: 9197481963319205126, guid: 468e740e0bddf42f0aa7062cc11da304, type: 3}
+  _cacheAsset: {fileID: 9197481963319205126, guid: 2793cdc82ca334e95b540f3b7f4c1891, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
