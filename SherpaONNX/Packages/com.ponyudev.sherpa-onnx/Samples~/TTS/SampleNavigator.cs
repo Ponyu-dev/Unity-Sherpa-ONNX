@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts;
+using PonyuDev.SherpaOnnx.Tts.Cache;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -9,8 +10,9 @@ namespace PonyuDev.SherpaOnnx.Samples
 {
     /// <summary>
     /// Root MonoBehaviour for the samples scene.
-    /// Owns one <see cref="TtsService"/>, one <see cref="AudioSource"/>,
-    /// and switches between sample panels via <see cref="UIDocument"/>.
+    /// Owns one <see cref="CachedTtsService"/> (wrapping <see cref="TtsService"/>),
+    /// one <see cref="AudioSource"/>, and switches between sample panels
+    /// via <see cref="UIDocument"/>.
     /// </summary>
     [RequireComponent(typeof(UIDocument))]
     public class SampleNavigator : MonoBehaviour
@@ -20,10 +22,13 @@ namespace PonyuDev.SherpaOnnx.Samples
         [SerializeField] private VisualTreeAsset _simpleAsset;
         [SerializeField] private VisualTreeAsset _progressAsset;
         [SerializeField] private VisualTreeAsset _configAsset;
+        [SerializeField] private VisualTreeAsset _cacheAsset;
 
         private UIDocument _document;
         private AudioSource _audioSource;
-        private TtsService _service;
+
+        private TtsService _innerService;
+        private CachedTtsService _cachedService;
 
         private readonly SampleMenu _menu = new();
         private readonly Dictionary<string, ISamplePanel> _panels = new();
@@ -40,6 +45,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _panels[SampleMenu.IdSimple] = new TtsSimplePanel();
             _panels[SampleMenu.IdProgress] = new TtsProgressPanel();
             _panels[SampleMenu.IdConfig] = new TtsConfigPanel();
+            _panels[SampleMenu.IdCache] = new TtsCachePanel();
 
             InitializeService();
         }
@@ -52,21 +58,39 @@ namespace PonyuDev.SherpaOnnx.Samples
         private void OnDestroy()
         {
             UnbindActive();
-            _service?.Dispose();
-            _service = null;
+
+            if (_cachedService != null)
+            {
+                _cachedService.Dispose();
+                _cachedService = null;
+                _innerService = null;
+            }
+            else
+            {
+                _innerService?.Dispose();
+                _innerService = null;
+            }
         }
 
         // ── Init ──
 
         private void InitializeService()
         {
-            _service = new TtsService();
+            _innerService = new TtsService();
 
             try
             {
-                _service.Initialize();
+                _innerService.Initialize();
 
-                if (_service.IsReady)
+                // Wrap in CachedTtsService for cache support.
+                var cache = _innerService.Settings?.cache;
+                if (cache != null)
+                {
+                    _cachedService = new CachedTtsService(
+                        _innerService, cache, transform);
+                }
+
+                if (Service.IsReady)
                 {
                     SherpaOnnxLog.RuntimeLog(
                         "[SherpaOnnx] SampleNavigator: service ready.");
@@ -85,6 +109,10 @@ namespace PonyuDev.SherpaOnnx.Samples
             }
         }
 
+        /// <summary>Active service (cached decorator or raw).</summary>
+        private ITtsService Service =>
+            (ITtsService)_cachedService ?? _innerService;
+
         // ── Navigation ──
 
         private void ShowMenu()
@@ -100,13 +128,11 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             _document.visualTreeAsset = _menuAsset;
 
-            // visualTreeAsset change triggers a rebuild on next frame;
-            // schedule bind after layout.
             _document.rootVisualElement.schedule.Execute(() =>
             {
                 _menu.Bind(
                     _document.rootVisualElement,
-                    _service,
+                    Service,
                     Navigate);
             });
         }
@@ -136,7 +162,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             {
                 panel.Bind(
                     _document.rootVisualElement,
-                    _service,
+                    Service,
                     _audioSource,
                     ShowMenu);
                 _activePanel = panel;
@@ -161,6 +187,7 @@ namespace PonyuDev.SherpaOnnx.Samples
                 SampleMenu.IdSimple => _simpleAsset,
                 SampleMenu.IdProgress => _progressAsset,
                 SampleMenu.IdConfig => _configAsset,
+                SampleMenu.IdCache => _cacheAsset,
                 _ => null,
             };
         }

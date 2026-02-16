@@ -9,11 +9,17 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
     [Serializable]
     public sealed class TtsCacheSettings
     {
-        /// <summary>Whether to cache generated float arrays.</summary>
+        /// <summary>Whether to enable the pool of native OfflineTts engines.</summary>
         public bool offlineTtsEnabled = true;
 
-        /// <summary>How many generated float arrays to keep in memory.</summary>
+        /// <summary>Number of native OfflineTts instances for parallel generation.</summary>
         public int offlineTtsPoolSize = 4;
+
+        /// <summary>Whether to cache generated TtsResult (float[] clones).</summary>
+        public bool resultCacheEnabled = true;
+
+        /// <summary>How many TtsResult entries to keep in the LRU cache.</summary>
+        public int resultCacheSize = 8;
 
         /// <summary>Whether to cache AudioClip objects.</summary>
         public bool audioClipEnabled = true;
@@ -25,6 +31,6 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         public bool audioSourceEnabled = true;
 
         /// <summary>How many AudioSource objects to keep for parallel playback.</summary>
-        public int audioSourcePoolSize = 2;
+        public int audioSourcePoolSize = 4;
     }
 }

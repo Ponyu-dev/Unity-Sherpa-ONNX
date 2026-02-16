@@ -1,6 +1,8 @@
 #if SHERPA_ONNX
 using System;
+using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
+using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -9,21 +11,28 @@ using SherpaOnnx;
 namespace PonyuDev.SherpaOnnx.Tts.Engine
 {
     /// <summary>
-    /// Wraps the native <see cref="OfflineTts"/> object.
-    /// Handles creation, generation and disposal of the native handle.
-    /// Never throws — logs errors instead.
+    /// Pool of native <see cref="OfflineTts"/> instances.
+    /// Allows N concurrent generations via SemaphoreSlim + ConcurrentQueue.
+    /// Thread-safe. Never throws — logs errors instead.
     /// </summary>
     public sealed class TtsEngine : ITtsEngine
     {
-        private OfflineTts _tts;
+        private readonly ConcurrentQueue<OfflineTts> _available = new();
+        private readonly object _resizeLock = new();
 
-        public int SampleRate => _tts?.SampleRate ?? 0;
-        public int NumSpeakers => _tts?.NumSpeakers ?? 0;
-        public bool IsLoaded => _tts != null;
+        private OfflineTts[] _pool;
+        private SemaphoreSlim _semaphore;
+        private OfflineTtsConfig _lastConfig;
+        private int _poolSize;
+
+        public int SampleRate { get; private set; }
+        public int NumSpeakers { get; private set; }
+        public bool IsLoaded => _pool != null && _pool.Length > 0;
+        public int PoolSize => _poolSize;
 
         // ── Lifecycle ──
 
-        public void Load(TtsProfile profile, string modelDir)
+        public void Load(TtsProfile profile, string modelDir, int poolSize = 1)
         {
             if (profile == null)
             {
@@ -34,24 +43,78 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             Unload();
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] TTS engine loading: {profile.profileName}");
+            poolSize = Math.Max(1, poolSize);
 
-            var config = TtsConfigBuilder.Build(profile, modelDir);
-            _tts = new OfflineTts(config);
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] TTS engine loading: {profile.profileName}" +
+                $" (pool={poolSize})");
+
+            _lastConfig = TtsConfigBuilder.Build(profile, modelDir);
+            _pool = new OfflineTts[poolSize];
+
+            for (int i = 0; i < poolSize; i++)
+            {
+                _pool[i] = new OfflineTts(_lastConfig);
+                _available.Enqueue(_pool[i]);
+            }
+
+            _poolSize = poolSize;
+            _semaphore = new SemaphoreSlim(poolSize, poolSize);
+
+            // Read properties from the first instance.
+            SampleRate = _pool[0].SampleRate;
+            NumSpeakers = _pool[0].NumSpeakers;
 
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loaded: {profile.profileName} " +
-                $"(sampleRate={SampleRate}, speakers={NumSpeakers})");
+                $"(sampleRate={SampleRate}, speakers={NumSpeakers}, " +
+                $"pool={poolSize})");
+        }
+
+        public void Resize(int newPoolSize)
+        {
+            newPoolSize = Math.Max(1, newPoolSize);
+            if (newPoolSize == _poolSize || !IsLoaded)
+                return;
+
+            lock (_resizeLock)
+            {
+                if (newPoolSize > _poolSize)
+                    GrowPool(newPoolSize);
+                else
+                    ShrinkPool(newPoolSize);
+
+                // Recreate semaphore with new capacity.
+                var oldSem = _semaphore;
+                _semaphore = new SemaphoreSlim(newPoolSize, newPoolSize);
+                oldSem?.Dispose();
+                _poolSize = newPoolSize;
+
+                SherpaOnnxLog.RuntimeLog(
+                    $"[SherpaOnnx] TtsEngine resized to {newPoolSize}.");
+            }
         }
 
         public void Unload()
         {
-            if (_tts == null)
+            if (_pool == null)
                 return;
 
-            _tts.Dispose();
-            _tts = null;
+            // Drain and dispose all instances.
+            while (_available.TryDequeue(out _)) { }
+
+            foreach (var tts in _pool)
+                tts?.Dispose();
+
+            _pool = null;
+            _poolSize = 0;
+
+            _semaphore?.Dispose();
+            _semaphore = null;
+
+            SampleRate = 0;
+            NumSpeakers = 0;
+
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS engine unloaded.");
         }
 
@@ -69,8 +132,11 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             LogGenerationStart(text, speed, speakerId);
 
-            var audio = _tts.Generate(text, speed, speakerId);
-            return WrapAudio(audio);
+            return RentAndGenerate(tts =>
+            {
+                var audio = tts.Generate(text, speed, speakerId);
+                return WrapAudio(audio);
+            });
         }
 
         // ── Callback generation ──
@@ -83,16 +149,19 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             LogGenerationStart(text, speed, speakerId);
 
-            OfflineTtsCallback nativeCallback = (IntPtr samples, int n) =>
+            return RentAndGenerate(tts =>
             {
-                var managed = CopySamplesFromNative(samples, n);
-                return callback(managed, n);
-            };
+                OfflineTtsCallback nativeCallback = (IntPtr samples, int n) =>
+                {
+                    var managed = CopySamplesFromNative(samples, n);
+                    return callback(managed, n);
+                };
 
-            var audio = _tts.GenerateWithCallback(
-                text, speed, speakerId, nativeCallback);
-            GC.KeepAlive(nativeCallback);
-            return WrapAudio(audio);
+                var audio = tts.GenerateWithCallback(
+                    text, speed, speakerId, nativeCallback);
+                GC.KeepAlive(nativeCallback);
+                return WrapAudio(audio);
+            });
         }
 
         public TtsResult GenerateWithCallbackProgress(
@@ -104,17 +173,20 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             LogGenerationStart(text, speed, speakerId);
 
-            OfflineTtsCallbackProgress nativeCallback =
-                (IntPtr samples, int n, float progress) =>
-                {
-                    var managed = CopySamplesFromNative(samples, n);
-                    return callback(managed, n, progress);
-                };
+            return RentAndGenerate(tts =>
+            {
+                OfflineTtsCallbackProgress nativeCallback =
+                    (IntPtr samples, int n, float progress) =>
+                    {
+                        var managed = CopySamplesFromNative(samples, n);
+                        return callback(managed, n, progress);
+                    };
 
-            var audio = _tts.GenerateWithCallbackProgress(
-                text, speed, speakerId, nativeCallback);
-            GC.KeepAlive(nativeCallback);
-            return WrapAudio(audio);
+                var audio = tts.GenerateWithCallbackProgress(
+                    text, speed, speakerId, nativeCallback);
+                GC.KeepAlive(nativeCallback);
+                return WrapAudio(audio);
+            });
         }
 
         public TtsResult GenerateWithConfig(
@@ -138,23 +210,25 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             var nativeConfig = TtsGenerationConfigMapper.ToNative(config);
 
-            OfflineTtsCallbackProgressWithArg nativeCallback =
-                (IntPtr samples, int n, float progress, IntPtr arg) =>
-                {
-                    var managed = CopySamplesFromNative(samples, n);
-                    return callback(managed, n, progress);
-                };
+            var result = RentAndGenerate(tts =>
+            {
+                OfflineTtsCallbackProgressWithArg nativeCallback =
+                    (IntPtr samples, int n, float progress, IntPtr arg) =>
+                    {
+                        var managed = CopySamplesFromNative(samples, n);
+                        return callback(managed, n, progress);
+                    };
 
-            var audio = _tts.GenerateWithConfig(
-                text, nativeConfig, nativeCallback);
-            GC.KeepAlive(nativeCallback);
+                var audio = tts.GenerateWithConfig(
+                    text, nativeConfig, nativeCallback);
+                GC.KeepAlive(nativeCallback);
+                return WrapAudio(audio);
+            });
 
-            var result = WrapAudio(audio);
             if (result != null)
                 return result;
 
             // Fallback: model may not support GenerateWithConfig.
-            // Retry with GenerateWithCallbackProgress using config params.
             SherpaOnnxLog.RuntimeWarning(
                 "[SherpaOnnx] GenerateWithConfig failed — " +
                 "falling back to GenerateWithCallbackProgress.");
@@ -163,11 +237,70 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 text, config.Speed, config.SpeakerId, callback);
         }
 
+        // ── Pool core ──
+
+        private TtsResult RentAndGenerate(Func<OfflineTts, TtsResult> action)
+        {
+            _semaphore.Wait();
+            OfflineTts tts = null;
+            try
+            {
+                if (!_available.TryDequeue(out tts))
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        "[SherpaOnnx] TtsEngine: no engine available.");
+                    return null;
+                }
+                return action(tts);
+            }
+            finally
+            {
+                if (tts != null)
+                    _available.Enqueue(tts);
+                _semaphore.Release();
+            }
+        }
+
+        // ── Resize helpers ──
+
+        private void GrowPool(int newSize)
+        {
+            int oldSize = _pool.Length;
+            var newPool = new OfflineTts[newSize];
+            Array.Copy(_pool, newPool, oldSize);
+
+            for (int i = oldSize; i < newSize; i++)
+            {
+                newPool[i] = new OfflineTts(_lastConfig);
+                _available.Enqueue(newPool[i]);
+            }
+
+            _pool = newPool;
+        }
+
+        private void ShrinkPool(int newSize)
+        {
+            int toRemove = _poolSize - newSize;
+            int removed = 0;
+
+            // Dispose idle instances from the queue.
+            while (removed < toRemove && _available.TryDequeue(out var tts))
+            {
+                tts.Dispose();
+                removed++;
+            }
+
+            // Rebuild pool array from remaining queue contents.
+            var remaining = _available.ToArray();
+            _pool = new OfflineTts[remaining.Length];
+            Array.Copy(remaining, _pool, remaining.Length);
+        }
+
         // ── Private helpers ──
 
         private bool ValidateBeforeGenerate(string text)
         {
-            if (_tts == null)
+            if (!IsLoaded)
             {
                 SherpaOnnxLog.RuntimeError(
                     "[SherpaOnnx] TtsEngine: engine not loaded.");
@@ -212,7 +345,6 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             catch (Exception)
             {
                 // Expected for models that don't support GenerateWithConfig.
-                // Caller handles fallback.
                 return null;
             }
 

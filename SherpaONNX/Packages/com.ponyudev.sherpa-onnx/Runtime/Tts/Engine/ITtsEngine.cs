@@ -27,7 +27,13 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
         int NumSpeakers { get; }
         bool IsLoaded { get; }
 
-        void Load(TtsProfile profile, string modelDir);
+        /// <summary>Number of native engine instances in the pool.</summary>
+        int PoolSize { get; }
+
+        void Load(TtsProfile profile, string modelDir, int poolSize = 1);
+
+        /// <summary>Resize the engine pool at runtime.</summary>
+        void Resize(int newPoolSize);
 
         TtsResult Generate(string text, float speed, int speakerId);
 

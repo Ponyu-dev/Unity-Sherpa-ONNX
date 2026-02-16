@@ -16,6 +16,9 @@ namespace PonyuDev.SherpaOnnx.Tts
         TtsProfile ActiveProfile { get; }
         TtsSettingsData Settings { get; }
 
+        /// <summary>Number of concurrent native engine instances.</summary>
+        int EnginePoolSize { get; set; }
+
         void Initialize();
         void LoadProfile(TtsProfile profile);
         void SwitchProfile(int index);

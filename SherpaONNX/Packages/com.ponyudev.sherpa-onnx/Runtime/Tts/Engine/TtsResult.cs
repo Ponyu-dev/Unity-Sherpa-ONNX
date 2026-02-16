@@ -43,6 +43,19 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             return clip;
         }
 
+        /// <summary>
+        /// Creates an independent copy of this result (clones the sample array).
+        /// </summary>
+        public TtsResult Clone()
+        {
+            if (!IsValid)
+                return null;
+
+            var copy = new float[Samples.Length];
+            Array.Copy(Samples, copy, Samples.Length);
+            return new TtsResult(copy, SampleRate);
+        }
+
         public void Dispose()
         {
             Samples = null;

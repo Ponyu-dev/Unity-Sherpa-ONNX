@@ -116,22 +116,29 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             foldout.AddToClassList("tts-foldout");
 
             foldout.Add(new CacheGroupElement(
-                "OfflineTts",
-                "Pool of OfflineTts instances.\n"
-                + "Allows generating multiple phrases concurrently.",
+                "OfflineTts Engine Pool",
+                "Pool of native OfflineTts instances.\n"
+                + "Allows generating multiple phrases concurrently on background threads.",
                 cache.offlineTtsEnabled, cache.offlineTtsPoolSize,
                 cache, settings, CacheField.OfflineTts));
 
             foldout.Add(new CacheGroupElement(
-                "AudioClip",
-                "Caches raw float[] audio data as AudioClip objects.\n"
-                + "Avoids re-synthesis when the same phrase is played again.",
+                "Result Cache (float[])",
+                "LRU cache of generated audio data (float[] clones).\n"
+                + "Avoids re-synthesis when the same phrase is requested again.",
+                cache.resultCacheEnabled, cache.resultCacheSize,
+                cache, settings, CacheField.ResultCache));
+
+            foldout.Add(new CacheGroupElement(
+                "AudioClip Pool",
+                "Pool of reusable AudioClip objects.\n"
+                + "Avoids allocating new clips for every playback.",
                 cache.audioClipEnabled, cache.audioClipPoolSize,
                 cache, settings, CacheField.AudioClip));
 
             foldout.Add(new CacheGroupElement(
-                "AudioSource",
-                "Pool of AudioSource components for parallel playback.\n"
+                "AudioSource Pool",
+                "Pool of AudioSource GameObjects for parallel playback.\n"
                 + "Allows multiple phrases to play simultaneously.",
                 cache.audioSourceEnabled, cache.audioSourcePoolSize,
                 cache, settings, CacheField.AudioSource));
