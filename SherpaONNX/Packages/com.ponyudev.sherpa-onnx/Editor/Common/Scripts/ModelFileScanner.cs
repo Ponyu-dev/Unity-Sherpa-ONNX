@@ -24,6 +24,41 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         }
 
         /// <summary>
+        /// Finds the primary .onnx model file, preferring .int8.onnx variants.
+        /// Falls back to non-int8 if no int8 file found.
+        /// </summary>
+        internal static string FindOnnxModelInt8(string dir)
+        {
+            string[] allOnnx = GetOnnxFileNames(dir);
+            if (allOnnx.Length == 0) return string.Empty;
+
+            return allOnnx.FirstOrDefault(IsInt8Onnx)
+                ?? allOnnx.FirstOrDefault(IsNotInt8Onnx)
+                ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Finds .onnx containing keyword, preferring int8 variant when
+        /// <paramref name="useInt8"/> is true.
+        /// </summary>
+        internal static string FindOnnxContaining(
+            string dir, string keyword, bool useInt8)
+        {
+            string[] allOnnx = GetOnnxFileNames(dir);
+            var matching = allOnnx.Where(
+                f => ContainsIgnoreCase(f, keyword));
+
+            if (useInt8)
+            {
+                string int8Match = matching.FirstOrDefault(IsInt8Onnx);
+                if (int8Match != null) return int8Match;
+            }
+
+            string normalMatch = matching.FirstOrDefault(IsNotInt8Onnx);
+            return normalMatch ?? matching.FirstOrDefault() ?? string.Empty;
+        }
+
+        /// <summary>
         /// Prefers non-int8 .onnx, falls back to .int8.onnx if no other found.
         /// </summary>
         internal static string FindOnnxModelWithInt8Fallback(string dir)

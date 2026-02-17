@@ -10,13 +10,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
     internal static class OnlineAsrProfileAutoFiller
     {
         internal static void Fill(
-            OnlineAsrProfile profile, string modelDir)
+            OnlineAsrProfile profile, string modelDir,
+            bool useInt8 = false)
         {
             FillCommonFields(profile, modelDir);
-            FillByModelType(profile, modelDir);
+            FillByModelType(profile, modelDir, useInt8);
         }
-
-        // ── Common ──
 
         private static void FillCommonFields(
             OnlineAsrProfile profile, string dir)
@@ -31,52 +30,48 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             if (!string.IsNullOrEmpty(fars)) profile.ruleFars = fars;
         }
 
-        // ── Per-model-type ──
-
         private static void FillByModelType(
-            OnlineAsrProfile profile, string dir)
+            OnlineAsrProfile profile, string dir, bool useInt8)
         {
             switch (profile.modelType)
             {
                 case OnlineAsrModelType.Transducer:
-                    FillTransducer(profile, dir);
+                    FillTransducer(profile, dir, useInt8);
                     break;
                 case OnlineAsrModelType.Paraformer:
-                    FillParaformer(profile, dir);
+                    FillParaformer(profile, dir, useInt8);
                     break;
                 case OnlineAsrModelType.Zipformer2Ctc:
-                    profile.zipformer2CtcModel =
-                        ModelFileScanner.FindOnnxModel(dir);
+                    profile.zipformer2CtcModel = useInt8
+                        ? ModelFileScanner.FindOnnxModelInt8(dir)
+                        : ModelFileScanner.FindOnnxModel(dir);
                     break;
                 case OnlineAsrModelType.NemoCtc:
-                    profile.nemoCtcModel =
-                        ModelFileScanner.FindOnnxModel(dir);
+                    profile.nemoCtcModel = useInt8
+                        ? ModelFileScanner.FindOnnxModelInt8(dir)
+                        : ModelFileScanner.FindOnnxModel(dir);
                     break;
                 case OnlineAsrModelType.ToneCtc:
-                    profile.toneCtcModel =
-                        ModelFileScanner.FindOnnxModel(dir);
+                    profile.toneCtcModel = useInt8
+                        ? ModelFileScanner.FindOnnxModelInt8(dir)
+                        : ModelFileScanner.FindOnnxModel(dir);
                     break;
             }
         }
 
         private static void FillTransducer(
-            OnlineAsrProfile p, string dir)
+            OnlineAsrProfile p, string dir, bool useInt8)
         {
-            p.transducerEncoder =
-                ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.transducerDecoder =
-                ModelFileScanner.FindOnnxContaining(dir, "decoder");
-            p.transducerJoiner =
-                ModelFileScanner.FindOnnxContaining(dir, "joiner");
+            p.transducerEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.transducerDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
+            p.transducerJoiner = ModelFileScanner.FindOnnxContaining(dir, "joiner", useInt8);
         }
 
         private static void FillParaformer(
-            OnlineAsrProfile p, string dir)
+            OnlineAsrProfile p, string dir, bool useInt8)
         {
-            p.paraformerEncoder =
-                ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.paraformerDecoder =
-                ModelFileScanner.FindOnnxContaining(dir, "decoder");
+            p.paraformerEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.paraformerDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
         }
     }
 }

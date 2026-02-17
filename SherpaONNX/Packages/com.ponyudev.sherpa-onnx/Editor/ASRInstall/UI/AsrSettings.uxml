@@ -25,6 +25,9 @@
             <ui:VisualElement name="offlineImportSection" class="asr-import-section hidden">
                 <ui:VisualElement class="asr-import-row">
                     <ui:TextField label="Model archive URL" name="offlineImportUrlField" class="asr-import-url"/>
+                    <ui:VisualElement name="offlineImportOptionsRow" class="asr-import-options-row hidden">
+                        <ui:Toggle label="Use int8 models" name="offlineImportInt8Toggle"/>
+                    </ui:VisualElement>
                     <ui:VisualElement class="asr-import-buttons-row">
                         <ui:Button text="Import" name="offlineImportButton" class="btn btn-primary"/>
                         <ui:Button text="Cancel" name="offlineImportCancelButton" class="btn btn-secondary hidden"/>
@@ -58,6 +61,9 @@
             <ui:VisualElement name="onlineImportSection" class="asr-import-section hidden">
                 <ui:VisualElement class="asr-import-row">
                     <ui:TextField label="Model archive URL" name="onlineImportUrlField" class="asr-import-url"/>
+                    <ui:VisualElement name="onlineImportOptionsRow" class="asr-import-options-row hidden">
+                        <ui:Toggle label="Use int8 models" name="onlineImportInt8Toggle"/>
+                    </ui:VisualElement>
                     <ui:VisualElement class="asr-import-buttons-row">
                         <ui:Button text="Import" name="onlineImportButton" class="btn btn-primary"/>
                         <ui:Button text="Cancel" name="onlineImportCancelButton" class="btn btn-secondary hidden"/>
