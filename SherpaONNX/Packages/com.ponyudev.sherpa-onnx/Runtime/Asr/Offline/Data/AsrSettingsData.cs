@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace PonyuDev.SherpaOnnx.Asr.Data
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 {
     /// <summary>
     /// Root container for ASR settings.

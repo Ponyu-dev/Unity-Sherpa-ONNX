@@ -1,6 +1,6 @@
 using System;
 
-namespace PonyuDev.SherpaOnnx.Asr.Data
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 {
     /// <summary>
     /// Flat serializable ASR model profile.

@@ -1,9 +1,10 @@
 #if SHERPA_ONNX
 using PonyuDev.SherpaOnnx.Common;
-using PonyuDev.SherpaOnnx.Asr.Data;
+using PonyuDev.SherpaOnnx.Asr.Config;
+using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using SherpaOnnx;
 
-namespace PonyuDev.SherpaOnnx.Asr.Config
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Config
 {
     /// <summary>
     /// Maps an <see cref="AsrProfile"/> to a native

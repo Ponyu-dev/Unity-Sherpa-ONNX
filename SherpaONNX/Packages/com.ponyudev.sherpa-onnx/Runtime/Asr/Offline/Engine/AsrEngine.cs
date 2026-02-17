@@ -4,11 +4,11 @@ using System.Collections.Concurrent;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
-using PonyuDev.SherpaOnnx.Asr.Config;
-using PonyuDev.SherpaOnnx.Asr.Data;
+using PonyuDev.SherpaOnnx.Asr.Offline.Config;
+using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using SherpaOnnx;
 
-namespace PonyuDev.SherpaOnnx.Asr.Engine
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 {
     /// <summary>
     /// Pool of native <see cref="OfflineRecognizer"/> instances.
