@@ -1,5 +1,5 @@
 {
-    "name": "PonyuDev.SherpaOnnx.Samples",
+    "name": "PonyuDev.SherpaOnnx.Samples.Tts",
     "rootNamespace": "PonyuDev.SherpaOnnx.Samples",
     "references": [
         "PonyuDev.SherpaOnnx",

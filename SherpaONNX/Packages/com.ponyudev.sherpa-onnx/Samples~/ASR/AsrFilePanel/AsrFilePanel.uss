@@ -1,0 +1,20 @@
+/* ── AsrFilePanel styles ── */
+
+.asr-result {
+    font-size: 32px;
+    color: rgb(220, 220, 220);
+    white-space: normal;
+    padding: 16px;
+    margin-bottom: 16px;
+    border-radius: 8px;
+    background-color: rgba(30, 30, 30, 0.9);
+    border-width: 1px;
+    border-color: rgba(80, 80, 80, 0.6);
+    min-height: 120px;
+}
+
+.asr-timing {
+    font-size: 22px;
+    color: rgb(140, 190, 255);
+    margin-bottom: 12px;
+}

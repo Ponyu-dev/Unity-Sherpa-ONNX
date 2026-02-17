@@ -1,0 +1,51 @@
+/* ── AsrStreamPanel styles ── */
+
+.stream-partial {
+    font-size: 28px;
+    color: rgb(180, 220, 180);
+    white-space: normal;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+    min-height: 60px;
+    border-radius: 8px;
+    background-color: rgba(30, 50, 30, 0.6);
+    border-width: 1px;
+    border-color: rgba(60, 100, 60, 0.5);
+    -unity-font-style: italic;
+}
+
+.stream-transcript {
+    flex-grow: 1;
+    min-height: 300px;
+    max-height: 600px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border-radius: 8px;
+    background-color: rgba(30, 30, 30, 0.9);
+    border-width: 1px;
+    border-color: rgba(80, 80, 80, 0.6);
+}
+
+.stream-transcript-line {
+    font-size: 26px;
+    color: rgb(220, 220, 220);
+    white-space: normal;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom-width: 1px;
+    border-bottom-color: rgba(60, 60, 60, 0.5);
+}
+
+.stream-clear-btn {
+    height: 56px;
+    font-size: 24px;
+    margin-bottom: 16px;
+    background-color: rgba(90, 40, 40, 0.7);
+    border-radius: 8px;
+    border-color: rgba(140, 60, 60, 0.5);
+    border-width: 1px;
+}
+
+.stream-toggle-btn {
+    /* Inherits sample-generate-btn from Shared.uss */
+}
