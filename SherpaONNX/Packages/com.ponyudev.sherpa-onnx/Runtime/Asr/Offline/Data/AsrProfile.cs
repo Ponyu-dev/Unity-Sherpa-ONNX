@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Common.Data;
 
 namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 {
@@ -8,8 +9,14 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
     /// Mirrors sherpa-onnx OfflineRecognizerConfig + OfflineModelConfig sub-configs.
     /// </summary>
     [Serializable]
-    public sealed class AsrProfile
+    public sealed class AsrProfile : IProfileData
     {
+        public string ProfileName
+        {
+            get => profileName;
+            set => profileName = value;
+        }
+
         // ── Identity ──
 
         public string profileName = "New Profile";

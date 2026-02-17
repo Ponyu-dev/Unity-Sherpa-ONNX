@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEditor;
@@ -177,8 +178,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new TtsModelContentHandler(archiveName);
-            _pipeline = TtsImportPipelineFactory.Create(handler);
+            var handler = new ModelContentHandler(
+                archiveName, TtsModelPaths.GetModelDir);
+            _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
             _pipeline.OnStatus += HandlePipelineStatus;

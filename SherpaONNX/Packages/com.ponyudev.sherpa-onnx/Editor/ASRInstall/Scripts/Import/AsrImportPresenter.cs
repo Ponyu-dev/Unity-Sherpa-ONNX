@@ -6,6 +6,7 @@ using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using UnityEditor;
 using UnityEngine.UIElements;
 
@@ -164,8 +165,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new AsrModelContentHandler(archiveName);
-            _pipeline = AsrImportPipelineFactory.Create(handler);
+            var handler = new ModelContentHandler(
+                archiveName, AsrModelPaths.GetModelDir);
+            _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
             _pipeline.OnStatus += HandlePipelineStatus;

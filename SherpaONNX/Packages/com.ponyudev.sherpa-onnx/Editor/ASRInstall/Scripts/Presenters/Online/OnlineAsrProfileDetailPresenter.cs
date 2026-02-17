@@ -3,6 +3,7 @@ using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
@@ -12,7 +13,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         private readonly AsrProjectSettings _settings;
         private readonly VisualElement _detailContent;
 
-        private OnlineAsrProfileListPresenter _listPresenter;
+        private ProfileListPresenter<OnlineAsrProfile> _listPresenter;
         private int _currentIndex = -1;
 
         internal OnlineAsrProfileDetailPresenter(
@@ -20,7 +21,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         { _detailContent = detailContent; _settings = settings; }
 
         internal void SetListPresenter(
-            OnlineAsrProfileListPresenter listPresenter)
+            ProfileListPresenter<OnlineAsrProfile> listPresenter)
         { _listPresenter = listPresenter; }
 
         internal void ShowProfile(int index)
@@ -61,7 +62,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             var button = new Button { text = "Auto-configure paths" };
             button.AddToClassList("btn");
             button.AddToClassList("btn-primary");
-            button.AddToClassList("asr-btn-spaced");
+            button.AddToClassList("model-btn-spaced");
             button.clicked += HandleAutoConfigureClicked;
             _detailContent.Add(button);
         }
@@ -84,7 +85,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             button.AddToClassList("btn");
             button.AddToClassList(
                 usingInt8 ? "btn-secondary" : "btn-accent");
-            button.AddToClassList("asr-btn-spaced");
+            button.AddToClassList("model-btn-spaced");
             button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
         }
@@ -208,7 +209,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         private void AddSectionHeader(string text)
         {
             var header = new Label(text);
-            header.AddToClassList("asr-section-header");
+            header.AddToClassList("model-section-header");
             _detailContent.Add(header);
         }
 

@@ -2,15 +2,16 @@ using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Common.Networking;
 
-namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
+namespace PonyuDev.SherpaOnnx.Editor.Common.Import
 {
     /// <summary>
     /// Assembles a <see cref="PackageInstallPipeline"/>
-    /// configured for downloading and extracting TTS model archives.
+    /// for downloading and extracting model archives.
     /// </summary>
-    internal static class TtsImportPipelineFactory
+    internal static class ImportPipelineFactory
     {
-        internal static PackageInstallPipeline Create(TtsModelContentHandler handler)
+        internal static PackageInstallPipeline Create(
+            IExtractedContentHandler handler)
         {
             var downloader = new UnityWebRequestFileDownloader();
             var extractor = new ArchiveExtractor();

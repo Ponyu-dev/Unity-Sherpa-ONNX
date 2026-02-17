@@ -1,8 +1,11 @@
 using System;
+using PonyuDev.SherpaOnnx.Asr.Offline.Data;
+using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -24,14 +27,14 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private Button _onlineTabBtn;
         private VisualElement _offlineContainer;
         private VisualElement _onlineContainer;
-        private AsrActiveProfilePresenter _offlineActivePresenter;
-        private AsrProfileListPresenter _offlineListPresenter;
+        private ActiveProfilePresenter<AsrProfile> _offlineActivePresenter;
+        private ProfileListPresenter<AsrProfile> _offlineListPresenter;
         private AsrProfileDetailPresenter _offlineDetailPresenter;
         private AsrImportPresenter _offlineImportPresenter;
         private Button _offlineImportFromUrlButton;
         private VisualElement _offlineImportSection;
-        private OnlineAsrActiveProfilePresenter _onlineActivePresenter;
-        private OnlineAsrProfileListPresenter _onlineListPresenter;
+        private ActiveProfilePresenter<OnlineAsrProfile> _onlineActivePresenter;
+        private ProfileListPresenter<OnlineAsrProfile> _onlineListPresenter;
         private OnlineAsrProfileDetailPresenter _onlineDetailPresenter;
         private OnlineAsrImportPresenter _onlineImportPresenter;
         private Button _onlineImportFromUrlButton;
@@ -54,11 +57,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             }
 
             uxmlAsset.CloneTree(hostRoot);
-
-            string ussPath = _uxmlPath.Replace(".uxml", ".uss");
-            var ussAsset = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
-            if (ussAsset != null)
-                hostRoot.styleSheets.Add(ussAsset);
+            LoadStyleSheets(hostRoot);
 
             AsrProjectSettings settings = AsrProjectSettings.instance;
 
@@ -78,6 +77,22 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             _onlineTabBtn = null;
             _offlineContainer = null;
             _onlineContainer = null;
+        }
+
+        private void LoadStyleSheets(VisualElement root)
+        {
+            const string commonUssPath =
+                "Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/ModelSettings.uss";
+            var commonUss =
+                AssetDatabase.LoadAssetAtPath<StyleSheet>(commonUssPath);
+            if (commonUss != null)
+                root.styleSheets.Add(commonUss);
+
+            string ussPath = _uxmlPath.Replace(".uxml", ".uss");
+            var ussAsset =
+                AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
+            if (ussAsset != null)
+                root.styleSheets.Add(ussAsset);
         }
 
         private static void BindLinks(VisualElement root)
@@ -126,7 +141,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         {
             var activeSection = root.Q<VisualElement>(
                 "offlineActiveProfileSection");
-            _offlineActivePresenter = new AsrActiveProfilePresenter(settings);
+            _offlineActivePresenter =
+                new ActiveProfilePresenter<AsrProfile>(
+                    settings.offlineData, settings);
             _offlineActivePresenter.Build(activeSection);
 
             _offlineImportSection = root.Q<VisualElement>(
@@ -145,7 +162,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             var removeBtn = root.Q<Button>("offlineRemoveProfileButton");
             var detail = root.Q<VisualElement>("offlineDetailContent");
 
-            _offlineListPresenter = new AsrProfileListPresenter(settings);
+            _offlineListPresenter = new ProfileListPresenter<AsrProfile>(
+                settings.offlineData, settings,
+                AsrModelPaths.GetModelDir, "model-list-item");
             _offlineDetailPresenter = new AsrProfileDetailPresenter(
                 detail, settings);
             _offlineDetailPresenter.SetListPresenter(_offlineListPresenter);
@@ -177,7 +196,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             var activeSection = root.Q<VisualElement>(
                 "onlineActiveProfileSection");
             _onlineActivePresenter =
-                new OnlineAsrActiveProfilePresenter(settings);
+                new ActiveProfilePresenter<OnlineAsrProfile>(
+                    settings.onlineData, settings);
             _onlineActivePresenter.Build(activeSection);
 
             _onlineImportSection = root.Q<VisualElement>(
@@ -197,7 +217,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             var detail = root.Q<VisualElement>("onlineDetailContent");
 
             _onlineListPresenter =
-                new OnlineAsrProfileListPresenter(settings);
+                new ProfileListPresenter<OnlineAsrProfile>(
+                    settings.onlineData, settings,
+                    AsrModelPaths.GetModelDir, "model-list-item");
             _onlineDetailPresenter =
                 new OnlineAsrProfileDetailPresenter(detail, settings);
             _onlineDetailPresenter.SetListPresenter(_onlineListPresenter);
