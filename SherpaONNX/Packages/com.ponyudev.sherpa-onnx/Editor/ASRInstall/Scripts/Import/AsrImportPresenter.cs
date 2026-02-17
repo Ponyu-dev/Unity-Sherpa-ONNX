@@ -21,6 +21,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private readonly Action _onImportCompleted;
 
         private TextField _urlField;
+        private VisualElement _optionsRow;
+        private Toggle _int8Toggle;
         private Button _importButton;
         private Button _cancelButton;
         private ProgressBar _progressBar;
@@ -40,6 +42,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         internal void Build(VisualElement parent)
         {
             _urlField = parent.Q<TextField>("offlineImportUrlField");
+            _urlField.RegisterValueChangedCallback(HandleUrlChanged);
+
+            _optionsRow = parent.Q<VisualElement>(
+                "offlineImportOptionsRow");
+            _int8Toggle = parent.Q<Toggle>(
+                "offlineImportInt8Toggle");
+
             _importButton = parent.Q<Button>("offlineImportButton");
             _importButton.clicked += HandleImportClicked;
 
@@ -61,10 +70,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 _importButton.clicked -= HandleImportClicked;
             if (_cancelButton != null)
                 _cancelButton.clicked -= HandleCancelClicked;
+            _urlField?.UnregisterValueChangedCallback(HandleUrlChanged);
 
             _importButton = null;
             _cancelButton = null;
             _urlField = null;
+            _optionsRow = null;
+            _int8Toggle = null;
             _progressBar = null;
             _statusLabel = null;
         }
@@ -114,6 +126,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private void HandleCancelClicked()
         {
             CancelIfBusy();
+        }
+
+        private void HandleUrlChanged(ChangeEvent<string> evt)
+        {
+            string url = evt.newValue?.Trim() ?? "";
+            bool hasUrl = !string.IsNullOrEmpty(url);
+
+            if (_optionsRow != null)
+                _optionsRow.style.display = hasUrl
+                    ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void HandlePipelineProgress(float progress01)
@@ -167,8 +189,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             if (detected.HasValue)
                 profile.modelType = detected.Value;
 
+            bool useInt8 = _int8Toggle != null && _int8Toggle.value;
             AsrProfileAutoFiller.Fill(
-                profile, handler.DestinationDirectory);
+                profile, handler.DestinationDirectory, useInt8);
 
             _settings.offlineData.profiles.Add(profile);
             _settings.SaveSettings();

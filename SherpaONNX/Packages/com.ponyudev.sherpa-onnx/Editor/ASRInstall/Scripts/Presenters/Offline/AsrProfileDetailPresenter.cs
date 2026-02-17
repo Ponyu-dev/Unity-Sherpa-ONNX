@@ -7,11 +7,6 @@ using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 {
-    /// <summary>
-    /// Renders full offline ASR profile editing UI.
-    /// Common fields are always shown; model-specific fields
-    /// rebuild when model type changes.
-    /// </summary>
     internal sealed class AsrProfileDetailPresenter : IDisposable
     {
         private readonly AsrProjectSettings _settings;
@@ -22,16 +17,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         internal AsrProfileDetailPresenter(
             VisualElement detailContent, AsrProjectSettings settings)
-        {
-            _detailContent = detailContent;
-            _settings = settings;
-        }
+        { _detailContent = detailContent; _settings = settings; }
 
-        internal void SetListPresenter(
-            AsrProfileListPresenter listPresenter)
-        {
-            _listPresenter = listPresenter;
-        }
+        internal void SetListPresenter(AsrProfileListPresenter lp)
+        { _listPresenter = lp; }
 
         internal void ShowProfile(int index)
         {
@@ -46,6 +35,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             var binder = new AsrProfileFieldBinder(profile, _settings);
 
             BuildAutoConfigureButton(profile);
+            BuildInt8SwitchButton(profile);
             BuildIdentitySection(profile, binder);
             BuildCommonSection(binder);
             BuildFeatureSection(binder);
@@ -61,12 +51,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             _detailContent.Clear();
         }
 
-        public void Dispose()
-        {
-            Clear();
-        }
-
-        // ── Sections ──
+        public void Dispose() => Clear();
 
         private void BuildAutoConfigureButton(AsrProfile profile)
         {
@@ -79,6 +64,27 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             button.AddToClassList("btn-primary");
             button.AddToClassList("asr-btn-spaced");
             button.clicked += HandleAutoConfigureClicked;
+            _detailContent.Add(button);
+        }
+
+        private void BuildInt8SwitchButton(AsrProfile profile)
+        {
+            string modelDir = AsrModelPaths.GetModelDir(
+                profile.profileName);
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
+            if (!AsrInt8Switcher.HasInt8Alternative(profile, modelDir))
+                return;
+
+            bool usingInt8 = AsrInt8Switcher.IsUsingInt8(profile);
+            string label = usingInt8
+                ? "Use normal models" : "Use int8 models";
+
+            var button = new Button { text = label };
+            button.AddToClassList("btn");
+            button.AddToClassList(
+                usingInt8 ? "btn-secondary" : "btn-accent");
+            button.AddToClassList("asr-btn-spaced");
+            button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
         }
 
@@ -194,8 +200,6 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             _detailContent.Add(header);
         }
 
-        // ── Handlers ──
-
         private void HandleAutoConfigureClicked()
         {
             if (!TryGetCurrentProfile(out AsrProfile profile)) return;
@@ -209,21 +213,32 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             ShowProfile(_currentIndex);
         }
 
-        private void HandleNameFocusOut(FocusOutEvent evt)
-        {
-            _listPresenter?.RefreshList();
-        }
-
-        private void HandleModelTypeChanged(ChangeEvent<Enum> evt)
+        private void HandleInt8SwitchClicked()
         {
             if (!TryGetCurrentProfile(out AsrProfile profile)) return;
 
-            profile.modelType = (AsrModelType)evt.newValue;
+            string modelDir = AsrModelPaths.GetModelDir(
+                profile.profileName);
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
+
+            if (AsrInt8Switcher.IsUsingInt8(profile))
+                AsrInt8Switcher.SwitchToNormal(profile, modelDir);
+            else
+                AsrInt8Switcher.SwitchToInt8(profile, modelDir);
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }
 
-        // ── Helpers ──
+        private void HandleNameFocusOut(FocusOutEvent evt) =>
+            _listPresenter?.RefreshList();
+
+        private void HandleModelTypeChanged(ChangeEvent<Enum> evt)
+        {
+            if (!TryGetCurrentProfile(out AsrProfile profile)) return;
+            profile.modelType = (AsrModelType)evt.newValue;
+            _settings.SaveSettings();
+            ShowProfile(_currentIndex);
+        }
 
         private bool TryGetCurrentProfile(out AsrProfile profile)
         {

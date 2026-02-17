@@ -7,10 +7,6 @@ using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 {
-    /// <summary>
-    /// Renders full online ASR profile editing UI.
-    /// Includes endpoint detection and CtcFstDecoder sections.
-    /// </summary>
     internal sealed class OnlineAsrProfileDetailPresenter : IDisposable
     {
         private readonly AsrProjectSettings _settings;
@@ -38,6 +34,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             var binder = new OnlineAsrProfileFieldBinder(profile, _settings);
 
             BuildAutoConfigureButton(profile);
+            BuildInt8SwitchButton(profile);
             BuildIdentitySection(profile, binder);
             BuildCommonSection(binder);
             BuildFeatureSection(binder);
@@ -66,6 +63,29 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             button.AddToClassList("btn-primary");
             button.AddToClassList("asr-btn-spaced");
             button.clicked += HandleAutoConfigureClicked;
+            _detailContent.Add(button);
+        }
+
+        private void BuildInt8SwitchButton(
+            OnlineAsrProfile profile)
+        {
+            string modelDir = AsrModelPaths.GetModelDir(
+                profile.profileName);
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
+            if (!OnlineAsrInt8Switcher.HasInt8Alternative(
+                profile, modelDir)) return;
+
+            bool usingInt8 =
+                OnlineAsrInt8Switcher.IsUsingInt8(profile);
+            string label = usingInt8
+                ? "Use normal models" : "Use int8 models";
+
+            var button = new Button { text = label };
+            button.AddToClassList("btn");
+            button.AddToClassList(
+                usingInt8 ? "btn-secondary" : "btn-accent");
+            button.AddToClassList("asr-btn-spaced");
+            button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
         }
 
@@ -142,17 +162,11 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         }
 
         private void BuildEndpointSection(
-            OnlineAsrProfile profile,
-            OnlineAsrProfileFieldBinder b)
+            OnlineAsrProfile profile, OnlineAsrProfileFieldBinder b)
         {
             AddSectionHeader("Endpoint Detection");
-
-            var toggle = new Toggle("Enable endpoint")
-            {
-                value = profile.enableEndpoint
-            };
-            var handler = new EndpointToggleHandler(
-                profile, _settings);
+            var toggle = new Toggle("Enable endpoint") { value = profile.enableEndpoint };
+            var handler = new EndpointToggleHandler(profile, _settings);
             toggle.RegisterValueChangedCallback(handler.Handle);
             _detailContent.Add(toggle);
 
@@ -170,21 +184,15 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
                 OnlineAsrProfileField.Rule3MinUtteranceLength));
         }
 
-        private void BuildCtcFstDecoderSection(
-            OnlineAsrProfileFieldBinder b)
+        private void BuildCtcFstDecoderSection(OnlineAsrProfileFieldBinder b)
         {
             AddSectionHeader("CtcFstDecoder");
-            _detailContent.Add(b.BindText("Graph",
-                b.Profile.ctcFstDecoderGraph,
-                OnlineAsrProfileField.CtcFstDecoderGraph));
-            _detailContent.Add(b.BindInt("Max active",
-                b.Profile.ctcFstDecoderMaxActive,
-                OnlineAsrProfileField.CtcFstDecoderMaxActive));
+            _detailContent.Add(b.BindText("Graph", b.Profile.ctcFstDecoderGraph, OnlineAsrProfileField.CtcFstDecoderGraph));
+            _detailContent.Add(b.BindInt("Max active", b.Profile.ctcFstDecoderMaxActive, OnlineAsrProfileField.CtcFstDecoderMaxActive));
         }
 
         private void BuildModelFieldsSection(
-            OnlineAsrProfile profile,
-            OnlineAsrProfileFieldBinder b)
+            OnlineAsrProfile profile, OnlineAsrProfileFieldBinder b)
         {
             AddSectionHeader(profile.modelType + " Settings");
             switch (profile.modelType)
@@ -206,28 +214,34 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 
         private void HandleAutoConfigureClicked()
         {
-            if (!TryGetCurrentProfile(out OnlineAsrProfile profile))
-                return;
-
-            string modelDir = AsrModelPaths.GetModelDir(
-                profile.profileName);
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
+            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
-
             OnlineAsrProfileAutoFiller.Fill(profile, modelDir);
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }
 
-        private void HandleNameFocusOut(FocusOutEvent evt)
+        private void HandleInt8SwitchClicked()
         {
-            _listPresenter?.RefreshList();
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
+            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            if (!ModelFileService.ModelDirExists(modelDir)) return;
+            if (OnlineAsrInt8Switcher.IsUsingInt8(profile))
+                OnlineAsrInt8Switcher.SwitchToNormal(profile, modelDir);
+            else
+                OnlineAsrInt8Switcher.SwitchToInt8(profile, modelDir);
+            _settings.SaveSettings();
+            ShowProfile(_currentIndex);
         }
+
+        private void HandleNameFocusOut(FocusOutEvent evt) =>
+            _listPresenter?.RefreshList();
 
         private void HandleModelTypeChanged(ChangeEvent<Enum> evt)
         {
             if (!TryGetCurrentProfile(out OnlineAsrProfile profile))
                 return;
-
             profile.modelType = (OnlineAsrModelType)evt.newValue;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);

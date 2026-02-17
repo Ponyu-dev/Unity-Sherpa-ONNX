@@ -10,13 +10,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
     /// </summary>
     internal static class AsrProfileAutoFiller
     {
-        internal static void Fill(AsrProfile profile, string modelDir)
+        internal static void Fill(
+            AsrProfile profile, string modelDir, bool useInt8 = false)
         {
             FillCommonFields(profile, modelDir);
-            FillByModelType(profile, modelDir);
+            FillByModelType(profile, modelDir, useInt8);
         }
-
-        // ── Common ──
 
         private static void FillCommonFields(
             AsrProfile profile, string dir)
@@ -35,92 +34,87 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             if (!string.IsNullOrEmpty(lm)) profile.lmModel = lm;
         }
 
-        // ── Per-model-type ──
-
         private static void FillByModelType(
-            AsrProfile profile, string dir)
+            AsrProfile profile, string dir, bool useInt8)
         {
             switch (profile.modelType)
             {
-                case AsrModelType.Transducer: FillTransducer(profile, dir); break;
-                case AsrModelType.Paraformer: FillParaformer(profile, dir); break;
-                case AsrModelType.Whisper: FillWhisper(profile, dir); break;
-                case AsrModelType.SenseVoice: FillSenseVoice(profile, dir); break;
-                case AsrModelType.Moonshine: FillMoonshine(profile, dir); break;
-                case AsrModelType.NemoCtc: FillSingleModel(profile, dir); break;
-                case AsrModelType.ZipformerCtc: FillSingleModel(profile, dir); break;
-                case AsrModelType.Tdnn: FillSingleModel(profile, dir); break;
-                case AsrModelType.Dolphin: FillSingleModel(profile, dir); break;
-                case AsrModelType.WenetCtc: FillSingleModel(profile, dir); break;
-                case AsrModelType.Omnilingual: FillSingleModel(profile, dir); break;
-                case AsrModelType.MedAsr: FillSingleModel(profile, dir); break;
-                case AsrModelType.FireRedAsr: FillFireRedAsr(profile, dir); break;
-                case AsrModelType.Canary: FillCanary(profile, dir); break;
-                case AsrModelType.FunAsrNano: FillFunAsrNano(profile, dir); break;
+                case AsrModelType.Transducer: FillTransducer(profile, dir, useInt8); break;
+                case AsrModelType.Paraformer: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.Whisper: FillWhisper(profile, dir, useInt8); break;
+                case AsrModelType.SenseVoice: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.Moonshine: FillMoonshine(profile, dir, useInt8); break;
+                case AsrModelType.NemoCtc: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.ZipformerCtc: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.Tdnn: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.Dolphin: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.WenetCtc: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.Omnilingual: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.MedAsr: FillSingleModel(profile, dir, useInt8); break;
+                case AsrModelType.FireRedAsr: FillFireRedAsr(profile, dir, useInt8); break;
+                case AsrModelType.Canary: FillCanary(profile, dir, useInt8); break;
+                case AsrModelType.FunAsrNano: FillFunAsrNano(profile, dir, useInt8); break;
             }
         }
 
-        private static void FillTransducer(AsrProfile p, string dir)
+        private static void FillTransducer(
+            AsrProfile p, string dir, bool useInt8)
         {
-            p.transducerEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.transducerDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder");
-            p.transducerJoiner = ModelFileScanner.FindOnnxContaining(dir, "joiner");
+            p.transducerEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.transducerDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
+            p.transducerJoiner = ModelFileScanner.FindOnnxContaining(dir, "joiner", useInt8);
         }
 
-        private static void FillParaformer(AsrProfile p, string dir)
+        private static void FillWhisper(
+            AsrProfile p, string dir, bool useInt8)
         {
-            p.paraformerModel = ModelFileScanner.FindOnnxModel(dir);
+            p.whisperEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.whisperDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
         }
 
-        private static void FillWhisper(AsrProfile p, string dir)
+        private static void FillMoonshine(
+            AsrProfile p, string dir, bool useInt8)
         {
-            p.whisperEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.whisperDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder");
+            p.moonshinePreprocessor = ModelFileScanner.FindOnnxContaining(dir, "preprocess", useInt8);
+            p.moonshineEncoder = ModelFileScanner.FindOnnxContaining(dir, "encode", useInt8);
+            p.moonshineUncachedDecoder = ModelFileScanner.FindOnnxContaining(dir, "uncached", useInt8);
+            p.moonshineCachedDecoder = ModelFileScanner.FindOnnxContaining(dir, "cached", useInt8);
         }
 
-        private static void FillSenseVoice(AsrProfile p, string dir)
+        private static void FillFireRedAsr(
+            AsrProfile p, string dir, bool useInt8)
         {
-            p.senseVoiceModel = ModelFileScanner.FindOnnxModel(dir);
+            p.fireRedAsrEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.fireRedAsrDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
         }
 
-        private static void FillMoonshine(AsrProfile p, string dir)
+        private static void FillCanary(
+            AsrProfile p, string dir, bool useInt8)
         {
-            p.moonshinePreprocessor = ModelFileScanner.FindOnnxContaining(dir, "preprocess");
-            p.moonshineEncoder = ModelFileScanner.FindOnnxContaining(dir, "encode");
-            p.moonshineUncachedDecoder = ModelFileScanner.FindOnnxContaining(dir, "uncached");
-            p.moonshineCachedDecoder = ModelFileScanner.FindOnnxContaining(dir, "cached");
+            p.canaryEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.canaryDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
         }
 
-        private static void FillFireRedAsr(AsrProfile p, string dir)
+        private static void FillFunAsrNano(
+            AsrProfile p, string dir, bool useInt8)
         {
-            p.fireRedAsrEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.fireRedAsrDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder");
-        }
-
-        private static void FillCanary(AsrProfile p, string dir)
-        {
-            p.canaryEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.canaryDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder");
-        }
-
-        private static void FillFunAsrNano(AsrProfile p, string dir)
-        {
-            p.funAsrNanoEncoderAdaptor = ModelFileScanner.FindOnnxContaining(dir, "encoder");
-            p.funAsrNanoLlm = ModelFileScanner.FindOnnxContaining(dir, "llm");
-            p.funAsrNanoEmbedding = ModelFileScanner.FindOnnxContaining(dir, "embedding");
+            p.funAsrNanoEncoderAdaptor = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.funAsrNanoLlm = ModelFileScanner.FindOnnxContaining(dir, "llm", useInt8);
+            p.funAsrNanoEmbedding = ModelFileScanner.FindOnnxContaining(dir, "embedding", useInt8);
             p.funAsrNanoTokenizer = ModelFileScanner.FindFileIfExists(dir, "tokenizer.json");
         }
 
-        /// <summary>
-        /// For single-model types: find the primary .onnx and assign
-        /// to the appropriate field based on model type.
-        /// </summary>
-        private static void FillSingleModel(AsrProfile p, string dir)
+        private static void FillSingleModel(
+            AsrProfile p, string dir, bool useInt8)
         {
-            string model = ModelFileScanner.FindOnnxModel(dir);
+            string model = useInt8
+                ? ModelFileScanner.FindOnnxModelInt8(dir)
+                : ModelFileScanner.FindOnnxModel(dir);
 
             switch (p.modelType)
             {
+                case AsrModelType.Paraformer: p.paraformerModel = model; break;
+                case AsrModelType.SenseVoice: p.senseVoiceModel = model; break;
                 case AsrModelType.NemoCtc: p.nemoCtcModel = model; break;
                 case AsrModelType.ZipformerCtc: p.zipformerCtcModel = model; break;
                 case AsrModelType.Tdnn: p.tdnnModel = model; break;
