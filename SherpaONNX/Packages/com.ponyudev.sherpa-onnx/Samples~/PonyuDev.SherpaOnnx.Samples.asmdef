@@ -2,7 +2,8 @@
     "name": "PonyuDev.SherpaOnnx.Samples",
     "rootNamespace": "PonyuDev.SherpaOnnx.Samples",
     "references": [
-        "PonyuDev.SherpaOnnx"
+        "PonyuDev.SherpaOnnx",
+        "UniTask"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

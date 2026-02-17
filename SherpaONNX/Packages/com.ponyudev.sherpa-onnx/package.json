@@ -23,6 +23,7 @@
     }
   ],
   "dependencies": {
-    "com.unity.sharp-zip-lib": "1.4.1"
+    "com.unity.sharp-zip-lib": "1.4.1",
+    "com.cysharp.unitask": "2.5.10"
   }
 }

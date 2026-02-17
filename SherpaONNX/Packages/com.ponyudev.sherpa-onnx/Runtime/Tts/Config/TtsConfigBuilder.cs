@@ -1,4 +1,5 @@
 #if SHERPA_ONNX
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using SherpaOnnx;
 
@@ -14,6 +15,22 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
     {
         public static OfflineTtsConfig Build(TtsProfile profile, string modelDir)
         {
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] TtsConfigBuilder.Build: " +
+                $"profile='{profile.profileName}', " +
+                $"modelType={profile.modelType}, " +
+                $"modelSource={profile.modelSource}, " +
+                $"modelDir='{modelDir}'");
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] TtsConfigBuilder: " +
+                $"silenceScale={profile.silenceScale}, " +
+                $"maxNumSentences={profile.maxNumSentences}, " +
+                $"numThreads={profile.numThreads}, " +
+                $"provider='{profile.provider}', " +
+                $"speed={profile.speed}, " +
+                $"speakerId={profile.speakerId}");
+
             var config = new OfflineTtsConfig
             {
                 RuleFsts = R(modelDir, profile.ruleFsts),
@@ -65,6 +82,14 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
             c.NoiseScale = p.vitsNoiseScale;
             c.NoiseScaleW = p.vitsNoiseScaleW;
             c.LengthScale = p.vitsLengthScale;
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] VITS config: " +
+                $"Model='{c.Model}', Tokens='{c.Tokens}', " +
+                $"Lexicon='{c.Lexicon}', DataDir='{c.DataDir}', " +
+                $"DictDir='{c.DictDir}', " +
+                $"NoiseScale={c.NoiseScale}, NoiseScaleW={c.NoiseScaleW}, " +
+                $"LengthScale={c.LengthScale}");
         }
 
         private static void BuildMatcha(
@@ -80,6 +105,14 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
             c.DictDir = R(dir, p.matchaDictDir);
             c.NoiseScale = p.matchaNoiseScale;
             c.LengthScale = p.matchaLengthScale;
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Matcha config: " +
+                $"AcousticModel='{c.AcousticModel}', " +
+                $"Vocoder='{c.Vocoder}', Tokens='{c.Tokens}', " +
+                $"Lexicon='{c.Lexicon}', DataDir='{c.DataDir}', " +
+                $"DictDir='{c.DictDir}', " +
+                $"NoiseScale={c.NoiseScale}, LengthScale={c.LengthScale}");
         }
 
         private static void BuildKokoro(
@@ -95,6 +128,13 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
             c.Lexicon = R(dir, p.kokoroLexicon);
             c.Lang = p.kokoroLang ?? "";
             c.LengthScale = p.kokoroLengthScale;
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Kokoro config: " +
+                $"Model='{c.Model}', Voices='{c.Voices}', " +
+                $"Tokens='{c.Tokens}', DataDir='{c.DataDir}', " +
+                $"DictDir='{c.DictDir}', Lexicon='{c.Lexicon}', " +
+                $"Lang='{c.Lang}', LengthScale={c.LengthScale}");
         }
 
         private static void BuildKitten(
@@ -107,6 +147,12 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
             c.Tokens = R(dir, p.kittenTokens);
             c.DataDir = R(dir, p.kittenDataDir);
             c.LengthScale = p.kittenLengthScale;
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Kitten config: " +
+                $"Model='{c.Model}', Voices='{c.Voices}', " +
+                $"Tokens='{c.Tokens}', DataDir='{c.DataDir}', " +
+                $"LengthScale={c.LengthScale}");
         }
 
         private static void BuildZipVoice(
@@ -124,6 +170,14 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
             c.Tshift = p.zipVoiceTshift;
             c.TargetRms = p.zipVoiceTargetRms;
             c.GuidanceScale = p.zipVoiceGuidanceScale;
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] ZipVoice config: " +
+                $"Tokens='{c.Tokens}', Encoder='{c.Encoder}', " +
+                $"Decoder='{c.Decoder}', Vocoder='{c.Vocoder}', " +
+                $"DataDir='{c.DataDir}', Lexicon='{c.Lexicon}', " +
+                $"FeatScale={c.FeatScale}, Tshift={c.Tshift}, " +
+                $"TargetRms={c.TargetRms}, GuidanceScale={c.GuidanceScale}");
         }
 
         private static void BuildPocket(
@@ -138,6 +192,14 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
             c.TextConditioner = R(dir, p.pocketTextConditioner);
             c.VocabJson = R(dir, p.pocketVocabJson);
             c.TokenScoresJson = R(dir, p.pocketTokenScoresJson);
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Pocket config: " +
+                $"LmFlow='{c.LmFlow}', LmMain='{c.LmMain}', " +
+                $"Encoder='{c.Encoder}', Decoder='{c.Decoder}', " +
+                $"TextConditioner='{c.TextConditioner}', " +
+                $"VocabJson='{c.VocabJson}', " +
+                $"TokenScoresJson='{c.TokenScoresJson}'");
         }
 
         // ── Shorthand ──

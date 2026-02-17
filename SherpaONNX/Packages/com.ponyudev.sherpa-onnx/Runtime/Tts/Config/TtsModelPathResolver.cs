@@ -1,11 +1,13 @@
 using System.IO;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using UnityEngine;
 
 namespace PonyuDev.SherpaOnnx.Tts.Config
 {
     /// <summary>
     /// Resolves relative model file paths from TtsProfile
-    /// into absolute paths under StreamingAssets.
+    /// into absolute paths. On Android resolves to persistentDataPath
+    /// (after extraction), on other platforms to StreamingAssets.
     /// </summary>
     public static class TtsModelPathResolver
     {
@@ -13,12 +15,13 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
 
         /// <summary>
         /// Returns the absolute directory for a given profile name.
-        /// e.g. {StreamingAssets}/SherpaOnnx/tts-models/{profileName}
+        /// Desktop: {StreamingAssets}/SherpaOnnx/tts-models/{profileName}
+        /// Android: {persistentDataPath}/SherpaOnnx/tts-models/{profileName}
         /// </summary>
         public static string GetModelDirectory(string profileName)
         {
             return Path.Combine(
-                Application.streamingAssetsPath,
+                StreamingAssetsCopier.GetResolvedStreamingAssetsPath(),
                 TtsModelsFolder,
                 profileName);
         }
