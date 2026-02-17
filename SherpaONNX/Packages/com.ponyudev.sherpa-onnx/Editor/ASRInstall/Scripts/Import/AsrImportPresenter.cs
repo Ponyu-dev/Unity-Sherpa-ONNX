@@ -1,30 +1,26 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
+using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
-using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
-using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEditor;
-using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
+namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 {
     /// <summary>
-    /// Builds the import-from-URL UI and orchestrates the download → extract
-    /// → detect → create profile flow.
+    /// Builds the offline ASR import-from-URL UI and orchestrates
+    /// the download → extract → detect → create profile flow.
     /// </summary>
-    internal sealed class TtsImportPresenter : IDisposable
+    internal sealed class AsrImportPresenter : IDisposable
     {
-        private readonly TtsProjectSettings _settings;
+        private readonly AsrProjectSettings _settings;
         private readonly Action _onImportCompleted;
-        private readonly MatchaVocoderImportField _vocoderField = new MatchaVocoderImportField();
 
         private TextField _urlField;
-        private VisualElement _optionsRow;
-        private Toggle _int8Toggle;
         private Button _importButton;
         private Button _cancelButton;
         private ProgressBar _progressBar;
@@ -34,9 +30,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private PackageInstallPipeline _pipeline;
         private bool _isBusy;
 
-        internal TtsImportPresenter(
-            TtsProjectSettings settings,
-            Action onImportCompleted)
+        internal AsrImportPresenter(
+            AsrProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -44,22 +39,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         internal void Build(VisualElement parent)
         {
-            _urlField = parent.Q<TextField>("importUrlField");
-            _urlField.RegisterValueChangedCallback(HandleUrlChanged);
-
-            _optionsRow = parent.Q<VisualElement>("importOptionsRow");
-            _optionsRow.Insert(0, _vocoderField.Build());
-
-            _int8Toggle = parent.Q<Toggle>("importInt8Toggle");
-
-            _importButton = parent.Q<Button>("importButton");
+            _urlField = parent.Q<TextField>("offlineImportUrlField");
+            _importButton = parent.Q<Button>("offlineImportButton");
             _importButton.clicked += HandleImportClicked;
 
-            _cancelButton = parent.Q<Button>("importCancelButton");
+            _cancelButton = parent.Q<Button>(
+                "offlineImportCancelButton");
             _cancelButton.clicked += HandleCancelClicked;
 
-            _progressBar = parent.Q<ProgressBar>("importProgressBar");
-            _statusLabel = parent.Q<Label>("importStatusLabel");
+            _progressBar = parent.Q<ProgressBar>(
+                "offlineImportProgressBar");
+            _statusLabel = parent.Q<Label>(
+                "offlineImportStatusLabel");
         }
 
         public void Dispose()
@@ -70,13 +61,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 _importButton.clicked -= HandleImportClicked;
             if (_cancelButton != null)
                 _cancelButton.clicked -= HandleCancelClicked;
-            _urlField?.UnregisterValueChangedCallback(HandleUrlChanged);
 
             _importButton = null;
             _cancelButton = null;
             _urlField = null;
-            _optionsRow = null;
-            _int8Toggle = null;
             _progressBar = null;
             _statusLabel = null;
         }
@@ -86,34 +74,35 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private async void HandleImportClicked()
         {
             string url = _urlField?.value?.Trim();
-
             if (string.IsNullOrEmpty(url))
             {
                 SetStatus("Please enter a URL.");
                 return;
             }
-
-            if (_isBusy)
-                return;
+            if (_isBusy) return;
 
             _cts = new CancellationTokenSource();
             SetBusy(true);
-            SherpaOnnxLog.EditorLog($"[SherpaOnnx] TTS import started: {url}");
+            SherpaOnnxLog.EditorLog(
+                $"[SherpaOnnx] ASR import started: {url}");
 
             try
             {
                 await ImportAsync(url, _cts.Token);
-                SherpaOnnxLog.EditorLog("[SherpaOnnx] TTS import completed.");
+                SherpaOnnxLog.EditorLog(
+                    "[SherpaOnnx] ASR import completed.");
             }
             catch (OperationCanceledException)
             {
                 SetStatus("Import canceled.");
-                SherpaOnnxLog.EditorWarning("[SherpaOnnx] TTS import canceled by user.");
+                SherpaOnnxLog.EditorWarning(
+                    "[SherpaOnnx] ASR import canceled by user.");
             }
             catch (Exception ex)
             {
                 SetStatus($"Error: {ex.Message}");
-                SherpaOnnxLog.EditorError($"[SherpaOnnx] TTS import failed: {ex}");
+                SherpaOnnxLog.EditorError(
+                    $"[SherpaOnnx] ASR import failed: {ex}");
             }
             finally
             {
@@ -125,31 +114,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private void HandleCancelClicked()
         {
             CancelIfBusy();
-        }
-
-        private void HandleUrlChanged(ChangeEvent<string> evt)
-        {
-            string url = evt.newValue?.Trim() ?? "";
-            TtsModelType? detected = null;
-
-            if (!string.IsNullOrEmpty(url))
-            {
-                string archiveName = ArchiveNameParser.GetArchiveName(url);
-                detected = TtsModelTypeDetector.Detect(archiveName);
-            }
-
-            bool isMatcha = detected == TtsModelType.Matcha;
-            bool hasModel = detected.HasValue;
-
-            _vocoderField.SetVisible(isMatcha);
-
-            if (_int8Toggle != null)
-                _int8Toggle.style.display = hasModel
-                    ? DisplayStyle.Flex : DisplayStyle.None;
-
-            if (_optionsRow != null)
-                _optionsRow.style.display = hasModel
-                    ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void HandlePipelineProgress(float progress01)
@@ -170,15 +134,16 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         // ── Import flow ──
 
-        private async Task ImportAsync(string url, CancellationToken ct)
+        private async Task ImportAsync(
+            string url, CancellationToken ct)
         {
             string archiveName = ArchiveNameParser.GetArchiveName(url);
             string fileName = ArchiveNameParser.GetFileName(url);
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new TtsModelContentHandler(archiveName);
-            _pipeline = TtsImportPipelineFactory.Create(handler);
+            var handler = new AsrModelContentHandler(archiveName);
+            _pipeline = AsrImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
             _pipeline.OnStatus += HandlePipelineStatus;
@@ -187,41 +152,35 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             await _pipeline.RunAsync(url, fileName, ct);
             ct.ThrowIfCancellationRequested();
 
-            TtsModelType? detectedType = TtsModelTypeDetector.Detect(archiveName);
+            AsrModelType? detected =
+                AsrModelTypeDetector.Detect(archiveName);
 
-            var profile = new TtsProfile
+            if (!detected.HasValue)
+                detected = AsrModelTypeDetector.DetectFromFiles(
+                    handler.DestinationDirectory);
+
+            var profile = new AsrProfile
             {
-                profileName = archiveName,
-                modelSource = TtsModelSource.Local
+                profileName = archiveName
             };
 
-            if (detectedType.HasValue)
-                profile.modelType = detectedType.Value;
+            if (detected.HasValue)
+                profile.modelType = detected.Value;
 
-            bool useInt8 = _int8Toggle != null && _int8Toggle.value;
-            TtsProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
+            AsrProfileAutoFiller.Fill(
+                profile, handler.DestinationDirectory);
 
-            if (detectedType == TtsModelType.Matcha)
-            {
-                await _vocoderField.DownloadAsync(
-                    profile, handler.DestinationDirectory,
-                    HandlePipelineProgress, HandlePipelineStatus, ct);
-            }
-
-            _settings.data.profiles.Add(profile);
+            _settings.offlineData.profiles.Add(profile);
             _settings.SaveSettings();
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detectedType.HasValue
-                ? detectedType.Value.ToString()
-                : "Unknown";
+            string typeLabel = detected.HasValue
+                ? detected.Value.ToString() : "Unknown";
+            SetStatus(
+                $"Import complete: {archiveName} ({typeLabel})");
 
-            SetStatus($"Import complete: {archiveName} ({typeLabel})");
-
-            if (_urlField != null)
-                _urlField.value = "";
-
+            if (_urlField != null) _urlField.value = "";
             _onImportCompleted?.Invoke();
         }
 
@@ -237,7 +196,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private void SetBusy(bool busy)
         {
             _isBusy = busy;
-
             _importButton?.SetEnabled(!busy);
             _urlField?.SetEnabled(!busy);
             if (_cancelButton != null)
@@ -252,7 +210,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private void CancelIfBusy()
         {
             if (_cts == null) return;
-
             _cts.Cancel();
             _cts.Dispose();
             _cts = null;
@@ -261,7 +218,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private void DisposePipeline()
         {
             if (_pipeline == null) return;
-
             _pipeline.OnProgress01 -= HandlePipelineProgress;
             _pipeline.OnStatus -= HandlePipelineStatus;
             _pipeline.OnError -= HandlePipelineError;

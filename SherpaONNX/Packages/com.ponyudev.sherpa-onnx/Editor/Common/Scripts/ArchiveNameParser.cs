@@ -1,10 +1,10 @@
 using System;
 
-namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
+namespace PonyuDev.SherpaOnnx.Editor.Common
 {
     /// <summary>
     /// Extracts file name and archive name (without extensions) from a URL.
-    /// Handles .tar.bz2, .tar.gz and .zip extensions.
+    /// Handles .tar.bz2, .tar.gz, .tgz and .zip extensions.
     /// </summary>
     internal static class ArchiveNameParser
     {

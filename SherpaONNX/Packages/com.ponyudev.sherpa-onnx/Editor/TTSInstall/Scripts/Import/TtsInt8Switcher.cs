@@ -1,5 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Tts.Data;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
@@ -21,7 +22,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         /// </summary>
         internal static bool HasInt8Alternative(TtsProfile profile, string dir)
         {
-            string[] allOnnx = TtsProfileAutoFiller.GetOnnxFileNames(dir);
+            string[] allOnnx = ModelFileScanner.GetOnnxFileNames(dir);
 
             var int8Set = allOnnx.Where(IsInt8).Select(GetBaseName).ToArray();
             var normalSet = allOnnx.Where(IsNotInt8).Select(GetBaseName).ToArray();
@@ -54,7 +55,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         /// </summary>
         internal static void SwitchToInt8(TtsProfile profile, string dir)
         {
-            string[] allOnnx = TtsProfileAutoFiller.GetOnnxFileNames(dir);
+            string[] allOnnx = ModelFileScanner.GetOnnxFileNames(dir);
 
             switch (profile.modelType)
             {
@@ -73,9 +74,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                     break;
                 case TtsModelType.ZipVoice:
                     profile.zipVoiceEncoder =
-                        TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "encoder", true);
+                        ModelFileScanner.FindEncoderOrDecoder(dir, "encoder", true);
                     profile.zipVoiceDecoder =
-                        TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "decoder", true);
+                        ModelFileScanner.FindEncoderOrDecoder(dir, "decoder", true);
                     break;
                 case TtsModelType.Pocket:
                     SwitchPocket(profile, dir, true);
@@ -88,7 +89,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         /// </summary>
         internal static void SwitchToNormal(TtsProfile profile, string dir)
         {
-            string[] allOnnx = TtsProfileAutoFiller.GetOnnxFileNames(dir);
+            string[] allOnnx = ModelFileScanner.GetOnnxFileNames(dir);
 
             switch (profile.modelType)
             {
@@ -107,9 +108,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                     break;
                 case TtsModelType.ZipVoice:
                     profile.zipVoiceEncoder =
-                        TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "encoder", false);
+                        ModelFileScanner.FindEncoderOrDecoder(dir, "encoder", false);
                     profile.zipVoiceDecoder =
-                        TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "decoder", false);
+                        ModelFileScanner.FindEncoderOrDecoder(dir, "decoder", false);
                     break;
                 case TtsModelType.Pocket:
                     SwitchPocket(profile, dir, false);
@@ -124,13 +125,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static void SwitchPocket(TtsProfile profile, string dir, bool useInt8)
         {
             profile.pocketLmFlow =
-                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "lm_flow", useInt8);
+                ModelFileScanner.FindEncoderOrDecoder(dir, "lm_flow", useInt8);
             profile.pocketLmMain =
-                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "lm_main", useInt8);
+                ModelFileScanner.FindEncoderOrDecoder(dir, "lm_main", useInt8);
             profile.pocketEncoder =
-                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "encoder", useInt8);
+                ModelFileScanner.FindEncoderOrDecoder(dir, "encoder", useInt8);
             profile.pocketDecoder =
-                TtsProfileAutoFiller.FindEncoderOrDecoder(dir, "decoder", useInt8);
+                ModelFileScanner.FindEncoderOrDecoder(dir, "decoder", useInt8);
         }
 
         /// <summary>
