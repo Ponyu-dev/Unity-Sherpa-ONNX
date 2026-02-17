@@ -15,6 +15,7 @@
   "versionDefines": [],
   "noEngineReferences": false,
   "internalsVisibleTo": [
-    "PonyuDev.SherpaOnnx.Tests.Editor"
+    "PonyuDev.SherpaOnnx.Tests.Editor",
+    "PonyuDev.SherpaOnnx.Tests.Runtime"
   ]
 }
