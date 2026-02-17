@@ -1,4 +1,4 @@
-namespace PonyuDev.SherpaOnnx.Asr.Data
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 {
     /// <summary>
     /// Supported offline ASR model architectures in sherpa-onnx.

@@ -5,10 +5,11 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Asr.Config;
-using PonyuDev.SherpaOnnx.Asr.Data;
-using PonyuDev.SherpaOnnx.Asr.Engine;
+using PonyuDev.SherpaOnnx.Asr.Offline.Config;
+using PonyuDev.SherpaOnnx.Asr.Offline.Data;
+using PonyuDev.SherpaOnnx.Asr.Offline.Engine;
 
-namespace PonyuDev.SherpaOnnx.Asr
+namespace PonyuDev.SherpaOnnx.Asr.Offline
 {
     /// <summary>
     /// High-level facade for ASR operations.

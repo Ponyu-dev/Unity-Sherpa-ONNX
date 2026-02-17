@@ -1,7 +1,7 @@
 using System;
-using PonyuDev.SherpaOnnx.Asr.Data;
+using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 
-namespace PonyuDev.SherpaOnnx.Asr.Engine
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 {
     /// <summary>
     /// Abstraction over the native ASR engine.

@@ -1,9 +1,9 @@
 using System;
 using System.Threading.Tasks;
-using PonyuDev.SherpaOnnx.Asr.Engine;
+using PonyuDev.SherpaOnnx.Asr.Offline.Engine;
 using UnityEngine;
 
-namespace PonyuDev.SherpaOnnx.Asr
+namespace PonyuDev.SherpaOnnx.Asr.Offline
 {
     /// <summary>
     /// Thin MonoBehaviour wrapper around <see cref="AsrService"/>.

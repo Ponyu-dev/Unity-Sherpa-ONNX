@@ -4,53 +4,51 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
-using PonyuDev.SherpaOnnx.Asr.Data;
+using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using UnityEngine;
 
-namespace PonyuDev.SherpaOnnx.Asr.Config
+namespace PonyuDev.SherpaOnnx.Asr.Online.Config
 {
     /// <summary>
-    /// Loads ASR settings from the StreamingAssets JSON file.
-    /// Use <see cref="Load"/> for Desktop (sync),
-    /// <see cref="LoadAsync"/> for all platforms including Android.
+    /// Loads online ASR settings from StreamingAssets JSON.
     /// </summary>
-    public static class AsrSettingsLoader
+    public static class OnlineAsrSettingsLoader
     {
-        private const string SettingsRelativePath = "SherpaOnnx/asr-settings.json";
+        private const string SettingsRelativePath =
+            "SherpaOnnx/online-asr-settings.json";
 
         /// <summary>
-        /// Reads and deserializes asr-settings.json from StreamingAssets.
+        /// Sync load. Works on Desktop; not on Android (use LoadAsync).
         /// </summary>
-        public static AsrSettingsData Load()
+        public static OnlineAsrSettingsData Load()
         {
             string path = Path.Combine(
                 Application.streamingAssetsPath, SettingsRelativePath);
 
             SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] Loading ASR settings: {path}");
+                $"[SherpaOnnx] Loading online ASR settings: {path}");
 
             if (!File.Exists(path))
             {
                 SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] ASR settings not found: {path}");
-                return new AsrSettingsData();
+                    $"[SherpaOnnx] Online ASR settings not found: {path}");
+                return new OnlineAsrSettingsData();
             }
 
             string json = File.ReadAllText(path);
-            var data = JsonUtility.FromJson<AsrSettingsData>(json);
+            var data = JsonUtility.FromJson<OnlineAsrSettingsData>(json);
 
             SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] ASR settings loaded: " +
-                $"{data.profiles?.Count ?? 0} profiles");
+                $"[SherpaOnnx] Online ASR settings loaded: " +
+                $"{data?.profiles?.Count ?? 0} profiles");
 
-            return data ?? new AsrSettingsData();
+            return data ?? new OnlineAsrSettingsData();
         }
 
         /// <summary>
-        /// Async version: extracts files on Android first, then reads
-        /// asr-settings.json. Works on all platforms.
+        /// Async load with Android extraction support.
         /// </summary>
-        public static async UniTask<AsrSettingsData> LoadAsync(
+        public static async UniTask<OnlineAsrSettingsData> LoadAsync(
             IProgress<float> progress = null,
             CancellationToken ct = default)
         {
@@ -61,7 +59,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Config
             {
                 SherpaOnnxLog.RuntimeError(
                     "[SherpaOnnx] StreamingAssets extraction failed.");
-                return new AsrSettingsData();
+                return new OnlineAsrSettingsData();
             }
 
             string path = Path.Combine(
@@ -69,29 +67,30 @@ namespace PonyuDev.SherpaOnnx.Asr.Config
                 SettingsRelativePath);
 
             SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] Loading ASR settings: {path}");
+                $"[SherpaOnnx] Loading online ASR settings: {path}");
 
             if (!File.Exists(path))
             {
                 SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] ASR settings not found: {path}");
-                return new AsrSettingsData();
+                    $"[SherpaOnnx] Online ASR settings not found: {path}");
+                return new OnlineAsrSettingsData();
             }
 
             string json = File.ReadAllText(path);
-            var data = JsonUtility.FromJson<AsrSettingsData>(json);
+            var data = JsonUtility.FromJson<OnlineAsrSettingsData>(json);
 
             SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] ASR settings loaded: " +
+                $"[SherpaOnnx] Online ASR settings loaded: " +
                 $"{data?.profiles?.Count ?? 0} profiles");
 
-            return data ?? new AsrSettingsData();
+            return data ?? new OnlineAsrSettingsData();
         }
 
         /// <summary>
         /// Returns the active profile from loaded settings, or null.
         /// </summary>
-        public static AsrProfile GetActiveProfile(AsrSettingsData data)
+        public static OnlineAsrProfile GetActiveProfile(
+            OnlineAsrSettingsData data)
         {
             if (data?.profiles == null || data.profiles.Count == 0)
                 return null;

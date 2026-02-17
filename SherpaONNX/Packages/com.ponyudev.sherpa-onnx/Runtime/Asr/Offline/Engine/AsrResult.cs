@@ -1,4 +1,4 @@
-namespace PonyuDev.SherpaOnnx.Asr.Engine
+namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 {
     /// <summary>
     /// Result of offline speech recognition.
