@@ -1,5 +1,7 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 
@@ -20,6 +22,15 @@ namespace PonyuDev.SherpaOnnx.Tts
         int EnginePoolSize { get; set; }
 
         void Initialize();
+
+        /// <summary>
+        /// Async initialization: extracts files on Android,
+        /// loads settings, and starts the engine.
+        /// </summary>
+        UniTask InitializeAsync(
+            IProgress<float> progress = null,
+            CancellationToken ct = default);
+
         void LoadProfile(TtsProfile profile);
         void SwitchProfile(int index);
         void SwitchProfile(string profileName);

@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -59,6 +61,34 @@ namespace PonyuDev.SherpaOnnx.Tts
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService initialized.");
+        }
+
+        /// <summary>
+        /// Async initialization: extracts files on Android,
+        /// loads settings, and starts the engine.
+        /// Works on all platforms.
+        /// </summary>
+        public async UniTask InitializeAsync(
+            IProgress<float> progress = null,
+            CancellationToken ct = default)
+        {
+            SherpaOnnxLog.RuntimeLog(
+                "[SherpaOnnx] TtsService async initializing...");
+
+            _settings = await TtsSettingsLoader.LoadAsync(progress, ct);
+            var profile = TtsSettingsLoader.GetActiveProfile(_settings);
+
+            if (profile == null)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] TtsService: no active profile found.");
+                return;
+            }
+
+            LoadProfile(profile);
+
+            SherpaOnnxLog.RuntimeLog(
+                "[SherpaOnnx] TtsService async initialized.");
         }
 
         /// <summary>

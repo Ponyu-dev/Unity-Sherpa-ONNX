@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using SherpaOnnx;
@@ -50,20 +51,42 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 $" (pool={poolSize})");
 
             _lastConfig = TtsConfigBuilder.Build(profile, modelDir);
-            _pool = new OfflineTts[poolSize];
 
-            for (int i = 0; i < poolSize; i++)
+            // Create first instance and validate it.
+            var first = CreateInstance(_lastConfig);
+            if (first == null)
             {
-                _pool[i] = new OfflineTts(_lastConfig);
-                _available.Enqueue(_pool[i]);
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] TtsEngine: failed to create OfflineTts " +
+                    $"for '{profile.profileName}'. Check model paths and config.");
+                return;
+            }
+
+            _pool = new OfflineTts[poolSize];
+            _pool[0] = first;
+            _available.Enqueue(first);
+
+            for (int i = 1; i < poolSize; i++)
+            {
+                var tts = CreateInstance(_lastConfig);
+                if (tts != null)
+                {
+                    _pool[i] = tts;
+                    _available.Enqueue(tts);
+                }
+                else
+                {
+                    SherpaOnnxLog.RuntimeWarning(
+                        $"[SherpaOnnx] TtsEngine: pool instance {i} " +
+                        "creation failed, skipping.");
+                }
             }
 
             _poolSize = poolSize;
             _semaphore = new SemaphoreSlim(poolSize, poolSize);
 
-            // Read properties from the first instance.
-            SampleRate = _pool[0].SampleRate;
-            NumSpeakers = _pool[0].NumSpeakers;
+            SampleRate = first.SampleRate;
+            NumSpeakers = first.NumSpeakers;
 
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loaded: {profile.profileName} " +
@@ -271,8 +294,12 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             for (int i = oldSize; i < newSize; i++)
             {
-                newPool[i] = new OfflineTts(_lastConfig);
-                _available.Enqueue(newPool[i]);
+                var tts = CreateInstance(_lastConfig);
+                if (tts != null)
+                {
+                    newPool[i] = tts;
+                    _available.Enqueue(tts);
+                }
             }
 
             _pool = newPool;
@@ -294,6 +321,38 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             var remaining = _available.ToArray();
             _pool = new OfflineTts[remaining.Length];
             Array.Copy(remaining, _pool, remaining.Length);
+        }
+
+        // ── Instance creation ──
+
+        /// <summary>
+        /// Creates a native OfflineTts and validates it via SampleRate access.
+        /// Returns null if creation fails (invalid config, missing model, etc.).
+        /// Uses <see cref="NativeLocaleGuard"/> to force C locale — required
+        /// on Android where system locale may use comma as decimal separator,
+        /// causing sherpa-onnx float validation to fail.
+        /// </summary>
+        private static OfflineTts CreateInstance(OfflineTtsConfig config)
+        {
+            try
+            {
+                OfflineTts tts;
+                using (NativeLocaleGuard.Begin())
+                {
+                    tts = new OfflineTts(config);
+                }
+
+                // Validate: accessing SampleRate will crash if the native
+                // handle is null (e.g. invalid config). Catch that here.
+                _ = tts.SampleRate;
+                return tts;
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] OfflineTts creation failed: {ex.Message}");
+                return null;
+            }
         }
 
         // ── Private helpers ──

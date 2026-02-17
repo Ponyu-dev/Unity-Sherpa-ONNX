@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts;
 using PonyuDev.SherpaOnnx.Tts.Cache;
@@ -34,7 +35,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private readonly Dictionary<string, ISamplePanel> _panels = new();
         private ISamplePanel _activePanel;
 
-        private void Awake()
+        private async void Awake()
         {
             _document = GetComponent<UIDocument>();
 
@@ -47,7 +48,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _panels[SampleMenu.IdConfig] = new TtsConfigPanel();
             _panels[SampleMenu.IdCache] = new TtsCachePanel();
 
-            InitializeService();
+            await InitializeServiceAsync();
         }
 
         private void OnEnable()
@@ -74,15 +75,14 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         // ── Init ──
 
-        private void InitializeService()
+        private async UniTask InitializeServiceAsync()
         {
             _innerService = new TtsService();
 
             try
             {
-                _innerService.Initialize();
+                await _innerService.InitializeAsync();
 
-                // Wrap in CachedTtsService for cache support.
                 var cache = _innerService.Settings?.cache;
                 if (cache != null)
                 {

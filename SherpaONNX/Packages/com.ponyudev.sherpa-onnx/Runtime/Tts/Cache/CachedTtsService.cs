@@ -1,5 +1,7 @@
 using System;
+using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
@@ -69,6 +71,13 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         public void Initialize()
         {
             _inner.Initialize();
+        }
+
+        public async UniTask InitializeAsync(
+            IProgress<float> progress = null,
+            CancellationToken ct = default)
+        {
+            await _inner.InitializeAsync(progress, ct);
         }
 
         public void LoadProfile(TtsProfile profile)
