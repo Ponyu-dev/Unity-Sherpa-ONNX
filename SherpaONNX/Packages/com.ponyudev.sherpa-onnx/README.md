@@ -4,18 +4,14 @@ Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx
 
 ## Feature Roadmap
 
-| Feature | Status |
-|---------|--------|
-| Native library installer (Editor UI) | ✅ Done |
-| Cross-platform native libraries | ✅ Done |
-| Automatic PluginImporter configuration | ✅ Done |
-| Version management & Update All | ✅ Done |
-| Archive caching (Android, iOS) | ✅ Done |
-| iOS managed DLL with `__Internal` binding | ✅ Done |
-| `SHERPA_ONNX` scripting define symbol | ✅ Done |
-| TTS model installer (Editor UI) | ✅ Done |
-| Text-to-Speech (TTS) | 📋 Planned |
-| Speech Recognition (ASR) | 📋 Planned |
+| Feature | Description | Status |
+|---------|-------------|--------|
+| **Text-to-Speech (TTS)** | Offline speech synthesis — VITS, Matcha, Kokoro, Kitten, ZipVoice, Pocket (voice cloning) | ✅ Done |
+| **Speech Recognition (ASR)** | Offline and streaming speech-to-text — Zipformer, Paraformer, Whisper, SenseVoice, Moonshine | 📋 Planned |
+| **Voice Activity Detection (VAD)** | Speech/silence segmentation for efficient ASR — Silero VAD, TEN-VAD | 📋 Planned |
+| **Keyword Spotting (KWS)** | Lightweight always-on keyword detection from microphone | 📋 Planned |
+| **Speaker ID & Diarization** | Speaker identification by voice, who-spoke-when segmentation | 📋 Planned |
+| **Audio Tools** | Audio tagging, speech enhancement, punctuation restoration, language identification | 📋 Planned |
 
 ## Supported Platforms
 
