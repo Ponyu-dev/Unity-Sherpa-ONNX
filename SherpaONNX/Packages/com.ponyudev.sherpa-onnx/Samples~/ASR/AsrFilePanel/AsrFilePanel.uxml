@@ -1,0 +1,19 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="AsrFilePanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="File Recognition" class="sample-title"/>
+
+        <ui:Label text="Recognize speech from a pre-loaded AudioClip."
+                  class="sample-info" style="margin-bottom: 24px;"/>
+
+        <ui:Button name="recognizeButton" text="Recognize"
+                   class="sample-generate-btn"/>
+
+        <ui:Label name="timingLabel" text="" class="asr-timing"/>
+        <ui:Label name="resultLabel" text="" class="asr-result"/>
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>
