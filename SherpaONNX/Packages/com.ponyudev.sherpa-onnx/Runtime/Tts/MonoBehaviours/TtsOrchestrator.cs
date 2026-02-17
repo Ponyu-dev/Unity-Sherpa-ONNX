@@ -1,5 +1,7 @@
 using System;
+using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Tts.Cache;
+using PonyuDev.SherpaOnnx.Tts.Engine;
 using UnityEngine;
 
 namespace PonyuDev.SherpaOnnx.Tts
@@ -40,6 +42,38 @@ namespace PonyuDev.SherpaOnnx.Tts
         /// </summary>
         public ITtsCacheControl CacheControl => _cachedService;
 
+        // ── GenerateAndPlay shortcuts ──
+
+        /// <summary>
+        /// Generates speech and plays it using pooled objects if cache
+        /// is available, otherwise creates a new AudioClip each time.
+        /// </summary>
+        public TtsResult GenerateAndPlay(string text)
+        {
+            var svc = Service;
+            var cache = CacheControl;
+            if (cache != null)
+                return svc.GenerateAndPlay(text, cache, this);
+
+            return svc.GenerateAndPlay(text, GetOrCreateSource());
+        }
+
+        /// <summary>
+        /// Generates speech on a background thread and plays it.
+        /// Uses pooled objects when cache is available.
+        /// </summary>
+        public Task<TtsResult> GenerateAndPlayAsync(string text)
+        {
+            var svc = Service;
+            var cache = CacheControl;
+            if (cache != null)
+                return svc.GenerateAndPlayAsync(text, cache, this);
+
+            return svc.GenerateAndPlayAsync(text, GetOrCreateSource());
+        }
+
+        // ── Lifecycle ──
+
         private async void Awake()
         {
             _innerService = new TtsService();
@@ -71,6 +105,20 @@ namespace PonyuDev.SherpaOnnx.Tts
                 _innerService?.Dispose();
                 _innerService = null;
             }
+        }
+
+        // ── Private helpers ──
+
+        private AudioSource _fallbackSource;
+
+        private AudioSource GetOrCreateSource()
+        {
+            if (_fallbackSource != null)
+                return _fallbackSource;
+
+            _fallbackSource = gameObject.AddComponent<AudioSource>();
+            _fallbackSource.playOnAwake = false;
+            return _fallbackSource;
         }
     }
 }
