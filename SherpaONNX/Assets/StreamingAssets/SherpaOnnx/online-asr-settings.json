@@ -1,0 +1,35 @@
+{
+    "activeProfileIndex": 0,
+    "profiles": [
+        {
+            "profileName": "sherpa-onnx-streaming-zipformer-en-20M-2023-02-17",
+            "modelType": 0,
+            "numThreads": 1,
+            "provider": "cpu",
+            "tokens": "tokens.txt",
+            "sampleRate": 16000,
+            "featureDim": 80,
+            "decodingMethod": "greedy_search",
+            "maxActivePaths": 4,
+            "hotwordsFile": "",
+            "hotwordsScore": 1.5,
+            "ruleFsts": "",
+            "ruleFars": "",
+            "blankPenalty": 0.0,
+            "enableEndpoint": true,
+            "rule1MinTrailingSilence": 1.2000000476837159,
+            "rule2MinTrailingSilence": 2.4000000953674318,
+            "rule3MinUtteranceLength": 20.0,
+            "ctcFstDecoderGraph": "",
+            "ctcFstDecoderMaxActive": 3000,
+            "transducerEncoder": "encoder-epoch-99-avg-1.onnx",
+            "transducerDecoder": "decoder-epoch-99-avg-1.onnx",
+            "transducerJoiner": "joiner-epoch-99-avg-1.onnx",
+            "paraformerEncoder": "",
+            "paraformerDecoder": "",
+            "zipformer2CtcModel": "",
+            "nemoCtcModel": "",
+            "toneCtcModel": ""
+        }
+    ]
+}

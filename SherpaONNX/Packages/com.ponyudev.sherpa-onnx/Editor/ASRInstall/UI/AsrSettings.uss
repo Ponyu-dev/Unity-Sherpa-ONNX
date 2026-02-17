@@ -1,0 +1,31 @@
+/* ══════════════════════════════════════════════
+   ASR-specific styles.
+   Shared layout rules are in ModelSettings.uss
+   ══════════════════════════════════════════════ */
+
+/* ── Tab bar ── */
+
+.asr-tab-bar {
+    flex-direction: row;
+    margin-bottom: 8px;
+}
+
+.asr-tab {
+    min-width: 80px;
+    margin-right: 4px;
+    -unity-font-style: normal;
+    background-color: rgba(128, 128, 128, 0.15);
+    border-radius: 4px 4px 0 0;
+}
+
+.asr-tab-active {
+    -unity-font-style: bold;
+    background-color: rgba(47, 95, 63, 0.6);
+    border-bottom-width: 2px;
+    border-bottom-color: rgba(115, 166, 255, 0.8);
+}
+
+.asr-tab-content {
+    flex-grow: 1;
+    flex-direction: column;
+}

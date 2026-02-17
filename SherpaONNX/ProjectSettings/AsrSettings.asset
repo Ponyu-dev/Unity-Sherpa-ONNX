@@ -1,0 +1,110 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &1
+MonoBehaviour:
+  m_ObjectHideFlags: 53
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3985ec4845e8e42ae833efb9fdbf0590, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PonyuDev.SherpaOnnx.Editor::PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings.AsrProjectSettings
+  offlineData:
+    activeProfileIndex: 0
+    offlineRecognizerPoolSize: 1
+    profiles:
+    - profileName: sherpa-onnx-zipformer-small-en-2023-06-26
+      modelType: 0
+      numThreads: 1
+      provider: cpu
+      tokens: tokens.txt
+      sampleRate: 16000
+      featureDim: 80
+      decodingMethod: greedy_search
+      maxActivePaths: 4
+      hotwordsFile: 
+      hotwordsScore: 1.5
+      ruleFsts: 
+      ruleFars: 
+      blankPenalty: 0
+      lmModel: 
+      lmScale: 0.5
+      transducerEncoder: encoder-epoch-99-avg-1.onnx
+      transducerDecoder: decoder-epoch-99-avg-1.onnx
+      transducerJoiner: joiner-epoch-99-avg-1.onnx
+      paraformerModel: 
+      whisperEncoder: 
+      whisperDecoder: 
+      whisperLanguage: 
+      whisperTask: transcribe
+      whisperTailPaddings: -1
+      whisperEnableTokenTimestamps: 0
+      whisperEnableSegmentTimestamps: 0
+      senseVoiceModel: 
+      senseVoiceLanguage: 
+      senseVoiceUseInverseTextNormalization: 1
+      moonshinePreprocessor: 
+      moonshineEncoder: 
+      moonshineUncachedDecoder: 
+      moonshineCachedDecoder: 
+      nemoCtcModel: 
+      zipformerCtcModel: 
+      tdnnModel: 
+      fireRedAsrEncoder: 
+      fireRedAsrDecoder: 
+      dolphinModel: 
+      canaryEncoder: 
+      canaryDecoder: 
+      canarySrcLang: en
+      canaryTgtLang: en
+      canaryUsePnc: 1
+      wenetCtcModel: 
+      omnilingualModel: 
+      medAsrModel: 
+      funAsrNanoEncoderAdaptor: 
+      funAsrNanoLlm: 
+      funAsrNanoEmbedding: 
+      funAsrNanoTokenizer: 
+      funAsrNanoSystemPrompt: You are a helpful assistant.
+      funAsrNanoUserPrompt: 
+      funAsrNanoMaxNewTokens: 512
+      funAsrNanoTemperature: 0.000001
+      funAsrNanoTopP: 0.8
+      funAsrNanoSeed: 42
+      funAsrNanoLanguage: 
+      funAsrNanoItn: 0
+      funAsrNanoHotwords: 
+  onlineData:
+    activeProfileIndex: 0
+    profiles:
+    - profileName: sherpa-onnx-streaming-zipformer-en-20M-2023-02-17
+      modelType: 0
+      numThreads: 1
+      provider: cpu
+      tokens: tokens.txt
+      sampleRate: 16000
+      featureDim: 80
+      decodingMethod: greedy_search
+      maxActivePaths: 4
+      hotwordsFile: 
+      hotwordsScore: 1.5
+      ruleFsts: 
+      ruleFars: 
+      blankPenalty: 0
+      enableEndpoint: 1
+      rule1MinTrailingSilence: 1.2
+      rule2MinTrailingSilence: 2.4
+      rule3MinUtteranceLength: 20
+      ctcFstDecoderGraph: 
+      ctcFstDecoderMaxActive: 3000
+      transducerEncoder: encoder-epoch-99-avg-1.onnx
+      transducerDecoder: decoder-epoch-99-avg-1.onnx
+      transducerJoiner: joiner-epoch-99-avg-1.onnx
+      paraformerEncoder: 
+      paraformerDecoder: 
+      zipformer2CtcModel: 
+      nemoCtcModel: 
+      toneCtcModel: 

@@ -1,5 +1,6 @@
 using System;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -18,7 +19,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         private readonly TtsProjectSettings _settings;
         private readonly VisualElement _detailContent;
 
-        private TtsProfileListPresenter _listPresenter;
+        private ProfileListPresenter<TtsProfile> _listPresenter;
         private int _currentIndex = -1;
         private bool _disposed;
 
@@ -30,7 +31,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             _settings = settings;
         }
 
-        internal void SetListPresenter(TtsProfileListPresenter listPresenter)
+        internal void SetListPresenter(
+            ProfileListPresenter<TtsProfile> listPresenter)
         {
             _listPresenter = listPresenter;
         }
@@ -78,7 +80,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             var button = new Button { text = "Auto-configure paths" };
             button.AddToClassList("btn");
             button.AddToClassList("btn-primary");
-            button.AddToClassList("tts-btn-spaced");
+            button.AddToClassList("model-btn-spaced");
             button.clicked += HandleAutoConfigureClicked;
             _detailContent.Add(button);
         }
@@ -95,7 +97,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             var button = new Button { text = label };
             button.AddToClassList("btn");
             button.AddToClassList(usingInt8 ? "btn-secondary" : "btn-accent");
-            button.AddToClassList("tts-btn-spaced");
+            button.AddToClassList("model-btn-spaced");
             button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
         }
@@ -143,7 +145,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         private void AddSectionHeader(string text)
         {
             var header = new Label(text);
-            header.AddToClassList("tts-section-header");
+            header.AddToClassList("model-section-header");
             _detailContent.Add(header);
         }
 
@@ -203,7 +205,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             var infoLabel = new Label(
                 "Model files will be zipped at build time and extracted " +
                 "from StreamingAssets to persistentDataPath on first launch.");
-            infoLabel.AddToClassList("tts-info-label");
+            infoLabel.AddToClassList("model-info-label");
             _detailContent.Add(infoLabel);
 
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);

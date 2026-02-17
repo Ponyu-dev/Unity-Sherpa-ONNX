@@ -1,0 +1,62 @@
+/* ── Shared styles for all sample panels (1080×1920) ── */
+
+.sample-root {
+    padding: 32px;
+    flex-grow: 1;
+}
+
+.sample-title {
+    font-size: 42px;
+    -unity-font-style: bold;
+    margin-bottom: 24px;
+}
+
+.sample-back-btn {
+    height: 64px;
+    font-size: 28px;
+    margin-bottom: 24px;
+    -unity-text-align: middle-left;
+    padding-left: 20px;
+    background-color: rgba(60, 60, 60, 0.6);
+    border-radius: 8px;
+}
+
+.sample-text-field {
+    min-height: 160px;
+    margin-bottom: 24px;
+    font-size: 28px;
+}
+
+.sample-params-row {
+    flex-direction: row;
+    margin-bottom: 24px;
+}
+
+.sample-param {
+    flex-grow: 1;
+    margin-right: 12px;
+    font-size: 28px;
+}
+
+.sample-generate-btn {
+    height: 80px;
+    margin-bottom: 24px;
+    font-size: 32px;
+    -unity-font-style: bold;
+}
+
+.sample-progress-bar {
+    height: 40px;
+    margin-bottom: 16px;
+}
+
+.sample-status {
+    margin-bottom: 12px;
+    font-size: 26px;
+    color: rgb(180, 180, 180);
+}
+
+.sample-info {
+    font-size: 22px;
+    color: rgb(140, 140, 140);
+}
