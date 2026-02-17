@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Common.Data;
 
 namespace PonyuDev.SherpaOnnx.Tts.Data
 {
@@ -8,8 +9,14 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
     /// Mirrors sherpa-onnx OfflineTtsModelConfig + per-architecture configs.
     /// </summary>
     [Serializable]
-    public sealed class TtsProfile
+    public sealed class TtsProfile : IProfileData
     {
+        public string ProfileName
+        {
+            get => profileName;
+            set => profileName = value;
+        }
+
         // ── Identity ──
 
         public string profileName = "New Profile";

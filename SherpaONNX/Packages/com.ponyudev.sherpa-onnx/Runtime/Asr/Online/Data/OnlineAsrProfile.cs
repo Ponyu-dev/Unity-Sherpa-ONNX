@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Common.Data;
 
 namespace PonyuDev.SherpaOnnx.Asr.Online.Data
 {
@@ -8,8 +9,14 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
     /// unused fields are ignored at runtime.
     /// </summary>
     [Serializable]
-    public sealed class OnlineAsrProfile
+    public sealed class OnlineAsrProfile : IProfileData
     {
+        public string ProfileName
+        {
+            get => profileName;
+            set => profileName = value;
+        }
+
         // ── Identity ──
 
         public string profileName = "New Online Profile";

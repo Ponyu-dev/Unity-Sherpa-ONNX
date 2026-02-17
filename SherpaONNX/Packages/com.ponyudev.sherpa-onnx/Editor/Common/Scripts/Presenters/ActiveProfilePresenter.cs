@@ -1,36 +1,39 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
-using PonyuDev.SherpaOnnx.Tts.Data;
+using PonyuDev.SherpaOnnx.Common.Data;
 using UnityEngine.UIElements;
 
-namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
+namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
 {
     /// <summary>
-    /// Builds and manages the "Active profile" dropdown above the toolbar.
+    /// Builds and manages the "Active profile" dropdown.
+    /// Generic over any profile type implementing <see cref="IProfileData"/>.
     /// </summary>
-    internal sealed class ActiveProfilePresenter : IDisposable
+    internal sealed class ActiveProfilePresenter<TProfile> : IDisposable
+        where TProfile : IProfileData
     {
-        private const string NoneLabel = "— None —";
+        private const string NoneLabel = "\u2014 None \u2014";
 
-        private readonly TtsProjectSettings _settings;
+        private readonly ISettingsData<TProfile> _data;
+        private readonly ISaveableSettings _settings;
         private PopupField<string> _dropdown;
 
-        internal ActiveProfilePresenter(TtsProjectSettings settings)
+        internal ActiveProfilePresenter(
+            ISettingsData<TProfile> data, ISaveableSettings settings)
         {
+            _data = data;
             _settings = settings;
         }
 
         internal void Build(VisualElement parent)
         {
             List<string> choices = BuildChoices();
-            int savedIndex = _settings.data.activeProfileIndex;
+            int savedIndex = _data.ActiveProfileIndex;
             string current = IndexToChoice(choices, savedIndex);
 
             _dropdown = new PopupField<string>(
                 "Active profile", choices, current);
-
             _dropdown.RegisterValueChangedCallback(HandleChanged);
             parent.Add(_dropdown);
         }
@@ -46,7 +49,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             if (_dropdown == null) return;
 
             List<string> choices = BuildChoices();
-            int savedIndex = _settings.data.activeProfileIndex;
+            int savedIndex = _data.ActiveProfileIndex;
             string current = IndexToChoice(choices, savedIndex);
 
             _dropdown.choices = choices;
@@ -57,10 +60,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void HandleChanged(ChangeEvent<string> evt)
         {
-            string selected = evt.newValue;
-            int index = ChoiceToIndex(selected);
-
-            _settings.data.activeProfileIndex = index;
+            int index = ChoiceToIndex(evt.newValue);
+            _data.ActiveProfileIndex = index;
             _settings.SaveSettings();
         }
 
@@ -69,38 +70,34 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         private List<string> BuildChoices()
         {
             var list = new List<string> { NoneLabel };
-            list.AddRange(_settings.data.profiles.Select(FormatProfileName));
+            list.AddRange(_data.Profiles.Select(FormatName));
             return list;
         }
 
-        private static string FormatProfileName(TtsProfile profile)
+        private static string FormatName(TProfile profile)
         {
-            return string.IsNullOrEmpty(profile.profileName)
-                ? "(unnamed)"
-                : profile.profileName;
+            return string.IsNullOrEmpty(profile.ProfileName)
+                ? "(unnamed)" : profile.ProfileName;
         }
 
-        private static string IndexToChoice(List<string> choices, int index)
+        private static string IndexToChoice(
+            List<string> choices, int index)
         {
-            int choiceIndex = index + 1;
-
-            return choiceIndex >= 0 && choiceIndex < choices.Count
-                ? choices[choiceIndex]
-                : choices[0];
+            int ci = index + 1;
+            return ci >= 0 && ci < choices.Count
+                ? choices[ci] : choices[0];
         }
 
         private int ChoiceToIndex(string choice)
         {
             if (choice == NoneLabel) return -1;
 
-            List<TtsProfile> profiles = _settings.data.profiles;
-
+            List<TProfile> profiles = _data.Profiles;
             for (int i = 0; i < profiles.Count; i++)
             {
-                if (FormatProfileName(profiles[i]) == choice)
+                if (FormatName(profiles[i]) == choice)
                     return i;
             }
-
             return -1;
         }
     }

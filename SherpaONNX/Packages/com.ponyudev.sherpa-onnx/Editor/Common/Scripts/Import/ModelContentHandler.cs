@@ -4,36 +4,38 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 
-namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
+namespace PonyuDev.SherpaOnnx.Editor.Common.Import
 {
     /// <summary>
-    /// Copies extracted TTS model files into
-    /// Assets/StreamingAssets/SherpaOnnx/tts-models/{archiveName}/.
-    /// Handles the common case where an archive wraps all files
-    /// inside a single top-level directory.
+    /// Copies extracted model files into a destination directory
+    /// resolved via <c>getModelDir</c> delegate.
+    /// Shared by TTS and ASR import pipelines.
     /// </summary>
-    internal sealed class TtsModelContentHandler : IExtractedContentHandler
+    internal sealed class ModelContentHandler : IExtractedContentHandler
     {
         public event Action<string> OnStatus;
         public event Action<float> OnProgress01;
         public event Action<string> OnError;
 
         private readonly string _archiveName;
+        private readonly Func<string, string> _getModelDir;
 
-        /// <summary>
-        /// Absolute path to the destination directory after <see cref="HandleAsync"/> completes.
-        /// </summary>
         internal string DestinationDirectory { get; private set; }
 
-        internal TtsModelContentHandler(string archiveName)
+        internal ModelContentHandler(
+            string archiveName, Func<string, string> getModelDir)
         {
             if (string.IsNullOrEmpty(archiveName))
                 throw new ArgumentNullException(nameof(archiveName));
 
             _archiveName = archiveName;
+            _getModelDir = getModelDir
+                ?? throw new ArgumentNullException(nameof(getModelDir));
         }
 
-        public Task HandleAsync(string extractedDirectory, CancellationToken cancellationToken)
+        public Task HandleAsync(
+            string extractedDirectory,
+            CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
@@ -41,16 +43,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             OnProgress01?.Invoke(0f);
 
             string sourceDir = FindModelRoot(extractedDirectory);
-            string destDir = TtsModelPaths.GetModelDir(_archiveName);
+            string destDir = _getModelDir(_archiveName);
             DestinationDirectory = destDir;
 
             Directory.CreateDirectory(destDir);
 
-            string[] files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(
+                sourceDir, "*", SearchOption.AllDirectories);
 
             if (files.Length == 0)
             {
-                string msg = $"No files found in extracted directory: {sourceDir}";
+                string msg = "No files found in extracted directory: "
+                    + sourceDir;
                 OnError?.Invoke(msg);
                 throw new FileNotFoundException(msg);
             }
@@ -59,8 +63,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                string relativePath = files[i].Substring(sourceDir.Length)
-                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                string relativePath = files[i]
+                    .Substring(sourceDir.Length)
+                    .TrimStart(Path.DirectorySeparatorChar,
+                        Path.AltDirectorySeparatorChar);
 
                 string destPath = Path.Combine(destDir, relativePath);
                 string destSubDir = Path.GetDirectoryName(destPath);
@@ -79,11 +85,6 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             return Task.CompletedTask;
         }
 
-        /// <summary>
-        /// If the extracted directory contains exactly one subdirectory
-        /// and no loose files, returns that subdirectory.
-        /// Otherwise returns the directory itself.
-        /// </summary>
         private static string FindModelRoot(string extractedDir)
         {
             string[] topFiles = Directory.GetFiles(extractedDir);

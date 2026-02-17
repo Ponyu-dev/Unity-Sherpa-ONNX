@@ -1,0 +1,246 @@
+/* ══════════════════════════════════════════════
+   Shared styles for TTS / ASR settings panels.
+   Prefix: model-
+   ══════════════════════════════════════════════ */
+
+/* ── Root layout ── */
+
+.model-root {
+    flex-grow: 1;
+    flex-direction: column;
+    padding: 8px 10px;
+}
+
+.model-root > .model-header {
+    margin-bottom: 8px;
+}
+
+.model-root > .model-toolbar {
+    margin-bottom: 8px;
+}
+
+.model-header {
+    flex-direction: column;
+}
+
+.model-header-title {
+    -unity-font-style: bold;
+    font-size: 15px;
+    margin-bottom: 4px;
+}
+
+/* ── Toolbar ── */
+
+.model-toolbar {
+    flex-direction: row;
+    margin-bottom: 8px;
+}
+
+.model-toolbar > Button {
+    margin-right: 8px;
+}
+
+/* ── Main split layout ── */
+
+.model-main {
+    flex-direction: row;
+    flex-grow: 1;
+    min-height: 280px;
+}
+
+/* ── List panel ── */
+
+.model-list-panel {
+    flex-direction: column;
+    width: 220px;
+    min-width: 180px;
+    margin-right: 12px;
+    border-right-width: 1px;
+    border-right-color: rgba(128, 128, 128, 0.4);
+    padding-right: 8px;
+}
+
+.model-list-label {
+    -unity-font-style: bold;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.model-profiles-list {
+    flex-grow: 1;
+    min-height: 120px;
+}
+
+.model-list-item {
+    -unity-text-align: middle-left;
+}
+
+/* ── Detail panel ── */
+
+.model-detail-panel {
+    flex-direction: column;
+    flex-grow: 1;
+    min-width: 280px;
+}
+
+.model-detail-label {
+    -unity-font-style: bold;
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.model-detail-scroll {
+    flex-grow: 1;
+}
+
+.model-detail-content {
+    flex-direction: column;
+    padding-right: 4px;
+}
+
+/* ── Active profile ── */
+
+.model-active-profile-section {
+    margin-bottom: 8px;
+}
+
+/* ── Import section ── */
+
+.model-import-section {
+    margin-bottom: 10px;
+    padding: 8px;
+    border-width: 1px;
+    border-color: rgba(128, 128, 128, 0.4);
+    border-radius: 4px;
+    background-color: rgba(0, 0, 0, 0.08);
+}
+
+.model-import-row {
+    flex-direction: column;
+}
+
+.model-import-url {
+    flex-grow: 0;
+    flex-shrink: 0;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.model-import-progress {
+    height: 4px;
+    margin-top: 4px;
+}
+
+.model-import-status {
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 2px;
+}
+
+.model-import-buttons-row {
+    flex-direction: row;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.model-import-options-row {
+    flex-direction: row;
+    align-items: center;
+    display: none;
+}
+
+/* ── Row & field helpers ── */
+
+.model-row {
+    flex-direction: row;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.model-row > * {
+    margin-right: 6px;
+}
+
+.model-field-label {
+    min-width: 100px;
+    font-size: 11px;
+}
+
+.model-field-input {
+    flex-grow: 1;
+}
+
+.model-foldout {
+    margin-top: 6px;
+    margin-bottom: 2px;
+}
+
+/* ── Section headers & labels ── */
+
+.model-section-header {
+    -unity-font-style: bold;
+    margin-top: 8px;
+}
+
+.model-info-label {
+    opacity: 0.7;
+    white-space: normal;
+    margin-bottom: 4px;
+}
+
+.model-btn-spaced {
+    margin-bottom: 8px;
+}
+
+/* ── Action buttons ── */
+
+.model-action-buttons > Button {
+    margin-right: 6px;
+    margin-bottom: 4px;
+}
+
+/* ── Links ── */
+
+.model-links-row {
+    flex-direction: row;
+    margin-top: 4px;
+    margin-bottom: 8px;
+}
+
+.model-link-label {
+    color: rgba(115, 166, 255, 1);
+    -unity-font-style: normal;
+}
+
+.model-link-label:hover {
+    color: rgba(153, 204, 255, 1);
+}
+
+/* ── Buttons ── */
+
+.btn {
+    min-width: 70px;
+}
+
+.btn-primary {
+    background-color: #2f5f3f;
+}
+
+.btn-secondary {
+    background-color: #3a3030;
+}
+
+.btn-accent {
+    background-color: #2f4a5f;
+}
+
+/* ── Utility ── */
+
+.row {
+    flex-direction: row;
+    align-items: center;
+}
+
+.hidden {
+    display: none;
+}

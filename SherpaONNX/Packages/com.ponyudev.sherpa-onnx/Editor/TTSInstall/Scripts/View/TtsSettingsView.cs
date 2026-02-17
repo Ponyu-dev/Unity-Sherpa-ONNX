@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
@@ -22,8 +23,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private readonly string _uxmlPath;
 
-        private ActiveProfilePresenter _activeProfilePresenter;
-        private TtsProfileListPresenter _listPresenter;
+        private ActiveProfilePresenter<TtsProfile> _activeProfilePresenter;
+        private ProfileListPresenter<TtsProfile> _listPresenter;
         private TtsProfileDetailPresenter _detailPresenter;
         private TtsImportPresenter _importPresenter;
         private Button _importFromUrlButton;
@@ -45,10 +46,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             uxmlAsset.CloneTree(hostRoot);
 
-            string ussPath = _uxmlPath.Replace(".uxml", ".uss");
-            var ussAsset = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
-            if (ussAsset != null)
-                hostRoot.styleSheets.Add(ussAsset);
+            LoadStyleSheets(hostRoot);
 
             TtsProjectSettings settings = TtsProjectSettings.instance;
 
@@ -78,6 +76,24 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             _detailPresenter?.Dispose();
             _detailPresenter = null;
+        }
+
+        // ── Styles ──
+
+        private void LoadStyleSheets(VisualElement root)
+        {
+            const string commonUssPath =
+                "Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/ModelSettings.uss";
+            var commonUss =
+                AssetDatabase.LoadAssetAtPath<StyleSheet>(commonUssPath);
+            if (commonUss != null)
+                root.styleSheets.Add(commonUss);
+
+            string ussPath = _uxmlPath.Replace(".uxml", ".uss");
+            var ussAsset =
+                AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
+            if (ussAsset != null)
+                root.styleSheets.Add(ussAsset);
         }
 
         // ── Links ──
@@ -113,7 +129,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             TtsCacheSettings cache = settings.data.cache;
 
             var foldout = new Foldout { text = "Cache Settings" };
-            foldout.AddToClassList("tts-foldout");
+            foldout.AddToClassList("model-foldout");
 
             foldout.Add(new CacheGroupElement(
                 "OfflineTts Engine Pool",
@@ -154,7 +170,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             VisualElement root, TtsProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
-            _activeProfilePresenter = new ActiveProfilePresenter(settings);
+            _activeProfilePresenter =
+                new ActiveProfilePresenter<TtsProfile>(settings.data, settings);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");
@@ -169,7 +186,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             var removeButton = root.Q<Button>("removeProfileButton");
             var detailContent = root.Q<VisualElement>("detailContent");
 
-            _listPresenter = new TtsProfileListPresenter(settings);
+            _listPresenter = new ProfileListPresenter<TtsProfile>(
+                settings.data, settings,
+                TtsModelPaths.GetModelDir, "model-list-item");
             _detailPresenter = new TtsProfileDetailPresenter(detailContent, settings);
             _detailPresenter.SetListPresenter(_listPresenter);
 

@@ -1,11 +1,11 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <ui:VisualElement class="asr-root">
-        <ui:VisualElement name="asr-header" class="asr-header">
-            <ui:Label text="ASR Models" class="asr-header-title"/>
+    <ui:VisualElement class="model-root">
+        <ui:VisualElement name="asr-header" class="model-header">
+            <ui:Label text="ASR Models" class="model-header-title"/>
             <ui:HelpBox text="Download models from GitHub releases. Paste the direct archive URL below and click Install." message-type="Info"/>
         </ui:VisualElement>
-        <ui:VisualElement class="asr-links-row">
-            <ui:Label text="Pre-trained ASR models" name="linkModels" class="asr-link-label"/>
+        <ui:VisualElement class="model-links-row">
+            <ui:Label text="Pre-trained ASR models" name="linkModels" class="model-link-label"/>
         </ui:VisualElement>
 
         <!-- Tab bar -->
@@ -14,73 +14,73 @@
             <ui:Button name="onlineTabBtn" text="Online" class="asr-tab"/>
         </ui:VisualElement>
 
-        <!-- ══ Offline container ══ -->
+        <!-- Offline container -->
         <ui:VisualElement name="offlineContainer" class="asr-tab-content">
-            <ui:VisualElement name="offlineActiveProfileSection" class="asr-active-profile-section"/>
-            <ui:VisualElement class="asr-toolbar row">
+            <ui:VisualElement name="offlineActiveProfileSection" class="model-active-profile-section"/>
+            <ui:VisualElement class="model-toolbar row">
                 <ui:Button name="offlineAddProfileButton" text="Add profile" class="btn btn-primary"/>
                 <ui:Button name="offlineRemoveProfileButton" text="Remove selected" class="btn btn-secondary"/>
                 <ui:Button name="offlineImportFromUrlButton" text="Import from URL" class="btn btn-accent"/>
             </ui:VisualElement>
-            <ui:VisualElement name="offlineImportSection" class="asr-import-section hidden">
-                <ui:VisualElement class="asr-import-row">
-                    <ui:TextField label="Model archive URL" name="offlineImportUrlField" class="asr-import-url"/>
-                    <ui:VisualElement name="offlineImportOptionsRow" class="asr-import-options-row hidden">
+            <ui:VisualElement name="offlineImportSection" class="model-import-section hidden">
+                <ui:VisualElement class="model-import-row">
+                    <ui:TextField label="Model archive URL" name="offlineImportUrlField" class="model-import-url"/>
+                    <ui:VisualElement name="offlineImportOptionsRow" class="model-import-options-row hidden">
                         <ui:Toggle label="Use int8 models" name="offlineImportInt8Toggle"/>
                     </ui:VisualElement>
-                    <ui:VisualElement class="asr-import-buttons-row">
+                    <ui:VisualElement class="model-import-buttons-row">
                         <ui:Button text="Import" name="offlineImportButton" class="btn btn-primary"/>
                         <ui:Button text="Cancel" name="offlineImportCancelButton" class="btn btn-secondary hidden"/>
                     </ui:VisualElement>
-                    <ui:ProgressBar name="offlineImportProgressBar" class="asr-import-progress hidden"/>
-                    <ui:Label name="offlineImportStatusLabel" class="asr-import-status hidden"/>
+                    <ui:ProgressBar name="offlineImportProgressBar" class="model-import-progress hidden"/>
+                    <ui:Label name="offlineImportStatusLabel" class="model-import-status hidden"/>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="asr-main">
-                <ui:VisualElement class="asr-list-panel">
-                    <ui:Label text="Profiles" class="asr-list-label"/>
-                    <ui:ListView name="offlineProfilesListView" class="asr-profiles-list"/>
+            <ui:VisualElement class="model-main">
+                <ui:VisualElement class="model-list-panel">
+                    <ui:Label text="Profiles" class="model-list-label"/>
+                    <ui:ListView name="offlineProfilesListView" class="model-profiles-list"/>
                 </ui:VisualElement>
-                <ui:VisualElement class="asr-detail-panel">
-                    <ui:Label text="Profile details" class="asr-detail-label"/>
-                    <ui:ScrollView name="offlineDetailScrollView" class="asr-detail-scroll">
-                        <ui:VisualElement name="offlineDetailContent" class="asr-detail-content"/>
+                <ui:VisualElement class="model-detail-panel">
+                    <ui:Label text="Profile details" class="model-detail-label"/>
+                    <ui:ScrollView name="offlineDetailScrollView" class="model-detail-scroll">
+                        <ui:VisualElement name="offlineDetailContent" class="model-detail-content"/>
                     </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
 
-        <!-- ══ Online container ══ -->
+        <!-- Online container -->
         <ui:VisualElement name="onlineContainer" class="asr-tab-content hidden">
-            <ui:VisualElement name="onlineActiveProfileSection" class="asr-active-profile-section"/>
-            <ui:VisualElement class="asr-toolbar row">
+            <ui:VisualElement name="onlineActiveProfileSection" class="model-active-profile-section"/>
+            <ui:VisualElement class="model-toolbar row">
                 <ui:Button name="onlineAddProfileButton" text="Add profile" class="btn btn-primary"/>
                 <ui:Button name="onlineRemoveProfileButton" text="Remove selected" class="btn btn-secondary"/>
                 <ui:Button name="onlineImportFromUrlButton" text="Import from URL" class="btn btn-accent"/>
             </ui:VisualElement>
-            <ui:VisualElement name="onlineImportSection" class="asr-import-section hidden">
-                <ui:VisualElement class="asr-import-row">
-                    <ui:TextField label="Model archive URL" name="onlineImportUrlField" class="asr-import-url"/>
-                    <ui:VisualElement name="onlineImportOptionsRow" class="asr-import-options-row hidden">
+            <ui:VisualElement name="onlineImportSection" class="model-import-section hidden">
+                <ui:VisualElement class="model-import-row">
+                    <ui:TextField label="Model archive URL" name="onlineImportUrlField" class="model-import-url"/>
+                    <ui:VisualElement name="onlineImportOptionsRow" class="model-import-options-row hidden">
                         <ui:Toggle label="Use int8 models" name="onlineImportInt8Toggle"/>
                     </ui:VisualElement>
-                    <ui:VisualElement class="asr-import-buttons-row">
+                    <ui:VisualElement class="model-import-buttons-row">
                         <ui:Button text="Import" name="onlineImportButton" class="btn btn-primary"/>
                         <ui:Button text="Cancel" name="onlineImportCancelButton" class="btn btn-secondary hidden"/>
                     </ui:VisualElement>
-                    <ui:ProgressBar name="onlineImportProgressBar" class="asr-import-progress hidden"/>
-                    <ui:Label name="onlineImportStatusLabel" class="asr-import-status hidden"/>
+                    <ui:ProgressBar name="onlineImportProgressBar" class="model-import-progress hidden"/>
+                    <ui:Label name="onlineImportStatusLabel" class="model-import-status hidden"/>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement class="asr-main">
-                <ui:VisualElement class="asr-list-panel">
-                    <ui:Label text="Profiles" class="asr-list-label"/>
-                    <ui:ListView name="onlineProfilesListView" class="asr-profiles-list"/>
+            <ui:VisualElement class="model-main">
+                <ui:VisualElement class="model-list-panel">
+                    <ui:Label text="Profiles" class="model-list-label"/>
+                    <ui:ListView name="onlineProfilesListView" class="model-profiles-list"/>
                 </ui:VisualElement>
-                <ui:VisualElement class="asr-detail-panel">
-                    <ui:Label text="Profile details" class="asr-detail-label"/>
-                    <ui:ScrollView name="onlineDetailScrollView" class="asr-detail-scroll">
-                        <ui:VisualElement name="onlineDetailContent" class="asr-detail-content"/>
+                <ui:VisualElement class="model-detail-panel">
+                    <ui:Label text="Profile details" class="model-detail-label"/>
+                    <ui:ScrollView name="onlineDetailScrollView" class="model-detail-scroll">
+                        <ui:VisualElement name="onlineDetailContent" class="model-detail-content"/>
                     </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>

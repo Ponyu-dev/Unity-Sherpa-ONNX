@@ -1,6 +1,7 @@
 using System.IO;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using UnityEditor;
 using UnityEngine;
 
@@ -11,10 +12,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings
     /// as JSON to StreamingAssets for runtime use.
     /// Two separate JSON files: offline and online.
     /// </summary>
-    [FilePath("ProjectSettings/AsrSettings.asset",
-        FilePathAttribute.Location.ProjectFolder)]
+    [FilePath("ProjectSettings/AsrSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     internal sealed class AsrProjectSettings
-        : ScriptableSingleton<AsrProjectSettings>
+        : ScriptableSingleton<AsrProjectSettings>, ISaveableSettings
     {
         private const string RuntimeJsonDir =
             "Assets/StreamingAssets/SherpaOnnx";
@@ -28,7 +28,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings
         public AsrSettingsData offlineData = new();
         public OnlineAsrSettingsData onlineData = new();
 
-        internal void SaveSettings()
+        public void SaveSettings()
         {
             Save(true);
             ExportRuntimeJson();

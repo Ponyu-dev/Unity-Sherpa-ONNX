@@ -1,4 +1,5 @@
 using System.IO;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEditor;
 using UnityEngine;
@@ -10,14 +11,14 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings
     /// as JSON to StreamingAssets for runtime use.
     /// </summary>
     [FilePath("ProjectSettings/TtsSettings.asset", FilePathAttribute.Location.ProjectFolder)]
-    internal sealed class TtsProjectSettings : ScriptableSingleton<TtsProjectSettings>
+    internal sealed class TtsProjectSettings : ScriptableSingleton<TtsProjectSettings>, ISaveableSettings
     {
         private const string RuntimeJsonDir = "Assets/StreamingAssets/SherpaOnnx";
         private const string RuntimeJsonPath = RuntimeJsonDir + "/tts-settings.json";
 
         public TtsSettingsData data = new();
 
-        internal void SaveSettings()
+        public void SaveSettings()
         {
             Save(true);
             ExportRuntimeJson();
