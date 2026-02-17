@@ -1,0 +1,55 @@
+using UnityEngine.UIElements;
+
+namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
+{
+    /// <summary>
+    /// Continuation of <see cref="AsrProfileFieldBuilder"/>.
+    /// Canary, WenetCtc, Omnilingual, MedAsr, FunAsrNano.
+    /// </summary>
+    internal static partial class AsrProfileFieldBuilder
+    {
+        internal static void BuildCanary(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindText("Encoder", b.Profile.canaryEncoder, AsrProfileField.CanaryEncoder));
+            root.Add(b.BindText("Decoder", b.Profile.canaryDecoder, AsrProfileField.CanaryDecoder));
+            root.Add(b.BindText("Source language", b.Profile.canarySrcLang, AsrProfileField.CanarySrcLang));
+            root.Add(b.BindText("Target language", b.Profile.canaryTgtLang, AsrProfileField.CanaryTgtLang));
+        }
+
+        internal static void BuildWenetCtc(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindText("Model", b.Profile.wenetCtcModel, AsrProfileField.WenetCtcModel));
+        }
+
+        internal static void BuildOmnilingual(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindText("Model", b.Profile.omnilingualModel, AsrProfileField.OmnilingualModel));
+        }
+
+        internal static void BuildMedAsr(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindText("Model", b.Profile.medAsrModel, AsrProfileField.MedAsrModel));
+        }
+
+        internal static void BuildFunAsrNano(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindText("Encoder adaptor", b.Profile.funAsrNanoEncoderAdaptor, AsrProfileField.FunAsrNanoEncoderAdaptor));
+            root.Add(b.BindText("LLM", b.Profile.funAsrNanoLlm, AsrProfileField.FunAsrNanoLlm));
+            root.Add(b.BindText("Embedding", b.Profile.funAsrNanoEmbedding, AsrProfileField.FunAsrNanoEmbedding));
+            root.Add(b.BindText("Tokenizer", b.Profile.funAsrNanoTokenizer, AsrProfileField.FunAsrNanoTokenizer));
+            root.Add(b.BindText("System prompt", b.Profile.funAsrNanoSystemPrompt, AsrProfileField.FunAsrNanoSystemPrompt));
+            root.Add(b.BindText("User prompt", b.Profile.funAsrNanoUserPrompt, AsrProfileField.FunAsrNanoUserPrompt));
+            root.Add(b.BindInt("Max new tokens", b.Profile.funAsrNanoMaxNewTokens, AsrProfileField.FunAsrNanoMaxNewTokens));
+            root.Add(b.BindFloat("Temperature", b.Profile.funAsrNanoTemperature, AsrProfileField.FunAsrNanoTemperature));
+            root.Add(b.BindFloat("Top P", b.Profile.funAsrNanoTopP, AsrProfileField.FunAsrNanoTopP));
+            root.Add(b.BindInt("Seed", b.Profile.funAsrNanoSeed, AsrProfileField.FunAsrNanoSeed));
+            root.Add(b.BindText("Language", b.Profile.funAsrNanoLanguage, AsrProfileField.FunAsrNanoLanguage));
+            root.Add(b.BindText("Hotwords", b.Profile.funAsrNanoHotwords, AsrProfileField.FunAsrNanoHotwords));
+        }
+    }
+}

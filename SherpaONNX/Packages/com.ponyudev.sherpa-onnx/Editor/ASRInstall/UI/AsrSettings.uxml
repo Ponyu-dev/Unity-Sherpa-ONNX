@@ -1,0 +1,83 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement class="asr-root">
+        <ui:VisualElement name="asr-header" class="asr-header">
+            <ui:Label text="ASR Models" class="asr-header-title"/>
+            <ui:HelpBox text="Download models from GitHub releases. Paste the direct archive URL below and click Install." message-type="Info"/>
+        </ui:VisualElement>
+        <ui:VisualElement class="asr-links-row">
+            <ui:Label text="Pre-trained ASR models" name="linkModels" class="asr-link-label"/>
+        </ui:VisualElement>
+
+        <!-- Tab bar -->
+        <ui:VisualElement class="asr-tab-bar">
+            <ui:Button name="offlineTabBtn" text="Offline" class="asr-tab asr-tab-active"/>
+            <ui:Button name="onlineTabBtn" text="Online" class="asr-tab"/>
+        </ui:VisualElement>
+
+        <!-- ══ Offline container ══ -->
+        <ui:VisualElement name="offlineContainer" class="asr-tab-content">
+            <ui:VisualElement name="offlineActiveProfileSection" class="asr-active-profile-section"/>
+            <ui:VisualElement class="asr-toolbar row">
+                <ui:Button name="offlineAddProfileButton" text="Add profile" class="btn btn-primary"/>
+                <ui:Button name="offlineRemoveProfileButton" text="Remove selected" class="btn btn-secondary"/>
+                <ui:Button name="offlineImportFromUrlButton" text="Import from URL" class="btn btn-accent"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="offlineImportSection" class="asr-import-section hidden">
+                <ui:VisualElement class="asr-import-row">
+                    <ui:TextField label="Model archive URL" name="offlineImportUrlField" class="asr-import-url"/>
+                    <ui:VisualElement class="asr-import-buttons-row">
+                        <ui:Button text="Import" name="offlineImportButton" class="btn btn-primary"/>
+                        <ui:Button text="Cancel" name="offlineImportCancelButton" class="btn btn-secondary hidden"/>
+                    </ui:VisualElement>
+                    <ui:ProgressBar name="offlineImportProgressBar" class="asr-import-progress hidden"/>
+                    <ui:Label name="offlineImportStatusLabel" class="asr-import-status hidden"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="asr-main">
+                <ui:VisualElement class="asr-list-panel">
+                    <ui:Label text="Profiles" class="asr-list-label"/>
+                    <ui:ListView name="offlineProfilesListView" class="asr-profiles-list"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="asr-detail-panel">
+                    <ui:Label text="Profile details" class="asr-detail-label"/>
+                    <ui:ScrollView name="offlineDetailScrollView" class="asr-detail-scroll">
+                        <ui:VisualElement name="offlineDetailContent" class="asr-detail-content"/>
+                    </ui:ScrollView>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <!-- ══ Online container ══ -->
+        <ui:VisualElement name="onlineContainer" class="asr-tab-content hidden">
+            <ui:VisualElement name="onlineActiveProfileSection" class="asr-active-profile-section"/>
+            <ui:VisualElement class="asr-toolbar row">
+                <ui:Button name="onlineAddProfileButton" text="Add profile" class="btn btn-primary"/>
+                <ui:Button name="onlineRemoveProfileButton" text="Remove selected" class="btn btn-secondary"/>
+                <ui:Button name="onlineImportFromUrlButton" text="Import from URL" class="btn btn-accent"/>
+            </ui:VisualElement>
+            <ui:VisualElement name="onlineImportSection" class="asr-import-section hidden">
+                <ui:VisualElement class="asr-import-row">
+                    <ui:TextField label="Model archive URL" name="onlineImportUrlField" class="asr-import-url"/>
+                    <ui:VisualElement class="asr-import-buttons-row">
+                        <ui:Button text="Import" name="onlineImportButton" class="btn btn-primary"/>
+                        <ui:Button text="Cancel" name="onlineImportCancelButton" class="btn btn-secondary hidden"/>
+                    </ui:VisualElement>
+                    <ui:ProgressBar name="onlineImportProgressBar" class="asr-import-progress hidden"/>
+                    <ui:Label name="onlineImportStatusLabel" class="asr-import-status hidden"/>
+                </ui:VisualElement>
+            </ui:VisualElement>
+            <ui:VisualElement class="asr-main">
+                <ui:VisualElement class="asr-list-panel">
+                    <ui:Label text="Profiles" class="asr-list-label"/>
+                    <ui:ListView name="onlineProfilesListView" class="asr-profiles-list"/>
+                </ui:VisualElement>
+                <ui:VisualElement class="asr-detail-panel">
+                    <ui:Label text="Profile details" class="asr-detail-label"/>
+                    <ui:ScrollView name="onlineDetailScrollView" class="asr-detail-scroll">
+                        <ui:VisualElement name="onlineDetailContent" class="asr-detail-content"/>
+                    </ui:ScrollView>
+                </ui:VisualElement>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>
