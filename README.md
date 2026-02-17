@@ -7,7 +7,7 @@ Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx
 | Feature | Description | Status |
 |---------|-------------|--------|
 | **Text-to-Speech (TTS)** | Offline speech synthesis — VITS, Matcha, Kokoro, Kitten, ZipVoice, Pocket (voice cloning) | ✅ Done |
-| **Speech Recognition (ASR)** | Offline and streaming speech-to-text — Zipformer, Paraformer, Whisper, SenseVoice, Moonshine | 📋 Planned |
+| **Speech Recognition (ASR)** | Offline and streaming speech-to-text — Zipformer, Paraformer, Whisper, SenseVoice, Moonshine | ✅ Done |
 | **Voice Activity Detection (VAD)** | Speech/silence segmentation for efficient ASR — Silero VAD, TEN-VAD | 📋 Planned |
 | **Keyword Spotting (KWS)** | Lightweight always-on keyword detection from microphone | 📋 Planned |
 | **Speaker ID & Diarization** | Speaker identification by voice, who-spoke-when segmentation | 📋 Planned |
@@ -42,10 +42,20 @@ Or clone the repository and reference it as a local package.
 3. Click **Install** for each platform you need
 4. Use **Update All** when you change the version to update all installed libraries at once
 
+<!-- TODO: add GIF showing Installing Native Libraries -->
+
 Libraries are downloaded from:
 - **Desktop** (Windows, macOS, Linux): [NuGet](https://www.nuget.org/packages?q=org.k2fsa.sherpa.onnx.runtime)
 - **Android / iOS native**: [sherpa-onnx GitHub releases](https://github.com/k2-fsa/sherpa-onnx/releases)
 - **iOS managed DLL**: this repository's [GitHub releases](https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases) (see below)
+
+---
+
+## Text-to-Speech (TTS)
+
+Offline speech synthesis with pooling and caching. Supports 6 model architectures.
+
+<!-- TODO: add GIF showing TTS setup and usage -->
 
 ### Setting Up TTS Models
 
@@ -54,7 +64,7 @@ Libraries are downloaded from:
 3. The importer downloads, extracts, and auto-configures the profile
 4. Select the **Active profile** to use at runtime
 
-Key features of the TTS model installer:
+Key features:
 
 - **6 model architectures** — Vits (Piper), Matcha, Kokoro, Kitten, ZipVoice, Pocket
 - **Auto-detection** — model type and paths are configured automatically from the archive
@@ -63,7 +73,40 @@ Key features of the TTS model installer:
 - **Matcha vocoder selector** — choose and download vocoders independently
 - **Cache pooling** — configurable pools for audio buffers, AudioClips, and AudioSources
 
-For the full setup guide, see [Docs/tts-models-setup.md](SherpaONNX/Packages/com.ponyudev.sherpa-onnx/Docs/tts-models-setup.md).
+### Documentation
+
+- [Models Setup Guide](Docs/tts-models-setup.md) — Editor UI, importing, profiles, deployment options
+- [Runtime Usage Guide](Docs/tts-runtime-usage.md) — MonoBehaviour, VContainer, Zenject examples, API reference
+
+---
+
+## Speech Recognition (ASR)
+
+Offline file recognition and real-time streaming with microphone. Supports 15 offline and 5 online model architectures.
+
+<!-- TODO: add GIF showing ASR setup and usage -->
+
+### Setting Up ASR Models
+
+1. Open **Project Settings > Sherpa-ONNX > ASR**
+2. Select the **Offline** or **Online** tab
+3. Click **Import from URL** and paste a model archive link
+4. The importer downloads, extracts, and auto-configures the profile
+5. Select the **Active profile** to use at runtime
+
+Key features:
+
+- **15 offline + 5 online architectures** — Zipformer, Paraformer, Whisper, SenseVoice, Moonshine, and more
+- **Auto-detection** — model type and paths are configured automatically from the archive
+- **Int8 quantization** — one-click switch between normal and int8 models
+- **Streaming recognition** — real-time microphone capture with partial and final results
+- **Engine pool** — multiple concurrent recognizer instances for offline ASR
+- **Endpoint detection** — configurable silence rules for automatic utterance segmentation
+
+### Documentation
+
+- [Models Setup Guide](Docs/asr-models-setup.md) — Editor UI, importing, profiles, offline/online tabs
+- [Runtime Usage Guide](Docs/asr-runtime-usage.md) — MonoBehaviour, VContainer, Zenject examples, API reference
 
 ## Why the iOS Managed DLL Is Hosted Here
 
