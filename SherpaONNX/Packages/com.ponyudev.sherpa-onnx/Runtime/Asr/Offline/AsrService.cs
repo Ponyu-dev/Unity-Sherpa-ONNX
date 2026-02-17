@@ -23,6 +23,20 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         private IAsrEngine _engine;
         private AsrProfile _activeProfile;
 
+        public AsrService() { }
+
+        /// <summary>Test-only: injects a pre-built engine.</summary>
+        internal AsrService(IAsrEngine engine)
+        {
+            _engine = engine;
+        }
+
+        /// <summary>Test-only: directly sets settings data.</summary>
+        internal void SetSettings(AsrSettingsData settings)
+        {
+            _settings = settings;
+        }
+
         /// <summary>True when the engine is loaded and ready to recognize.</summary>
         public bool IsReady => _engine?.IsLoaded ?? false;
 
