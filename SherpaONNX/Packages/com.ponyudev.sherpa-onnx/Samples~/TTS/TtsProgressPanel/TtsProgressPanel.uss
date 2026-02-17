@@ -1,0 +1,7 @@
+/* ── TtsProgressPanel extra styles ── */
+
+.progress-chunks {
+    font-size: 24px;
+    color: rgb(160, 200, 160);
+    margin-bottom: 12px;
+}

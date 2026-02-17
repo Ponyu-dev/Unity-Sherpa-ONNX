@@ -55,6 +55,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
                 case CacheField.OfflineTts:
                     _cache.offlineTtsEnabled = evt.newValue;
                     break;
+                case CacheField.ResultCache:
+                    _cache.resultCacheEnabled = evt.newValue;
+                    break;
                 case CacheField.AudioClip:
                     _cache.audioClipEnabled = evt.newValue;
                     break;
@@ -74,6 +77,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             {
                 case CacheField.OfflineTts:
                     _cache.offlineTtsPoolSize = evt.newValue;
+                    break;
+                case CacheField.ResultCache:
+                    _cache.resultCacheSize = evt.newValue;
                     break;
                 case CacheField.AudioClip:
                     _cache.audioClipPoolSize = evt.newValue;

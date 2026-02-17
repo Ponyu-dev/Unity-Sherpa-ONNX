@@ -2,7 +2,8 @@
   "name": "PonyuDev.SherpaOnnx",
   "rootNamespace": "PonyuDev.SherpaOnnx",
   "references": [
-    "Unity.SharpZipLib.Utils"
+    "Unity.SharpZipLib.Utils",
+    "UniTask"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
