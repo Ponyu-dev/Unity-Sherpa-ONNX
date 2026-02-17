@@ -6,6 +6,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
     internal enum CacheField
     {
         OfflineTts,
+        ResultCache,
         AudioClip,
         AudioSource
     }

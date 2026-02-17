@@ -1,0 +1,36 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="SampleMenu.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Label text="Sherpa-ONNX Samples" class="sample-title"/>
+        <ui:Label text="Choose an example to run:" class="sample-info"
+                  style="margin-bottom: 32px;"/>
+
+        <ui:Button name="btnSimple" class="menu-card">
+            <ui:Label text="Simple TTS" class="menu-card-title"/>
+            <ui:Label text="Basic GenerateAsync — enter text, pick speed and speaker, play result."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnProgress" class="menu-card">
+            <ui:Label text="TTS with Progress" class="menu-card-title"/>
+            <ui:Label text="GenerateWithCallbackProgress — real-time progress bar and chunk counter."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnConfig" class="menu-card">
+            <ui:Label text="TTS with Config" class="menu-card-title"/>
+            <ui:Label text="GenerateWithConfig — advanced: silence scale, num steps, extra params."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnCache" class="menu-card">
+            <ui:Label text="Cache Control" class="menu-card-title"/>
+            <ui:Label text="Toggle result/clip/source caches at runtime, generate and observe stats live."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Label name="infoLabel" class="sample-info"
+                  style="margin-top: 24px;"/>
+    </ui:VisualElement>
+</ui:UXML>

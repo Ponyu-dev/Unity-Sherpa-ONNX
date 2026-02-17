@@ -1,11 +1,19 @@
 {
   "dependencies": {
+    "com.cysharp.unitask": {
+      "version": "https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
+    },
     "com.ponyudev.sherpa-onnx": {
       "version": "file:com.ponyudev.sherpa-onnx",
       "depth": 0,
       "source": "embedded",
       "dependencies": {
-        "com.unity.sharp-zip-lib": "1.4.1"
+        "com.unity.sharp-zip-lib": "1.4.1",
+        "com.cysharp.unitask": "2.5.10"
       }
     },
     "com.unity.ext.nunit": {

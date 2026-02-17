@@ -15,7 +15,15 @@
   "author": {
     "name": "PonyuDev"
   },
+  "samples": [
+    {
+      "displayName": "TTS Samples",
+      "description": "Sample scene with Simple TTS, TTS with Progress, and TTS with Config panels.",
+      "path": "Samples~"
+    }
+  ],
   "dependencies": {
-    "com.unity.sharp-zip-lib": "1.4.1"
+    "com.unity.sharp-zip-lib": "1.4.1",
+    "com.cysharp.unitask": "2.5.10"
   }
 }

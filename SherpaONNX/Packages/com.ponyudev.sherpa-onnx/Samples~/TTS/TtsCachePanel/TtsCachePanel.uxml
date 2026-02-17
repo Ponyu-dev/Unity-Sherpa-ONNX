@@ -1,0 +1,74 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="TtsCachePanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="Cache Control" class="sample-title"/>
+
+        <!-- Engine Pool -->
+        <ui:VisualElement class="cache-card">
+            <ui:VisualElement class="cache-card-header">
+                <ui:Label text="Engine Pool (OfflineTts)" class="cache-card-title"/>
+                <ui:TextField name="sizeEnginePool" value="4"
+                              class="cache-size-field"/>
+            </ui:VisualElement>
+            <ui:Label name="statEngine" text="Pool: 4" class="cache-card-stat"/>
+        </ui:VisualElement>
+
+        <!-- Result Cache -->
+        <ui:VisualElement class="cache-card">
+            <ui:VisualElement class="cache-card-header">
+                <ui:Label text="Result Cache (float[])" class="cache-card-title"/>
+                <ui:TextField name="sizeResultCache" value="8"
+                              class="cache-size-field"/>
+            </ui:VisualElement>
+            <ui:Label name="statResult" text="0/8" class="cache-card-stat"/>
+            <ui:Button name="clearResult" text="Clear"
+                       class="cache-card-clear-btn"/>
+        </ui:VisualElement>
+
+        <!-- AudioClip Pool -->
+        <ui:VisualElement class="cache-card">
+            <ui:VisualElement class="cache-card-header">
+                <ui:Label text="AudioClip Pool" class="cache-card-title"/>
+                <ui:TextField name="sizeClipPool" value="4"
+                              class="cache-size-field"/>
+            </ui:VisualElement>
+            <ui:Label name="statClip" text="0/4" class="cache-card-stat"/>
+            <ui:Button name="clearClip" text="Clear"
+                       class="cache-card-clear-btn"/>
+        </ui:VisualElement>
+
+        <!-- AudioSource Pool -->
+        <ui:VisualElement class="cache-card">
+            <ui:VisualElement class="cache-card-header">
+                <ui:Label text="AudioSource Pool" class="cache-card-title"/>
+                <ui:TextField name="sizeSourcePool" value="4"
+                              class="cache-size-field"/>
+            </ui:VisualElement>
+            <ui:Label name="statSource" text="4/4 idle" class="cache-card-stat"/>
+            <ui:Button name="clearSource" text="Clear"
+                       class="cache-card-clear-btn"/>
+        </ui:VisualElement>
+
+        <!-- Playback -->
+        <ui:VisualElement class="cache-section">
+            <ui:Label text="Parallel Playback" class="cache-section-title"/>
+            <ui:Button name="btnPhrase1" text="Phrase 1: Hello world"
+                       class="cache-phrase-btn"/>
+            <ui:Button name="btnPhrase2" text="Phrase 2: How are you today"
+                       class="cache-phrase-btn"/>
+            <ui:Button name="btnPhrase3" text="Phrase 3: This is a cache test"
+                       class="cache-phrase-btn"/>
+            <ui:Button name="btnGenerateAll" text="Generate All 3 (parallel)"
+                       class="cache-gen-all-btn"/>
+        </ui:VisualElement>
+
+        <ui:Button name="clearAllButton" text="Clear All Caches"
+                   class="cache-clear-all-btn"/>
+
+        <ui:Label name="timingLabel" text="" class="cache-timing"/>
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>
