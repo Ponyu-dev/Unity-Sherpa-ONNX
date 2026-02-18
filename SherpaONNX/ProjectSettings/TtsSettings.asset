@@ -12,6 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5044a7f05f5494d8c8087bb8d18e0dd4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: PonyuDev.SherpaOnnx.Editor::PonyuDev.SherpaOnnx.Editor.TtsInstall.TtsProjectSettings
+  ttsEnabled: 1
   data:
     activeProfileIndex: 0
     cache:
