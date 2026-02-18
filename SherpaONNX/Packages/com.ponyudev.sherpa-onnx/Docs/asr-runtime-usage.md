@@ -128,6 +128,7 @@ using UnityEngine;
 using PonyuDev.SherpaOnnx.Asr.Online;
 using PonyuDev.SherpaOnnx.Asr.Online.Engine;
 using PonyuDev.SherpaOnnx.Common.Audio;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 
 public class StreamingAsrExample : MonoBehaviour
 {
@@ -149,7 +150,9 @@ public class StreamingAsrExample : MonoBehaviour
 
     private async void SetupMicrophone()
     {
-        _mic = new MicrophoneSource(sampleRate: 16000);
+        var micSettings = await MicrophoneSettingsLoader.LoadAsync();
+        _mic = new MicrophoneSource(micSettings);
+        _mic.SilenceDetected += OnSilenceDetected;
         bool started = await _mic.StartRecordingAsync();
 
         if (started)
@@ -177,12 +180,26 @@ public class StreamingAsrExample : MonoBehaviour
         Debug.Log("Endpoint detected — stream reset.");
     }
 
+    private void OnSilenceDetected(string diagnosis)
+    {
+        // Microphone returned silence on all available paths.
+        // Stop recording and notify the user.
+        _orchestrator.DisconnectMicrophone();
+        _mic?.StopRecording();
+        Debug.LogWarning(
+            "Voice capture unavailable on this device. " +
+            "Diag: " + diagnosis);
+    }
+
     private void OnDestroy()
     {
         _orchestrator.Initialized -= SetupMicrophone;
         _orchestrator.PartialResultReady -= OnPartial;
         _orchestrator.FinalResultReady -= OnFinal;
         _orchestrator.EndpointDetected -= OnEndpoint;
+
+        if (_mic != null)
+            _mic.SilenceDetected -= OnSilenceDetected;
 
         _orchestrator.DisconnectMicrophone();
         _mic?.Dispose();
@@ -203,6 +220,7 @@ using UnityEngine;
 using PonyuDev.SherpaOnnx.Asr.Online;
 using PonyuDev.SherpaOnnx.Asr.Online.Engine;
 using PonyuDev.SherpaOnnx.Common.Audio;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 
 public class ManualStreamingExample : MonoBehaviour
 {
@@ -218,7 +236,9 @@ public class ManualStreamingExample : MonoBehaviour
         _asr.FinalResultReady += OnFinal;
         _asr.EndpointDetected += OnEndpoint;
 
-        _mic = new MicrophoneSource(sampleRate: 16000);
+        var micSettings = await MicrophoneSettingsLoader.LoadAsync();
+        _mic = new MicrophoneSource(micSettings);
+        _mic.SilenceDetected += OnSilenceDetected;
         bool started = await _mic.StartRecordingAsync();
 
         if (started)
@@ -245,9 +265,19 @@ public class ManualStreamingExample : MonoBehaviour
         _asr.ResetStream();
     }
 
+    private void OnSilenceDetected(string diagnosis)
+    {
+        _mic.SamplesAvailable -= OnMicSamples;
+        _mic.StopRecording();
+        _asr.StopSession();
+        Debug.LogWarning(
+            "Voice capture unavailable. Diag: " + diagnosis);
+    }
+
     private void OnDestroy()
     {
         _mic.SamplesAvailable -= OnMicSamples;
+        _mic.SilenceDetected -= OnSilenceDetected;
         _asr.PartialResultReady -= OnPartial;
         _asr.FinalResultReady -= OnFinal;
         _asr.EndpointDetected -= OnEndpoint;
@@ -308,6 +338,7 @@ float[] mono16k = AudioResampler.ResampleMono(
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Online;
 using PonyuDev.SherpaOnnx.Common.Audio;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 using VContainer;
 using VContainer.Unity;
 
@@ -323,9 +354,11 @@ public class AsrLifetimeScope : LifetimeScope
         builder.Register<OnlineAsrService>(Lifetime.Singleton)
             .As<IOnlineAsrService>();
 
+        // Microphone settings (loaded from StreamingAssets JSON)
+        builder.Register<MicrophoneSettingsData>(Lifetime.Singleton);
+
         // Microphone (shared instance)
-        builder.Register<MicrophoneSource>(Lifetime.Singleton)
-            .WithParameter("sampleRate", 16000);
+        builder.Register<MicrophoneSource>(Lifetime.Singleton);
 
         // Async initialization
         builder.RegisterEntryPoint<AsrInitializer>();
@@ -340,21 +373,36 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Online;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 using VContainer.Unity;
 
 public class AsrInitializer : IAsyncStartable
 {
     private readonly IAsrService _offline;
     private readonly IOnlineAsrService _online;
+    private readonly MicrophoneSettingsData _micSettings;
 
-    public AsrInitializer(IAsrService offline, IOnlineAsrService online)
+    public AsrInitializer(
+        IAsrService offline,
+        IOnlineAsrService online,
+        MicrophoneSettingsData micSettings)
     {
         _offline = offline;
         _online = online;
+        _micSettings = micSettings;
     }
 
     public async UniTask StartAsync(CancellationToken ct)
     {
+        // Load microphone settings from JSON
+        var loaded = await MicrophoneSettingsLoader.LoadAsync(ct);
+        _micSettings.sampleRate = loaded.sampleRate;
+        _micSettings.clipLengthSec = loaded.clipLengthSec;
+        _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
+        _micSettings.silenceThreshold = loaded.silenceThreshold;
+        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
+        _micSettings.diagFrameCount = loaded.diagFrameCount;
+
         await _offline.InitializeAsync(ct: ct);
         await _online.InitializeAsync(ct: ct);
     }
@@ -490,6 +538,7 @@ public class LiveCaptionPresenter : IStartable, IDisposable
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Online;
 using PonyuDev.SherpaOnnx.Common.Audio;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 using Zenject;
 
 public class AsrInstaller : MonoInstaller
@@ -506,10 +555,13 @@ public class AsrInstaller : MonoInstaller
             .To<OnlineAsrService>()
             .AsSingle();
 
+        // Microphone settings (loaded from StreamingAssets JSON)
+        Container.Bind<MicrophoneSettingsData>()
+            .AsSingle();
+
         // Microphone
         Container.Bind<MicrophoneSource>()
-            .AsSingle()
-            .WithArguments(16000); // sampleRate
+            .AsSingle();
 
         // Initialization
         Container.BindInterfacesTo<AsrInitializer>()
@@ -525,21 +577,36 @@ using System;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Online;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 using Zenject;
 
 public class AsrInitializer : IInitializable, IDisposable
 {
     private readonly IAsrService _offline;
     private readonly IOnlineAsrService _online;
+    private readonly MicrophoneSettingsData _micSettings;
 
-    public AsrInitializer(IAsrService offline, IOnlineAsrService online)
+    public AsrInitializer(
+        IAsrService offline,
+        IOnlineAsrService online,
+        MicrophoneSettingsData micSettings)
     {
         _offline = offline;
         _online = online;
+        _micSettings = micSettings;
     }
 
     public async void Initialize()
     {
+        // Load microphone settings from JSON
+        var loaded = await MicrophoneSettingsLoader.LoadAsync();
+        _micSettings.sampleRate = loaded.sampleRate;
+        _micSettings.clipLengthSec = loaded.clipLengthSec;
+        _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
+        _micSettings.silenceThreshold = loaded.silenceThreshold;
+        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
+        _micSettings.diagFrameCount = loaded.diagFrameCount;
+
         await _offline.InitializeAsync();
         await _online.InitializeAsync();
     }
@@ -634,6 +701,41 @@ cannot extract files from the APK.
 (configurable via constructor parameter `requestPermission`). If permission is
 denied, `StartRecordingAsync()` returns `false`.
 
+### Native AudioRecord Fallback (Android)
+
+On some Android devices (e.g. certain Samsung models), Unity's `Microphone` API
+returns silence. `MicrophoneSource` automatically detects this and falls back to
+a native `AudioRecord` implementation via JNI. The fallback tries multiple audio
+sources: `VOICE_RECOGNITION` → `VOICE_COMMUNICATION` → `MIC`.
+
+Audio processing effects (NoiseSuppressor, AGC, AcousticEchoCanceler) are
+disabled on the native path to get a clean signal.
+
+### Microphone Settings
+
+Configure microphone behavior via `SherpaOnnx/microphone-settings.json` in
+StreamingAssets:
+
+```json
+{
+    "sampleRate": 16000,
+    "clipLengthSec": 10,
+    "micStartTimeoutSec": 2.0,
+    "silenceThreshold": 0.05,
+    "silenceFrameLimit": 90,
+    "diagFrameCount": 5
+}
+```
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `sampleRate` | 16000 | Capture sample rate in Hz |
+| `clipLengthSec` | 10 | Circular buffer length in seconds |
+| `micStartTimeoutSec` | 2.0 | Max wait for microphone to start producing samples |
+| `silenceThreshold` | 0.05 | Amplitude below this is treated as silence |
+| `silenceFrameLimit` | 90 | Silent frames before fallback triggers (~3s at 30fps) |
+| `diagFrameCount` | 5 | Diagnostic log frames at recording start |
+
 ### Progress Tracking
 
 Monitor extraction progress on Android (useful for loading screens):
@@ -709,11 +811,15 @@ await _asr.InitializeAsync(progress);
 
 ### MicrophoneSource
 
+Constructor: `MicrophoneSource(MicrophoneSettingsData settings = null, string deviceName = null, bool requestPermission = true)`
+
+Settings are loaded from `SherpaOnnx/microphone-settings.json` in StreamingAssets via `MicrophoneSettingsLoader.LoadAsync()`. Falls back to defaults when file is missing.
+
 | Category | Member | Description |
 |----------|--------|-------------|
 | **Properties** | `IsRecording` | `true` while capturing |
 | | `DeviceName` | Microphone device name (null = default) |
-| | `SampleRate` | Capture sample rate (default 16000) |
+| | `SampleRate` | Capture sample rate (from settings, default 16000) |
 | **Methods** | `StartRecordingAsync(ct)` | Request permission and start capture |
 | | `StopRecording()` | Stop capture |
 | | `ReadNewSamples()` | Pull model: get new samples since last call |
@@ -721,6 +827,7 @@ await _asr.InitializeAsync(progress);
 | | `Dispose()` | Stop and release resources |
 | **Events** | `SamplesAvailable` | Push model: fires each frame with new PCM samples |
 | | `RecordingStopped` | Fires when recording stops |
+| | `SilenceDetected` | Fires with diagnostics when sustained silence is detected |
 
 ### AsrOrchestrator (MonoBehaviour)
 
@@ -759,3 +866,5 @@ await _asr.InitializeAsync(progress);
 | Endpoint never fires | Check endpoint detection settings in the online profile |
 | `Recognize()` returns null | Check logs for engine errors; verify model files exist |
 | Audio sounds too slow/fast | Use `AudioResampler` to match the model's expected sample rate |
+| Android mic silence (SilenceDetected fires) | Device HAL issue; native fallback activates automatically. Check logcat for diagnostics |
+| Fallback triggers during speech pauses | Increase `silenceFrameLimit` in `microphone-settings.json` |

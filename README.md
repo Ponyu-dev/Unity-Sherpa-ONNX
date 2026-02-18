@@ -23,6 +23,40 @@ Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx
 | Android | arm64-v8a, armeabi-v7a, x86, x86_64 |
 | iOS | arm64, x86_64-simulator |
 
+## Why This Plugin
+
+Integrating sherpa-onnx into a Unity project normally requires manual native library setup, platform-specific
+workarounds, and custom C# bindings. This plugin handles all of that out of the box.
+
+### Easy Setup
+
+- **One-click library install** — open Project Settings, pick a version, click Install. Native libraries for
+  Windows, macOS, Linux, Android, and iOS are downloaded and configured automatically.
+- **One-click model import** — paste a model URL, the importer downloads, extracts, auto-detects the model
+  type, and creates a ready-to-use profile. No manual config editing.
+- **Update All** — change the version number and update every installed platform at once.
+
+### Platform Solutions
+
+The plugin solves real-world platform issues that are not addressed by sherpa-onnx itself:
+
+| Problem | Platform | What the plugin does |
+|---------|----------|----------------------|
+| **Unity Microphone returns silence** | Android | Detects silence automatically, falls back to native `AudioRecord` via JNI with audio source cascade (`VOICE_RECOGNITION` → `VOICE_COMMUNICATION` → `MIC`). Disables NoiseSuppressor, AGC, and AEC that can mute the signal. Fires `SilenceDetected` event with full diagnostics. |
+| **StreamingAssets locked inside APK** | Android | Extracts model files to `persistentDataPath` on first launch with version tracking and progress reporting. Skips re-extraction on subsequent launches. |
+| **Non-US locale breaks native code** | Android | Wraps native calls with a locale guard that temporarily sets `LC_NUMERIC` to `"C"`, preventing comma-as-decimal crashes in sherpa-onnx's float parsing. |
+| **No dynamic library loading** | iOS | Builds a patched `sherpa-onnx.dll` with `DllImport("__Internal")` and downloads it automatically during install. |
+| **Xcframework architecture bloat** | iOS | Filters xcframeworks to only the target architecture (device or simulator) during install. |
+| **Microphone not actually recording** | Unity (all) | Plays a silent AudioSource on the mic clip to force the device to start recording — a known Unity workaround. |
+| **Microphone readiness delay** | Unity (all) | Polls `Microphone.GetPosition()` with a configurable timeout before starting capture. |
+| **Sample rate mismatch** | All | Built-in resampler converts any input rate to the model's expected rate (typically 16 kHz). |
+| **Microphone permission** | Android / iOS | Async permission request with `UniTask` — returns `false` gracefully if denied. |
+
+All microphone settings (silence threshold, fallback timing, diagnostics) are configurable via
+a JSON file in StreamingAssets — no code changes needed.
+
+---
+
 ## Installation
 
 ### Via Unity Package Manager (UPM)
@@ -107,6 +141,8 @@ Key features:
 
 - [Models Setup Guide](Docs/asr-models-setup.md) — Editor UI, importing, profiles, offline/online tabs
 - [Runtime Usage Guide](Docs/asr-runtime-usage.md) — MonoBehaviour, VContainer, Zenject examples, API reference
+
+---
 
 ## Why the iOS Managed DLL Is Hosted Here
 
