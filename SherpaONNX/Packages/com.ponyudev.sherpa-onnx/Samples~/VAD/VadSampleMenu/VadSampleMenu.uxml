@@ -1,0 +1,18 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="VadSampleMenu.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Label text="VAD + ASR Samples" class="sample-title"/>
+        <ui:Label text="Choose an example to run:" class="sample-info"
+                  style="margin-bottom: 32px;"/>
+
+        <ui:Button name="btnDemo" class="menu-card">
+            <ui:Label text="VAD + ASR Demo" class="menu-card-title"/>
+            <ui:Label text="Microphone capture with Voice Activity Detection. Speech segments are recognized by offline ASR."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Label name="infoLabel" class="sample-info"
+                  style="margin-top: 24px;"/>
+    </ui:VisualElement>
+</ui:UXML>
