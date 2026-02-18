@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
@@ -46,6 +47,14 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
             SherpaOnnxDir + "/tts-models",
         };
 
+        // ── VAD resources ──
+
+        private static readonly string[] VadPaths =
+        {
+            SherpaOnnxDir + "/vad-settings.json",
+            SherpaOnnxDir + "/vad-models",
+        };
+
         public void OnPreprocessBuild(BuildReport report)
         {
             BackedUpPaths.Clear();
@@ -55,6 +64,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
 
             if (!TtsProjectSettings.instance.ttsEnabled)
                 BackupPaths(TtsPaths);
+
+            if (!VadProjectSettings.instance.vadEnabled)
+                BackupPaths(VadPaths);
 
             if (BackedUpPaths.Count > 0)
             {
