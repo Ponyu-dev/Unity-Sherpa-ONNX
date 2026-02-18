@@ -4,11 +4,11 @@
             <ui:Label text="ASR Models" class="model-header-title"/>
             <ui:HelpBox text="Download models from GitHub releases. Paste the direct archive URL below and click Install." message-type="Info"/>
         </ui:VisualElement>
+        <ui:Toggle name="asrEnabledToggle" label="Include ASR in Build" value="true" style="margin: 8px 0;"/>
+        
         <ui:VisualElement class="model-links-row">
             <ui:Label text="Pre-trained ASR models" name="linkModels" class="model-link-label"/>
         </ui:VisualElement>
-
-        <ui:Toggle name="asrEnabledToggle" label="Include ASR in Build" value="true" style="margin: 8px 0;"/>
 
         <!-- Tab bar -->
         <ui:VisualElement class="asr-tab-bar">
