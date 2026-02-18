@@ -72,6 +72,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 var handler = new AndroidNativeContentHandler(arch.Name);
                 await handler.HandleAsync(jniLibsPath, ct);
 
+                AndroidJavaContentHandler.CopyJavaSources();
+
                 SherpaOnnxLog.EditorLog($"[SherpaOnnx] Android install completed: {arch.Name}");
             }
             finally
