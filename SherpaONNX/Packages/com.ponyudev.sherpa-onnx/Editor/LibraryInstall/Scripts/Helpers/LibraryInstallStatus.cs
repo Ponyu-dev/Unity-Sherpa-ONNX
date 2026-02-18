@@ -38,6 +38,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 .Any(IsInstalled);
         }
 
+        internal static bool HasAnyAndroidInstalled()
+        {
+            return LibraryPlatforms.Platforms
+                .SelectMany(p => p.Arches)
+                .Where(a => a.Platform == PlatformType.Android)
+                .Any(IsInstalled);
+        }
+
         internal static bool CanOperate(LibraryArch arch)
         {
             return !arch.IsManagedDllRoot || IsManagedDllPresent();

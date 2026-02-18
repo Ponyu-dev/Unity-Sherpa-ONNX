@@ -16,6 +16,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings
         private const string RuntimeJsonDir = "Assets/StreamingAssets/SherpaOnnx";
         private const string RuntimeJsonPath = RuntimeJsonDir + "/tts-settings.json";
 
+        public bool ttsEnabled = true;
+
         public TtsSettingsData data = new();
 
         public void SaveSettings()

@@ -8,6 +8,8 @@
             <ui:Label text="Pre-trained ASR models" name="linkModels" class="model-link-label"/>
         </ui:VisualElement>
 
+        <ui:Toggle name="asrEnabledToggle" label="Include ASR in Build" value="true" style="margin: 8px 0;"/>
+
         <!-- Tab bar -->
         <ui:VisualElement class="asr-tab-bar">
             <ui:Button name="offlineTabBtn" text="Offline" class="asr-tab asr-tab-active"/>

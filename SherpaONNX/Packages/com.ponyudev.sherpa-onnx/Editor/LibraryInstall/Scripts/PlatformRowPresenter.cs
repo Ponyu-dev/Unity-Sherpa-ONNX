@@ -225,6 +225,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
                 AssetDatabase.Refresh();
 
+                if (InstallPipelineFactory.IsAndroid(_libraryArch)
+                    && !LibraryInstallStatus.HasAnyAndroidInstalled())
+                {
+                    AndroidJavaContentHandler.CleanOrphanedJavaFiles();
+                    AssetDatabase.Refresh();
+                }
+
                 if (!LibraryInstallStatus.HasAnyInstalled())
                 {
                     var s = SherpaOnnxProjectSettings.instance;

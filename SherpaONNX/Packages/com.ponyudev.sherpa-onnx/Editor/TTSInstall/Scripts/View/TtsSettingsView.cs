@@ -22,6 +22,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             "https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models";
 
         private readonly string _uxmlPath;
+        private Toggle _ttsEnabledToggle;
 
         private ActiveProfilePresenter<TtsProfile> _activeProfilePresenter;
         private ProfileListPresenter<TtsProfile> _listPresenter;
@@ -50,6 +51,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             TtsProjectSettings settings = TtsProjectSettings.instance;
 
+            BindEnabledToggle(hostRoot, settings);
             BindLinks(hostRoot);
             BuildCacheSection(hostRoot, settings);
             BuildProfilePresenters(hostRoot, settings);
@@ -57,6 +59,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         public void Dispose()
         {
+            _ttsEnabledToggle?.UnregisterValueChangedCallback(
+                HandleTtsEnabledChanged);
+            _ttsEnabledToggle = null;
+
             _activeProfilePresenter?.Dispose();
             _activeProfilePresenter = null;
 
@@ -76,6 +82,27 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             _detailPresenter?.Dispose();
             _detailPresenter = null;
+        }
+
+        // ── Module Toggle ──
+
+        private void BindEnabledToggle(
+            VisualElement root, TtsProjectSettings settings)
+        {
+            _ttsEnabledToggle = root.Q<Toggle>("ttsEnabledToggle");
+            if (_ttsEnabledToggle == null) return;
+
+            _ttsEnabledToggle.value = settings.ttsEnabled;
+            _ttsEnabledToggle.RegisterValueChangedCallback(
+                HandleTtsEnabledChanged);
+        }
+
+        private static void HandleTtsEnabledChanged(
+            ChangeEvent<bool> evt)
+        {
+            var s = TtsProjectSettings.instance;
+            s.ttsEnabled = evt.newValue;
+            s.SaveSettings();
         }
 
         // ── Styles ──
