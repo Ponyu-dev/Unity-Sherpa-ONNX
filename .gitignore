@@ -106,3 +106,6 @@ Tools/.build-ios/
 # Override global *~ ignore for UPM Samples~ convention
 !**/Samples~
 !**/Samples~/**
+
+!**/Packages/com.ponyudev.sherpa-onnx/Plugins~
+!**/Packages/com.ponyudev.sherpa-onnx/Plugins~/**
