@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="VadDemoPanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="VAD + ASR Demo" class="sample-title"/>
+
+        <ui:Button name="toggleButton" text="Start Recording"
+                   class="sample-generate-btn vad-toggle-btn"/>
+
+        <ui:VisualElement class="vad-status-row">
+            <ui:Label name="speechStateLabel" text="Silence"
+                      class="vad-speech-inactive"/>
+            <ui:Label name="segmentCountLabel" text="Segments: 0"
+                      class="vad-segment-count"/>
+        </ui:VisualElement>
+
+        <ui:ScrollView name="transcriptScroll" class="vad-transcript"/>
+
+        <ui:Button name="clearButton" text="Clear"
+                   class="vad-clear-btn"/>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>
