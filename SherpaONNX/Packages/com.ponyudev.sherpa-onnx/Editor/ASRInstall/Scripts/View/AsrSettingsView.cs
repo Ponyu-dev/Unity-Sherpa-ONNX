@@ -23,6 +23,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private const string ActiveTabClass = "asr-tab-active";
 
         private readonly string _uxmlPath;
+        private Toggle _asrEnabledToggle;
         private Button _offlineTabBtn;
         private Button _onlineTabBtn;
         private VisualElement _offlineContainer;
@@ -61,6 +62,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
 
             AsrProjectSettings settings = AsrProjectSettings.instance;
 
+            BindEnabledToggle(hostRoot, settings);
             BindLinks(hostRoot);
             BindTabs(hostRoot);
             BuildOfflinePresenters(hostRoot, settings);
@@ -71,12 +73,34 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         {
             DisposeOffline();
             DisposeOnline();
+            _asrEnabledToggle?.UnregisterValueChangedCallback(
+                HandleAsrEnabledChanged);
+            _asrEnabledToggle = null;
             if (_offlineTabBtn != null) _offlineTabBtn.clicked -= HandleOfflineTabClicked;
             if (_onlineTabBtn != null) _onlineTabBtn.clicked -= HandleOnlineTabClicked;
             _offlineTabBtn = null;
             _onlineTabBtn = null;
             _offlineContainer = null;
             _onlineContainer = null;
+        }
+
+        private void BindEnabledToggle(
+            VisualElement root, AsrProjectSettings settings)
+        {
+            _asrEnabledToggle = root.Q<Toggle>("asrEnabledToggle");
+            if (_asrEnabledToggle == null) return;
+
+            _asrEnabledToggle.value = settings.asrEnabled;
+            _asrEnabledToggle.RegisterValueChangedCallback(
+                HandleAsrEnabledChanged);
+        }
+
+        private static void HandleAsrEnabledChanged(
+            ChangeEvent<bool> evt)
+        {
+            var s = AsrProjectSettings.instance;
+            s.asrEnabled = evt.newValue;
+            s.SaveSettings();
         }
 
         private void LoadStyleSheets(VisualElement root)

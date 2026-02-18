@@ -1,7 +1,7 @@
-using System;
 using System.IO;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
+using UnityEditor;
 using UnityEngine;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
@@ -55,6 +55,47 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
                 SherpaOnnxLog.EditorLog(
                     $"[SherpaOnnx] Copied {fileName} " +
                     $"to {destDir}");
+            }
+        }
+
+        /// <summary>
+        /// Removes all <c>.java</c> and their <c>.meta</c> files from
+        /// <c>Assets/Plugins/SherpaOnnx/Android/</c>.
+        /// Deletes the directory itself when empty.
+        /// Call after the last Android architecture is uninstalled.
+        /// </summary>
+        internal static void CleanOrphanedJavaFiles()
+        {
+            string dir = Path.Combine(
+                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                "Android");
+
+            if (!Directory.Exists(dir))
+                return;
+
+            string[] javaFiles = Directory.GetFiles(dir, "*.java");
+
+            foreach (string path in javaFiles)
+            {
+                string metaPath = path + ".meta";
+
+                FileUtil.DeleteFileOrDirectory(path);
+                FileUtil.DeleteFileOrDirectory(metaPath);
+
+                SherpaOnnxLog.EditorLog(
+                    $"[SherpaOnnx] Removed orphaned {Path.GetFileName(path)}");
+            }
+
+            if (Directory.GetFiles(dir).Length == 0
+                && Directory.GetDirectories(dir).Length == 0)
+            {
+                string metaDir = dir + ".meta";
+
+                FileUtil.DeleteFileOrDirectory(dir);
+                FileUtil.DeleteFileOrDirectory(metaDir);
+
+                SherpaOnnxLog.EditorLog(
+                    "[SherpaOnnx] Removed empty Android directory.");
             }
         }
     }
