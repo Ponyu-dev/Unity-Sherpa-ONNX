@@ -69,6 +69,9 @@ cat > "$BUILD_DIR/sherpa-onnx-ios.csproj" << EOF
     <Version>${SHERPA_VERSION}</Version>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
+  </ItemGroup>
 </Project>
 EOF
 
