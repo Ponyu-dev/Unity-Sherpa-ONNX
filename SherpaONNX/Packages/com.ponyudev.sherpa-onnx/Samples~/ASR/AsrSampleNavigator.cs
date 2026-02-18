@@ -5,6 +5,7 @@ using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Online;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Audio;
+using PonyuDev.SherpaOnnx.Common.Audio.Config;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -73,7 +74,9 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             _offlineService = new AsrService();
             _onlineService = new OnlineAsrService();
-            _microphone = new MicrophoneSource(sampleRate: 16000);
+            var micSettings = await MicrophoneSettingsLoader
+                .LoadAsync();
+            _microphone = new MicrophoneSource(micSettings);
 
             try
             {
