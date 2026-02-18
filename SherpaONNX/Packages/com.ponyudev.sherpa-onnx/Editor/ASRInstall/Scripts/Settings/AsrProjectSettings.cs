@@ -25,6 +25,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings
         private const string OnlineJsonPath =
             RuntimeJsonDir + "/online-asr-settings.json";
 
+        public bool asrEnabled = true;
+
         public AsrSettingsData offlineData = new();
         public OnlineAsrSettingsData onlineData = new();
 

@@ -4,6 +4,7 @@
             <ui:Label text="TTS Models" class="model-header-title"/>
             <ui:HelpBox text="Download models from GitHub releases (600+ models, 40+ languages). Paste the direct .tar.bz2 download URL below and click Install. You can try any model in the browser first." message-type="Info" name="HelpBox"/>
         </ui:VisualElement>
+        <ui:Toggle name="ttsEnabledToggle" label="Include TTS in Build" value="true" style="margin: 8px 0;"/>
         <ui:VisualElement class="model-links-row">
             <ui:Label text="Pre-trained TTS models" name="linkModels" class="model-link-label"/>
             <ui:Label text="  |  " class="tts-separator"/>
