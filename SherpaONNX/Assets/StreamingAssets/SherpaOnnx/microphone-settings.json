@@ -1,8 +1,0 @@
-{
-    "sampleRate": 16000,
-    "clipLengthSec": 10,
-    "micStartTimeoutSec": 2.0,
-    "silenceThreshold": 0.05,
-    "silenceFrameLimit": 90,
-    "diagFrameCount": 5
-}
