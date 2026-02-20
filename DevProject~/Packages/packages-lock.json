@@ -8,9 +8,9 @@
       "hash": "73a63b7f672b88f7e9992f6917eb458a8cbb6fa9"
     },
     "com.ponyudev.sherpa-onnx": {
-      "version": "file:com.ponyudev.sherpa-onnx",
+      "version": "file:../../",
       "depth": 0,
-      "source": "embedded",
+      "source": "local",
       "dependencies": {
         "com.unity.sharp-zip-lib": "1.4.1",
         "com.cysharp.unitask": "2.5.10"
