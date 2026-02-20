@@ -10,7 +10,8 @@
     "speech",
     "tts",
     "stt",
-    "asr"
+    "asr",
+    "vad"
   ],
   "author": {
     "name": "PonyuDev"
@@ -25,6 +26,11 @@
       "displayName": "ASR Samples",
       "description": "Sample scene with File Recognition (offline ASR) and Streaming Recognition (online ASR with microphone).",
       "path": "Samples~/ASR"
+    },
+    {
+      "displayName": "VAD Samples",
+      "description": "Sample scene with VAD + ASR demo using microphone capture and voice activity detection.",
+      "path": "Samples~/VAD"
     }
   ],
   "dependencies": {

@@ -2,6 +2,7 @@
 #
 # Get latest from https://github.com/github/gitignore/blob/main/Unity.gitignore
 #
+**/.DS_Store
 *.utmp/
 */[Ll]ibrary/
 */[Tt]emp/
@@ -103,9 +104,37 @@
 Tools/output/
 Tools/.build-ios/
 
-# Override global *~ ignore for UPM Samples~ convention
-!**/Samples~
-!**/Samples~/**
+# Non-package root files — ignore Unity-generated .meta for them
+/AI.meta
+/CLAUDE.md.meta
+/LICENSE.meta
+/README.md.meta
+/Tools.meta
+/Tools/**/*.meta
+/SherpaONNX/
+/SherpaONNX.meta
 
-!**/Packages/com.ponyudev.sherpa-onnx/Plugins~
-!**/Packages/com.ponyudev.sherpa-onnx/Plugins~/**
+# Override global *~ ignore for UPM conventions
+!Samples~
+!Samples~/**
+!Plugins~
+!Plugins~/**
+
+# Keep DevProject~ tracked (tilde is normally ignored)
+!DevProject~
+!DevProject~/**
+# Re-apply standard Unity ignores inside DevProject~
+DevProject~/[Ll]ibrary/
+DevProject~/[Tt]emp/
+DevProject~/[Oo]bj/
+DevProject~/[Bb]uild/
+DevProject~/[Bb]uilds/
+DevProject~/[Ll]ogs/
+DevProject~/[Uu]ser[Ss]ettings/
+DevProject~/Assets/StreamingAssets/
+DevProject~/*.csproj
+DevProject~/*.sln
+DevProject~/.idea/
+
+# Re-ignore .DS_Store everywhere (after tilde overrides)
+**/.DS_Store

@@ -8,7 +8,7 @@ Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx
 |---------|-------------|--------|
 | **Text-to-Speech (TTS)** | Offline speech synthesis — VITS, Matcha, Kokoro, Kitten, ZipVoice, Pocket (voice cloning) | ✅ Done |
 | **Speech Recognition (ASR)** | Offline and streaming speech-to-text — Zipformer, Paraformer, Whisper, SenseVoice, Moonshine | ✅ Done |
-| **Voice Activity Detection (VAD)** | Speech/silence segmentation for efficient ASR — Silero VAD, TEN-VAD | 📋 Planned |
+| **Voice Activity Detection (VAD)** | Speech/silence segmentation for efficient ASR — Silero VAD, TEN-VAD | ✅ Done |
 | **Keyword Spotting (KWS)** | Lightweight always-on keyword detection from microphone | 📋 Planned |
 | **Speaker ID & Diarization** | Speaker identification by voice, who-spoke-when segmentation | 📋 Planned |
 | **Audio Tools** | Audio tagging, speech enhancement, punctuation restoration, language identification | 📋 Planned |
@@ -64,7 +64,7 @@ a JSON file in StreamingAssets — no code changes needed.
 Add the package by git URL:
 
 ```
-https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git?path=SherpaONNX/Packages/com.ponyudev.sherpa-onnx
+https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git
 ```
 
 Or clone the repository and reference it as a local package.
