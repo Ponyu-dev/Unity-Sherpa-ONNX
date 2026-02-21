@@ -59,46 +59,55 @@ a JSON file in StreamingAssets — no code changes needed.
 
 ## Installation
 
-### Option 1 - OpenUPM (Scoped Registry)
+### Option 1 - Installer
 
-Add the scoped registry to your `Packages/manifest.json`:
+- [**⬇️ Download Installer**](https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases/latest/download/SherpaOnnxInstaller.unitypackage)
+- 📂 Import installer into Unity project
+  - Double-click the file — Unity will open it
+  - OR: Unity Editor → **Assets → Import Package → Custom Package**, then choose the file
+- The installer adds OpenUPM scoped registry and resolves the package automatically
 
-```json
-{
-  "scopedRegistries": [
-    {
-      "name": "OpenUPM",
-      "url": "https://package.openupm.com",
-      "scopes": [
-        "com.ponyudev.sherpa-onnx",
-        "com.cysharp.unitask"
-      ]
+### Option 2 - OpenUPM (Scoped Registry)
+
+- 📂 Open `Packages/manifest.json` in your project
+- ✏️ Add the scoped registry and dependency:
+  ```json
+  {
+    "scopedRegistries": [
+      {
+        "name": "OpenUPM",
+        "url": "https://package.openupm.com",
+        "scopes": [
+          "com.ponyudev.sherpa-onnx",
+          "com.cysharp.unitask"
+        ]
+      }
+    ],
+    "dependencies": {
+      "com.ponyudev.sherpa-onnx": "0.1.0"
     }
-  ],
-  "dependencies": {
-    "com.ponyudev.sherpa-onnx": "0.1.0"
   }
-}
-```
+  ```
+- Unity will resolve and download the package automatically
 
-### Option 2 - OpenUPM CLI
+### Option 3 - OpenUPM CLI
 
-- Install [openupm-cli](https://openupm.com/docs/getting-started.html#installing-openupm-cli)
-- Run the command:
+- 📦 Install [openupm-cli](https://openupm.com/docs/getting-started.html#installing-openupm-cli)
+- ▶️ Run the command in your project folder:
+  ```bash
+  openupm add com.ponyudev.sherpa-onnx
+  ```
+- Dependencies are resolved automatically
 
-```bash
-openupm add com.ponyudev.sherpa-onnx
-```
+### Option 4 - Git URL
 
-### Option 3 - Git URL
-
-- Open **Window → Package Manager**
+- 🔗 Open **Window → Package Manager**
 - Click **+** → **Add package from git URL...**
-- Paste:
-
-```
-https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git
-```
+- Paste the URL:
+  ```
+  https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git
+  ```
+- UniTask dependency must be installed separately
 
 ## Installing Native Libraries
 

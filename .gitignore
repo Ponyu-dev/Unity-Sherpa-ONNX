@@ -100,10 +100,6 @@
 # Auto-generated scenes by play mode tests
 */[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
-# Tools~ build artifacts
-Tools~/output/
-Tools~/.build-ios/
-
 # Non-package root files — ignore Unity-generated .meta for them
 /AI.meta
 /CLAUDE.md.meta
@@ -138,5 +134,7 @@ DevProject~/*.csproj
 DevProject~/*.sln
 DevProject~/.idea/
 
-# Re-ignore .DS_Store everywhere (after tilde overrides)
+# Re-ignore build artifacts and .DS_Store (after tilde overrides)
+Tools~/output/
+Tools~/.build-ios/
 **/.DS_Store
