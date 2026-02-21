@@ -110,7 +110,9 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
   https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git
   ```
 
-### 🔌 Installing Native Libraries
+---
+
+## 🔌 Installing Native Libraries
 
 1. Open **Edit → Project Settings → Sherpa ONNX**
 2. Set the desired sherpa-onnx version (e.g. `1.12.24`)
