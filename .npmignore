@@ -1,0 +1,9 @@
+# Dev project
+DevProject~/
+
+# Build scripts
+Tools~/
+
+# Repo files
+.gitignore
+.github/

@@ -176,7 +176,7 @@ The define is removed automatically when all libraries are uninstalled.
 
 ## Requirements
 
-- Unity 2021.3 or later
+- Unity 2022.3 or later
 - `com.unity.sharp-zip-lib` 1.4.1+ (added automatically as a dependency)
 
 ## License

@@ -2,7 +2,7 @@
   "name": "com.ponyudev.sherpa-onnx",
   "displayName": "PonyuDev Sherpa-ONNX",
   "version": "0.0.1",
-  "unity": "2021.3",
+  "unity": "2022.3",
   "description": "Unity integration for sherpa-onnx with editor installer for native libraries and models.",
   "keywords": [
     "sherpa",
