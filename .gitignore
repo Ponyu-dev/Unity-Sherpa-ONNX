@@ -100,17 +100,15 @@
 # Auto-generated scenes by play mode tests
 */[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
 
-# Tools build artifacts
-Tools/output/
-Tools/.build-ios/
+# Tools~ build artifacts
+Tools~/output/
+Tools~/.build-ios/
 
 # Non-package root files — ignore Unity-generated .meta for them
 /AI.meta
 /CLAUDE.md.meta
 /LICENSE.meta
 /README.md.meta
-/Tools.meta
-/Tools/**/*.meta
 /SherpaONNX/
 /SherpaONNX.meta
 
@@ -119,6 +117,8 @@ Tools/.build-ios/
 !Samples~/**
 !Plugins~
 !Plugins~/**
+!Tools~
+!Tools~/**
 
 # Keep DevProject~ tracked (tilde is normally ignored)
 !DevProject~
@@ -132,6 +132,8 @@ DevProject~/[Bb]uilds/
 DevProject~/[Ll]ogs/
 DevProject~/[Uu]ser[Ss]ettings/
 DevProject~/Assets/StreamingAssets/
+DevProject~/Assets/Plugins/SherpaOnnx/
+DevProject~/Assets/Plugins/SherpaOnnx.meta
 DevProject~/*.csproj
 DevProject~/*.sln
 DevProject~/.idea/
