@@ -56,7 +56,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static void FillVits(TtsProfile profile, string dir)
         {
             profile.vitsModel = ModelFileScanner.FindOnnxModel(dir);
-            profile.vitsTokens = ModelFileScanner.FindFileIfExists(dir, "tokens.txt");
+            profile.vitsTokens = ModelFileScanner.FindFileByPattern(dir, "*tokens*.txt");
             profile.vitsLexicon = ModelFileScanner.FindAllLexicons(dir, profile.vitsModel);
             profile.vitsDataDir = ModelFileScanner.FindSubDir(dir, "espeak-ng-data");
             profile.vitsDictDir = ModelFileScanner.FindSubDir(dir, "dict");
@@ -65,7 +65,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static void FillMatcha(TtsProfile profile, string dir)
         {
             profile.matchaAcousticModel = ModelFileScanner.FindOnnxModel(dir);
-            profile.matchaTokens = ModelFileScanner.FindFileIfExists(dir, "tokens.txt");
+            profile.matchaTokens = ModelFileScanner.FindFileByPattern(dir, "*tokens*.txt");
             profile.matchaDataDir = ModelFileScanner.FindSubDir(dir, "espeak-ng-data");
             profile.matchaDictDir = ModelFileScanner.FindSubDir(dir, "dict");
             profile.matchaNoiseScale = 0.667f;
@@ -75,8 +75,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static void FillKitten(TtsProfile profile, string dir)
         {
             profile.kittenModel = ModelFileScanner.FindOnnxModel(dir);
-            profile.kittenVoices = ModelFileScanner.FindFileIfExists(dir, "voices.bin");
-            profile.kittenTokens = ModelFileScanner.FindFileIfExists(dir, "tokens.txt");
+            profile.kittenVoices = ModelFileScanner.FindFileByPattern(dir, "*voices*.bin");
+            profile.kittenTokens = ModelFileScanner.FindFileByPattern(dir, "*tokens*.txt");
             profile.kittenDataDir = ModelFileScanner.FindSubDir(dir, "espeak-ng-data");
             profile.kittenLengthScale = 1.0f;
         }
@@ -84,8 +84,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static void FillKokoro(TtsProfile profile, string dir)
         {
             profile.kokoroModel = ModelFileScanner.FindOnnxModelWithInt8Fallback(dir);
-            profile.kokoroVoices = ModelFileScanner.FindFileIfExists(dir, "voices.bin");
-            profile.kokoroTokens = ModelFileScanner.FindFileIfExists(dir, "tokens.txt");
+            profile.kokoroVoices = ModelFileScanner.FindFileByPattern(dir, "*voices*.bin");
+            profile.kokoroTokens = ModelFileScanner.FindFileByPattern(dir, "*tokens*.txt");
             profile.kokoroDataDir = ModelFileScanner.FindSubDir(dir, "espeak-ng-data");
             profile.kokoroDictDir = ModelFileScanner.FindSubDir(dir, "dict");
             profile.kokoroLexicon = ModelFileScanner.FindAllLexicons(dir, profile.kokoroModel);
@@ -95,7 +95,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private static void FillZipVoice(TtsProfile profile, string dir,
             bool useInt8)
         {
-            profile.zipVoiceTokens = ModelFileScanner.FindFileIfExists(dir, "tokens.txt");
+            profile.zipVoiceTokens = ModelFileScanner.FindFileByPattern(dir, "*tokens*.txt");
             profile.zipVoiceEncoder = ModelFileScanner.FindEncoderOrDecoder(dir, "encoder", useInt8);
             profile.zipVoiceDecoder = ModelFileScanner.FindEncoderOrDecoder(dir, "decoder", useInt8);
             profile.zipVoiceVocoder = ModelFileScanner.FindOnnxContaining(dir, "vocos");
@@ -114,9 +114,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.pocketLmMain = ModelFileScanner.FindEncoderOrDecoder(dir, "lm_main", useInt8);
             profile.pocketEncoder = ModelFileScanner.FindEncoderOrDecoder(dir, "encoder", useInt8);
             profile.pocketDecoder = ModelFileScanner.FindEncoderOrDecoder(dir, "decoder", useInt8);
-            profile.pocketTextConditioner = ModelFileScanner.FindFileIfExists(dir, "text_conditioner.onnx");
-            profile.pocketVocabJson = ModelFileScanner.FindFileIfExists(dir, "vocab.json");
-            profile.pocketTokenScoresJson = ModelFileScanner.FindFileIfExists(dir, "token_scores.json");
+            profile.pocketTextConditioner = ModelFileScanner.FindFileByPattern(dir, "*text_conditioner*.onnx");
+            profile.pocketVocabJson = ModelFileScanner.FindFileByPattern(dir, "*vocab*.json");
+            profile.pocketTokenScoresJson = ModelFileScanner.FindFileByPattern(dir, "*token_scores*.json");
         }
 
         // ── Rule files ──

@@ -131,6 +131,19 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         }
 
         /// <summary>
+        /// Finds the first file matching a wildcard pattern and returns
+        /// its file name (without path). Returns empty string if none found.
+        /// Example: FindFileByPattern(dir, "*tokens*.txt") matches both
+        /// "tokens.txt" and "tiny.en-tokens.txt".
+        /// </summary>
+        internal static string FindFileByPattern(string dir, string pattern)
+        {
+            string[] files = FindFiles(dir, pattern);
+            if (files.Length == 0) return string.Empty;
+            return Path.GetFileName(files[0]);
+        }
+
+        /// <summary>
         /// Returns subdirectory name if it exists, otherwise empty string.
         /// </summary>
         internal static string FindSubDir(string dir, string subDirName)
@@ -141,7 +154,8 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
 
         /// <summary>
         /// Collects all lexicon*.txt files as comma-separated names.
-        /// Falls back to {modelName}.onnx.json if no lexicon files found.
+        /// Falls back to {modelName}.json or {modelName}.onnx.json
+        /// if no lexicon files found.
         /// </summary>
         internal static string FindAllLexicons(
             string dir, string modelFileName)
@@ -151,8 +165,14 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
 
             if (string.IsNullOrEmpty(modelFileName)) return string.Empty;
 
-            string jsonName = modelFileName + ".json";
-            return FindFileIfExists(dir, jsonName);
+            // Try {model}.onnx.json first, then {model}.json.
+            string withExt = FindFileIfExists(
+                dir, modelFileName + ".json");
+            if (!string.IsNullOrEmpty(withExt)) return withExt;
+
+            string baseName = Path.GetFileNameWithoutExtension(
+                modelFileName);
+            return FindFileIfExists(dir, baseName + ".json");
         }
 
         /// <summary>

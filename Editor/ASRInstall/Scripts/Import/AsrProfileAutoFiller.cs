@@ -20,8 +20,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private static void FillCommonFields(
             AsrProfile profile, string dir)
         {
-            profile.tokens = ModelFileScanner.FindFileIfExists(
-                dir, "tokens.txt");
+            profile.tokens = ModelFileScanner.FindFileByPattern(
+                dir, "*tokens*.txt");
 
             string fsts = ModelFileScanner.JoinFileNames(dir, "*.fst");
             if (!string.IsNullOrEmpty(fsts)) profile.ruleFsts = fsts;
@@ -29,8 +29,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             string fars = ModelFileScanner.JoinFileNames(dir, "*.far");
             if (!string.IsNullOrEmpty(fars)) profile.ruleFars = fars;
 
-            string lm = ModelFileScanner.FindFileIfExists(
-                dir, "lm.onnx");
+            string lm = ModelFileScanner.FindFileByPattern(
+                dir, "*lm.onnx");
             if (!string.IsNullOrEmpty(lm)) profile.lmModel = lm;
         }
 
@@ -101,7 +101,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             p.funAsrNanoEncoderAdaptor = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
             p.funAsrNanoLlm = ModelFileScanner.FindOnnxContaining(dir, "llm", useInt8);
             p.funAsrNanoEmbedding = ModelFileScanner.FindOnnxContaining(dir, "embedding", useInt8);
-            p.funAsrNanoTokenizer = ModelFileScanner.FindFileIfExists(dir, "tokenizer.json");
+            p.funAsrNanoTokenizer = ModelFileScanner.FindFileByPattern(dir, "*tokenizer*.json");
         }
 
         private static void FillSingleModel(

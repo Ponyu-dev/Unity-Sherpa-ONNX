@@ -20,8 +20,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private static void FillCommonFields(
             OnlineAsrProfile profile, string dir)
         {
-            profile.tokens = ModelFileScanner.FindFileIfExists(
-                dir, "tokens.txt");
+            profile.tokens = ModelFileScanner.FindFileByPattern(
+                dir, "*tokens*.txt");
 
             string fsts = ModelFileScanner.JoinFileNames(dir, "*.fst");
             if (!string.IsNullOrEmpty(fsts)) profile.ruleFsts = fsts;
