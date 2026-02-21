@@ -101,13 +101,14 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 
 ### Option 4 - Git URL
 
-- 🔗 Open **Window → Package Manager**
-- Click **+** → **Add package from git URL...**
-- Paste the URL:
+- ⚠️ **Install UniTask first** — open **Window → Package Manager**, click **+** → **Add package from git URL...** and paste:
+  ```
+  https://github.com/Cysharp/UniTask.git?path=src/UniTask/Assets/Plugins/UniTask
+  ```
+- 🔗 Then add **Sherpa-ONNX** the same way:
   ```
   https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git
   ```
-- ⚠️ UniTask dependency must be installed separately
 
 ### 🔌 Installing Native Libraries
 
