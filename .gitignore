@@ -103,8 +103,6 @@
 # Non-package root files — ignore Unity-generated .meta for them
 /AI.meta
 /CLAUDE.md.meta
-/LICENSE.meta
-/README.md.meta
 /SherpaONNX/
 /SherpaONNX.meta
 
