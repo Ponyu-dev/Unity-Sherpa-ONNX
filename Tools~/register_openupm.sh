@@ -42,15 +42,9 @@ licenseSpdxId: Apache-2.0
 licenseName: Apache License 2.0
 topics:
   - ai
-  - voice
   - audio
-  - tts
-  - stt
-  - asr
-  - vad
-  - speech
-  - onnx
-  - unity
+  - integration
+  - mobile
 hunter: Ponyu-dev
 gitTagPrefix: 'v'
 gitTagIgnore: 'sherpa-v'
@@ -65,8 +59,10 @@ git commit -m "Add ${PACKAGE_NAME}"
 git push -u origin "${BRANCH_NAME}"
 
 # Create PR
+GITHUB_USER=$(gh api user --jq '.login')
 PR_URL=$(gh pr create \
     --repo "${OPENUPM_REPO}" \
+    --head "${GITHUB_USER}:${BRANCH_NAME}" \
     --title "Add ${PACKAGE_NAME}" \
     --body "$(cat <<'BODY'
 ## Package Info
