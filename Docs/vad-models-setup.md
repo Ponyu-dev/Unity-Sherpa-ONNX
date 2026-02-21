@@ -4,6 +4,8 @@ This guide covers how to configure Voice Activity Detection models using the Edi
 
 For runtime usage examples, see [VAD Runtime Usage](vad-runtime-usage.md).
 
+![VAD Model Import](images/vad-model-import.gif)
+
 ## Opening the Settings
 
 **Project Settings > Sherpa-ONNX > VAD**

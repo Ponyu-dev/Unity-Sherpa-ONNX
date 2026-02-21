@@ -114,6 +114,8 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 
 ## 🔌 Installing Native Libraries
 
+![Library Install](Docs/images/library-install.gif)
+
 1. Open **Edit → Project Settings → Sherpa ONNX**
 2. Set the desired sherpa-onnx version (e.g. `1.12.25`)
 3. Click **Install** for each platform you need
@@ -131,6 +133,8 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 Offline speech synthesis with pooling and caching. Supports 6 model architectures.
 
 ### Setting Up TTS Models
+
+![TTS Model Import](Docs/images/tts-model-import.gif)
 
 1. Open **Project Settings > Sherpa-ONNX > TTS**
 2. Click **Import from URL** and paste a model archive link
@@ -159,6 +163,8 @@ Offline file recognition and real-time streaming with microphone. Supports 15 of
 
 ### Setting Up ASR Models
 
+![ASR Model Import](Docs/images/asr-model-import.gif)
+
 1. Open **Project Settings > Sherpa-ONNX > ASR**
 2. Select the **Offline** or **Online** tab
 3. Click **Import from URL** and paste a model archive link
@@ -186,6 +192,8 @@ Offline file recognition and real-time streaming with microphone. Supports 15 of
 Speech/silence segmentation for efficient ASR pipelines. Supports Silero VAD and TEN-VAD models.
 
 ### Setting Up VAD Models
+
+![VAD Model Import](Docs/images/vad-model-import.gif)
 
 1. Open **Project Settings > Sherpa-ONNX > VAD**
 2. Click **Import from URL** and paste a model archive link

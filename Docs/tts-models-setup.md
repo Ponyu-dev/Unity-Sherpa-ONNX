@@ -2,6 +2,8 @@
 
 This guide covers how to configure text-to-speech models using the Editor UI provided by **Unity-Sherpa-ONNX**.
 
+![TTS Model Import](images/tts-model-import.gif)
+
 ## Opening the Settings
 
 **Project Settings > Sherpa-ONNX > TTS**

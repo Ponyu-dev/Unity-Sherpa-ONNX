@@ -4,6 +4,8 @@ This guide covers how to configure speech recognition models using the Editor UI
 
 The ASR settings window has two tabs — **Offline** (file-based recognition) and **Online** (real-time streaming). Both follow the same workflow.
 
+![ASR Model Import](images/asr-model-import.gif)
+
 ## Opening the Settings
 
 **Project Settings > Sherpa-ONNX > ASR**
