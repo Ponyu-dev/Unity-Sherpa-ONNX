@@ -1,9 +1,10 @@
 {
   "name": "com.ponyudev.sherpa-onnx",
   "displayName": "PonyuDev Sherpa-ONNX",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "unity": "2022.3",
   "description": "Unity integration for sherpa-onnx with editor installer for native libraries and models.",
+  "license": "Apache-2.0",
   "keywords": [
     "sherpa",
     "onnx",
@@ -14,8 +15,16 @@
     "vad"
   ],
   "author": {
-    "name": "PonyuDev"
+    "name": "Iurii Ponomarev",
+    "email": "ponyumopo@gmail.com",
+    "url": "https://github.com/Ponyu-dev"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git"
+  },
+  "documentationUrl": "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX#readme",
+  "changelogUrl": "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/blob/main/CHANGELOG.md",
   "samples": [
     {
       "displayName": "TTS Samples",
