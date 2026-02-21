@@ -1,5 +1,8 @@
 #if SHERPA_ONNX
 using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Asr.Online.Config;
@@ -31,6 +34,21 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
         {
             Unload();
 
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] OnlineAsrEngine loading: " +
+                $"'{profile.profileName}', " +
+                $"modelDir='{modelDir}'");
+
+            if (!Directory.Exists(modelDir))
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] Online ASR model directory " +
+                    $"not found: '{modelDir}'. " +
+                    "Import models via Window → Sherpa ONNX → " +
+                    "ASR Model Import.");
+                return;
+            }
+
             var config = OnlineAsrConfigBuilder.Build(profile, modelDir);
             var guard = NativeLocaleGuard.Begin();
 
@@ -41,7 +59,8 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
             catch (Exception ex)
             {
                 SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] OnlineAsrEngine.Load failed: {ex.Message}");
+                    "[SherpaOnnx] OnlineAsrEngine.Load failed: " +
+                    ex.Message);
                 _recognizer = null;
                 return;
             }
@@ -50,15 +69,33 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
                 guard.Dispose();
             }
 
+            // Guard: native constructor returns NULL handle when
+            // model files are missing or config is invalid.
+            // Calling CreateStream on a NULL handle causes a
+            // segfault that cannot be caught by try/catch.
+            if (!IsNativeHandleValid(_recognizer))
+            {
+                SherpaOnnxLog.RuntimeError(
+                    "[SherpaOnnx] OnlineRecognizer created with " +
+                    "null native handle. Model files may be " +
+                    "missing or config is invalid.");
+                _recognizer = null;
+                return;
+            }
+
             // Validate by creating a test stream.
             try
             {
                 using var testStream = _recognizer.CreateStream();
-                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] OnlineAsrEngine loaded: '{profile.profileName}'");
+                SherpaOnnxLog.RuntimeLog(
+                    "[SherpaOnnx] OnlineAsrEngine loaded: " +
+                    $"'{profile.profileName}'");
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] OnlineAsrEngine validation failed: {ex.Message}");
+                SherpaOnnxLog.RuntimeError(
+                    "[SherpaOnnx] OnlineAsrEngine validation " +
+                    $"failed: {ex.Message}");
                 _recognizer.Dispose();
                 _recognizer = null;
             }
@@ -166,6 +203,44 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
                 return;
             _disposed = true;
             Unload();
+        }
+
+        // ── Handle validation ──
+
+        /// <summary>
+        /// Checks whether the native handle inside an OnlineRecognizer
+        /// is valid (non-zero). Uses reflection because the field is
+        /// private in the sherpa-onnx managed DLL.
+        /// </summary>
+        private static bool IsNativeHandleValid(
+            OnlineRecognizer recognizer)
+        {
+            try
+            {
+                var field = typeof(OnlineRecognizer).GetField(
+                    "_handle",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (field == null)
+                {
+                    SherpaOnnxLog.RuntimeWarning(
+                        "[SherpaOnnx] Cannot find _handle field " +
+                        "in OnlineRecognizer — " +
+                        "skipping null check.");
+                    return true;
+                }
+
+                var handleRef =
+                    (HandleRef)field.GetValue(recognizer);
+                return handleRef.Handle != IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] Handle validation failed: " +
+                    $"{ex.Message} — skipping null check.");
+                return true;
+            }
         }
 
         // ── Private ──

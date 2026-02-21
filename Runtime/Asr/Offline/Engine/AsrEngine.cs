@@ -1,6 +1,9 @@
 #if SHERPA_ONNX
 using System;
 using System.Collections.Concurrent;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
@@ -45,7 +48,10 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] ASR engine loading: {profile.profileName}" +
-                $" (pool={poolSize})");
+                $" (pool={poolSize}), modelDir='{modelDir}'");
+
+            if (!ValidateModelDirectory(modelDir, profile))
+                return;
 
             _lastConfig = AsrConfigBuilder.Build(profile, modelDir);
 
@@ -228,11 +234,48 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             Array.Copy(remaining, _pool, remaining.Length);
         }
 
+        // ── Model validation ──
+
+        /// <summary>
+        /// Checks that the model directory and essential files exist.
+        /// Prevents native segfaults caused by missing models.
+        /// </summary>
+        private static bool ValidateModelDirectory(
+            string modelDir, AsrProfile profile)
+        {
+            if (!Directory.Exists(modelDir))
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] ASR model directory not found: " +
+                    $"'{modelDir}'. " +
+                    "Import models via Window → Sherpa ONNX → " +
+                    "ASR Model Import.");
+                return false;
+            }
+
+            // Tokens file is required for all model types.
+            if (!string.IsNullOrEmpty(profile.tokens))
+            {
+                string tokensPath = Path.Combine(
+                    modelDir, profile.tokens);
+                if (!File.Exists(tokensPath))
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        $"[SherpaOnnx] ASR tokens file not found: " +
+                        $"'{tokensPath}'. " +
+                        "Re-import the model or check the profile.");
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         // ── Instance creation ──
 
         /// <summary>
         /// Creates a native OfflineRecognizer and validates it
-        /// by creating a test stream. Returns null on failure.
+        /// by checking the native handle. Returns null on failure.
         /// Uses <see cref="NativeLocaleGuard"/> to force C locale —
         /// required on Android where system locale may use comma
         /// as decimal separator, causing sherpa-onnx to fail.
@@ -248,6 +291,21 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
                     recognizer = new OfflineRecognizer(config);
                 }
 
+                // Guard: native constructor returns NULL handle when
+                // model files are missing or config is invalid.
+                // Calling CreateStream on a NULL handle causes a
+                // segfault that cannot be caught by try/catch.
+                if (!IsNativeHandleValid(recognizer))
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        "[SherpaOnnx] OfflineRecognizer created with " +
+                        "null native handle. Model files may be " +
+                        "missing or config is invalid. " +
+                        $"Tokens='{config.ModelConfig.Tokens}', " +
+                        $"Provider='{config.ModelConfig.Provider}'");
+                    return null;
+                }
+
                 // Validate: create and immediately dispose a stream.
                 using (recognizer.CreateStream()) { }
 
@@ -259,6 +317,39 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
                     $"[SherpaOnnx] OfflineRecognizer creation failed: " +
                     $"{ex.Message}");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Checks whether the native handle inside an OfflineRecognizer
+        /// is valid (non-zero). Uses reflection because the field is
+        /// private in the sherpa-onnx managed DLL.
+        /// </summary>
+        private static bool IsNativeHandleValid(OfflineRecognizer recognizer)
+        {
+            try
+            {
+                var field = typeof(OfflineRecognizer).GetField(
+                    "_handle",
+                    BindingFlags.NonPublic | BindingFlags.Instance);
+
+                if (field == null)
+                {
+                    SherpaOnnxLog.RuntimeWarning(
+                        "[SherpaOnnx] Cannot find _handle field " +
+                        "in OfflineRecognizer — skipping null check.");
+                    return true;
+                }
+
+                var handleRef = (HandleRef)field.GetValue(recognizer);
+                return handleRef.Handle != IntPtr.Zero;
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] Handle validation failed: " +
+                    $"{ex.Message} — skipping null check.");
+                return true;
             }
         }
 
