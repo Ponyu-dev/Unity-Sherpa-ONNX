@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 19101, guid: 0000000000000000e000000000000000, type: 0}
-  m_Name: Panel Settings
+  m_Name: VAD Panel Settings
   m_EditorClassIdentifier: UnityEngine.dll::UnityEngine.UIElements.PanelSettings
-  themeUss: {fileID: -4733365628477956816, guid: 15ac0e6d9a841458a98a2c38735d8a34, type: 3}
+  themeUss: {fileID: -4733365628477956816, guid: a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d7, type: 3}
   m_DisableNoThemeWarning: 0
   m_TargetTexture: {fileID: 0}
   m_RenderMode: 0
