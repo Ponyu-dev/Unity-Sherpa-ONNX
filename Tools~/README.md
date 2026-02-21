@@ -84,7 +84,7 @@ Creates a GitHub release for the patched iOS DLL.
 2. Checks if release `sherpa-v{version}` already exists — skips if so
 3. Creates a new tag and release, uploads `Tools~/output/sherpa-onnx.zip`
 
-**Tag format:** `sherpa-v{version}` (e.g. `sherpa-v1.12.23`) — prefixed with `sherpa-` to avoid conflicts with UPM plugin version tags.
+**Tag format:** `sherpa-v{version}` (e.g. `sherpa-v1.12.25`) — prefixed with `sherpa-` to avoid conflicts with UPM plugin version tags.
 
 ### build_and_publish.sh
 

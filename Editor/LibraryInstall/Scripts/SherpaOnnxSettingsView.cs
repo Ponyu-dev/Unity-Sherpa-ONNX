@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
@@ -195,14 +196,35 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
         private void HandleVersionChanged(ChangeEvent<string> evt)
         {
+            string newVersion = evt.newValue;
+
+            if (IsVersionBelow(newVersion, SherpaOnnxProjectSettings.MinVersion))
+            {
+                Debug.LogWarning(
+                    $"[Sherpa ONNX] Version {newVersion} is below minimum required " +
+                    $"{SherpaOnnxProjectSettings.MinVersion}. " +
+                    "Older versions are incompatible with this plugin.");
+                _versionField?.SetValueWithoutNotify(SherpaOnnxProjectSettings.MinVersion);
+                newVersion = SherpaOnnxProjectSettings.MinVersion;
+            }
+
             var s = SherpaOnnxProjectSettings.instance;
-            s.version = evt.newValue;
+            s.version = newVersion;
             s.SaveSettings();
 
             for (int i = 0; i < _presenters.Count; i++)
                 _presenters[i].RefreshStatus();
 
             RefreshUpdateAllButton();
+        }
+
+        private static bool IsVersionBelow(string version, string minVersion)
+        {
+            if (!System.Version.TryParse(version, out var ver))
+                return false;
+            if (!System.Version.TryParse(minVersion, out var min))
+                return false;
+            return ver < min;
         }
 
         private void HandleUpdateAllClicked()
