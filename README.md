@@ -59,24 +59,53 @@ a JSON file in StreamingAssets — no code changes needed.
 
 ## Installation
 
-### Via Unity Package Manager (UPM)
+### Option 1 - OpenUPM (Scoped Registry)
 
-Add the package by git URL:
+Add the scoped registry to your `Packages/manifest.json`:
+
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": [
+        "com.ponyudev.sherpa-onnx",
+        "com.cysharp.unitask"
+      ]
+    }
+  ],
+  "dependencies": {
+    "com.ponyudev.sherpa-onnx": "0.1.0"
+  }
+}
+```
+
+### Option 2 - OpenUPM CLI
+
+- Install [openupm-cli](https://openupm.com/docs/getting-started.html#installing-openupm-cli)
+- Run the command:
+
+```bash
+openupm add com.ponyudev.sherpa-onnx
+```
+
+### Option 3 - Git URL
+
+- Open **Window → Package Manager**
+- Click **+** → **Add package from git URL...**
+- Paste:
 
 ```
 https://github.com/Ponyu-dev/Unity-Sherpa-ONNX.git
 ```
 
-Or clone the repository and reference it as a local package.
-
-### Installing Native Libraries
+## Installing Native Libraries
 
 1. Open **Edit → Project Settings → Sherpa ONNX**
 2. Set the desired sherpa-onnx version (e.g. `1.12.24`)
 3. Click **Install** for each platform you need
 4. Use **Update All** when you change the version to update all installed libraries at once
-
-<!-- TODO: add GIF showing Installing Native Libraries -->
 
 Libraries are downloaded from:
 - **Desktop** (Windows, macOS, Linux): [NuGet](https://www.nuget.org/packages?q=org.k2fsa.sherpa.onnx.runtime)
@@ -89,8 +118,6 @@ Libraries are downloaded from:
 
 Offline speech synthesis with pooling and caching. Supports 6 model architectures.
 
-<!-- TODO: add GIF showing TTS setup and usage -->
-
 ### Setting Up TTS Models
 
 1. Open **Project Settings > Sherpa-ONNX > TTS**
@@ -98,7 +125,7 @@ Offline speech synthesis with pooling and caching. Supports 6 model architecture
 3. The importer downloads, extracts, and auto-configures the profile
 4. Select the **Active profile** to use at runtime
 
-Key features:
+### Key features:
 
 - **6 model architectures** — Vits (Piper), Matcha, Kokoro, Kitten, ZipVoice, Pocket
 - **Auto-detection** — model type and paths are configured automatically from the archive
@@ -118,8 +145,6 @@ Key features:
 
 Offline file recognition and real-time streaming with microphone. Supports 15 offline and 5 online model architectures.
 
-<!-- TODO: add GIF showing ASR setup and usage -->
-
 ### Setting Up ASR Models
 
 1. Open **Project Settings > Sherpa-ONNX > ASR**
@@ -128,7 +153,7 @@ Offline file recognition and real-time streaming with microphone. Supports 15 of
 4. The importer downloads, extracts, and auto-configures the profile
 5. Select the **Active profile** to use at runtime
 
-Key features:
+### Key features:
 
 - **15 offline + 5 online architectures** — Zipformer, Paraformer, Whisper, SenseVoice, Moonshine, and more
 - **Auto-detection** — model type and paths are configured automatically from the archive
@@ -144,6 +169,31 @@ Key features:
 
 ---
 
+## Voice Activity Detection (VAD)
+
+Speech/silence segmentation for efficient ASR pipelines. Supports Silero VAD and TEN-VAD models.
+
+### Setting Up VAD Models
+
+1. Open **Project Settings > Sherpa-ONNX > VAD**
+2. Click **Import from URL** and paste a model archive link
+3. The importer downloads, extracts, and auto-configures the profile
+4. Select the **Active profile** to use at runtime
+
+Key features:
+
+- **2 model architectures** — Silero VAD, TEN-VAD
+- **Auto-detection** — model type and paths are configured automatically from the archive
+- **Configurable parameters** — threshold, min silence/speech duration, window size
+- **VAD + ASR pipeline** — segment audio by voice activity, then recognize each segment
+
+### Documentation
+
+- [Models Setup Guide](Docs/vad-models-setup.md) — Editor UI, importing, profiles, configuration
+- [Runtime Usage Guide](Docs/vad-runtime-usage.md) — MonoBehaviour, VContainer, Zenject examples, API reference
+
+---
+
 ## Why the iOS Managed DLL Is Hosted Here
 
 On desktop and Android, Unity loads native code via dynamic libraries (`.dll`, `.so`, `.dylib`).
@@ -153,7 +203,7 @@ iOS does **not** support dynamic loading. All native code must be statically lin
 This means the managed DLL must use `DllImport("__Internal")` instead of `"sherpa-onnx-c-api"`.
 
 The upstream sherpa-onnx NuGet package ships with the standard `"sherpa-onnx-c-api"` binding, which does not work on iOS.
-To solve this, the `Tools/` scripts in this repository:
+To solve this, the `Tools~/` scripts in this repository:
 
 1. Take the official C# sources from `sherpa-onnx/scripts/dotnet/`
 2. Patch `Dll.cs` to replace `"sherpa-onnx-c-api"` with `"__Internal"`
