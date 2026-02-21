@@ -115,7 +115,7 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 ## 🔌 Installing Native Libraries
 
 1. Open **Edit → Project Settings → Sherpa ONNX**
-2. Set the desired sherpa-onnx version (e.g. `1.12.24`)
+2. Set the desired sherpa-onnx version (e.g. `1.12.23`)
 3. Click **Install** for each platform you need
 4. Use **Update All** when you change the version to update all installed libraries at once
 
