@@ -100,6 +100,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             button.AddToClassList("model-btn-spaced");
             button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
+
+            if (usingInt8)
+            {
+                _detailContent.Add(new HelpBox(
+                    "INT8 models are not supported on all " +
+                    "devices. If the model fails to load, a " +
+                    "warning will appear in the console before " +
+                    "the crash. Switch to normal models if you " +
+                    "experience issues.",
+                    HelpBoxMessageType.Warning));
+            }
         }
 
         private void BuildIdentitySection(TtsProfile profile, ProfileFieldBinder binder)
@@ -251,10 +262,12 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
-            if (TtsInt8Switcher.IsUsingInt8(profile))
+            bool wasInt8 = TtsInt8Switcher.IsUsingInt8(profile);
+            if (wasInt8)
                 TtsInt8Switcher.SwitchToNormal(profile, modelDir);
             else
                 TtsInt8Switcher.SwitchToInt8(profile, modelDir);
+            profile.allowInt8 = !wasInt8;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }

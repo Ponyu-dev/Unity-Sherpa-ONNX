@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Vad.Config;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using SherpaOnnx;
@@ -45,6 +46,10 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
                 $"modelDir='{modelDir}'");
 
             if (!ValidateModelDirectory(modelDir, profile))
+                return;
+
+            if (ModelFileValidator.BlockIfInt8Model(
+                    modelDir, "VAD", profile.allowInt8))
                 return;
 
             var config = VadConfigBuilder.Build(profile, modelDir);

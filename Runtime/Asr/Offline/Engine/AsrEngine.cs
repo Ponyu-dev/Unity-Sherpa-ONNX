@@ -7,6 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Asr.Offline.Config;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using SherpaOnnx;
@@ -51,6 +52,10 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
                 $" (pool={poolSize}), modelDir='{modelDir}'");
 
             if (!ValidateModelDirectory(modelDir, profile))
+                return;
+
+            if (ModelFileValidator.BlockIfInt8Model(
+                    modelDir, "ASR", profile.allowInt8))
                 return;
 
             _lastConfig = AsrConfigBuilder.Build(profile, modelDir);

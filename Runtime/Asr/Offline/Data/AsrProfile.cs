@@ -28,6 +28,17 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         public string provider = "cpu";
         public string tokens = "";
 
+        // ── Safety ──
+
+        /// <summary>
+        /// Allow loading INT8 quantized models. Disabled by default
+        /// because INT8 models crash on devices without INT8 ONNX
+        /// operator support (segfault inside the native constructor).
+        /// Enable only if you are certain your target platform
+        /// supports INT8 inference.
+        /// </summary>
+        public bool allowInt8;
+
         // ── FeatureConfig ──
 
         public int sampleRate = 16000;

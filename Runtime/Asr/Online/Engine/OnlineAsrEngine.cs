@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Asr.Online.Config;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using SherpaOnnx;
@@ -48,6 +49,10 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
                     "ASR Model Import.");
                 return;
             }
+
+            if (ModelFileValidator.BlockIfInt8Model(
+                    modelDir, "Online ASR", profile.allowInt8))
+                return;
 
             var config = OnlineAsrConfigBuilder.Build(profile, modelDir);
             var guard = NativeLocaleGuard.Begin();

@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using SherpaOnnx;
@@ -49,6 +50,10 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loading: {profile.profileName}" +
                 $" (pool={poolSize})");
+
+            if (ModelFileValidator.BlockIfInt8Model(
+                    modelDir, "TTS", profile.allowInt8))
+                return;
 
             _lastConfig = TtsConfigBuilder.Build(profile, modelDir);
 

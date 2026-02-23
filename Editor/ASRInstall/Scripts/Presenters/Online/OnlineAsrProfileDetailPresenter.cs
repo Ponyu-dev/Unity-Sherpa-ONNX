@@ -88,6 +88,17 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             button.AddToClassList("model-btn-spaced");
             button.clicked += HandleInt8SwitchClicked;
             _detailContent.Add(button);
+
+            if (usingInt8)
+            {
+                _detailContent.Add(new HelpBox(
+                    "INT8 models are not supported on all " +
+                    "devices. If the model fails to load, a " +
+                    "warning will appear in the console before " +
+                    "the crash. Switch to normal models if you " +
+                    "experience issues.",
+                    HelpBoxMessageType.Warning));
+            }
         }
 
         private void BuildIdentitySection(
@@ -228,10 +239,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
             string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
-            if (OnlineAsrInt8Switcher.IsUsingInt8(profile))
-                OnlineAsrInt8Switcher.SwitchToNormal(profile, modelDir);
+
+            bool wasInt8 =
+                OnlineAsrInt8Switcher.IsUsingInt8(profile);
+            if (wasInt8)
+                OnlineAsrInt8Switcher.SwitchToNormal(
+                    profile, modelDir);
             else
-                OnlineAsrInt8Switcher.SwitchToInt8(profile, modelDir);
+                OnlineAsrInt8Switcher.SwitchToInt8(
+                    profile, modelDir);
+            profile.allowInt8 = !wasInt8;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }
