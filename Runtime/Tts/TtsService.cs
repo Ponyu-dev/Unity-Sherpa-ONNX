@@ -201,9 +201,14 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (!CheckReady())
                 return Task.FromResult<TtsResult>(null);
 
-            float speed = _activeProfile.speed;
-            int speakerId = _activeProfile.speakerId;
-            return Task.Run(() => _engine.Generate(text, speed, speakerId));
+            var engine = _engine;
+            var profile = _activeProfile;
+            if (engine == null || profile == null)
+                return Task.FromResult<TtsResult>(null);
+
+            float speed = profile.speed;
+            int speakerId = profile.speakerId;
+            return Task.Run(() => engine.Generate(text, speed, speakerId));
         }
 
         /// <summary>
@@ -216,7 +221,11 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (!CheckReady())
                 return Task.FromResult<TtsResult>(null);
 
-            return Task.Run(() => _engine.Generate(text, speed, speakerId));
+            var engine = _engine;
+            if (engine == null)
+                return Task.FromResult<TtsResult>(null);
+
+            return Task.Run(() => engine.Generate(text, speed, speakerId));
         }
 
         // ── Cleanup ──

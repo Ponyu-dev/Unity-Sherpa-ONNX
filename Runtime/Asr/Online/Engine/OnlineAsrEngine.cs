@@ -50,8 +50,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
                 return;
             }
 
-            if (ModelFileValidator.BlockIfInt8Model(
-                    modelDir, "Online ASR", profile.allowInt8))
+            if (ModelFileValidator.BlockIfInt8Model(modelDir, "Online ASR", profile.allowInt8))
                 return;
 
             var config = OnlineAsrConfigBuilder.Build(profile, modelDir);
@@ -121,14 +120,20 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
         {
             if (!IsLoaded)
             {
-                SherpaOnnxLog.RuntimeError("[SherpaOnnx] OnlineAsrEngine: cannot start session, not loaded.");
+                SherpaOnnxLog.RuntimeError(
+                    "[SherpaOnnx] OnlineAsrEngine: " +
+                    "cannot start session, not loaded.");
                 return;
             }
 
-            if (IsSessionActive)
-                return;
+            lock (_processLock)
+            {
+                if (IsSessionActive)
+                    return;
 
-            _stream = _recognizer.CreateStream();
+                _stream = _recognizer.CreateStream();
+            }
+
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] OnlineAsrEngine: session started.");
         }
 
@@ -164,6 +169,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
 
         public void ProcessAvailableFrames()
         {
+            OnlineAsrResult result = null;
+            bool isEndpoint = false;
+
             lock (_processLock)
             {
                 if (!IsSessionActive)
@@ -176,18 +184,20 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
                 if (string.IsNullOrEmpty(nativeResult.Text))
                     return;
 
-                bool isEndpoint = _recognizer.IsEndpoint(_stream);
-                var result = WrapResult(nativeResult, isEndpoint);
+                isEndpoint = _recognizer.IsEndpoint(_stream);
+                result = WrapResult(nativeResult, isEndpoint);
+            }
 
-                if (isEndpoint)
-                {
-                    FinalResultReady?.Invoke(result);
-                    EndpointDetected?.Invoke();
-                }
-                else
-                {
-                    PartialResultReady?.Invoke(result);
-                }
+            // Fire events outside lock to prevent deadlock
+            // if subscribers call back into the engine.
+            if (isEndpoint)
+            {
+                FinalResultReady?.Invoke(result);
+                EndpointDetected?.Invoke();
+            }
+            else
+            {
+                PartialResultReady?.Invoke(result);
             }
         }
 

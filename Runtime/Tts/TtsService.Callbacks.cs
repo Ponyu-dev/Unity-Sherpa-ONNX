@@ -54,8 +54,12 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (!CheckReady())
                 return Task.FromResult<TtsResult>(null);
 
+            var engine = _engine;
+            if (engine == null)
+                return Task.FromResult<TtsResult>(null);
+
             return Task.Run(
-                () => _engine.GenerateWithCallback(
+                () => engine.GenerateWithCallback(
                     text, speed, speakerId, callback));
         }
 
@@ -67,8 +71,12 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (!CheckReady())
                 return Task.FromResult<TtsResult>(null);
 
+            var engine = _engine;
+            if (engine == null)
+                return Task.FromResult<TtsResult>(null);
+
             return Task.Run(
-                () => _engine.GenerateWithCallbackProgress(
+                () => engine.GenerateWithCallbackProgress(
                     text, speed, speakerId, callback));
         }
 
@@ -80,8 +88,12 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (!CheckReady())
                 return Task.FromResult<TtsResult>(null);
 
+            var engine = _engine;
+            if (engine == null)
+                return Task.FromResult<TtsResult>(null);
+
             return Task.Run(
-                () => _engine.GenerateWithConfig(text, config, callback));
+                () => engine.GenerateWithConfig(text, config, callback));
         }
     }
 }

@@ -22,7 +22,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
     public sealed class AsrEngine : IAsrEngine
     {
         private readonly ConcurrentQueue<OfflineRecognizer> _available = new();
-        private readonly object _resizeLock = new();
+        private readonly ReaderWriterLockSlim _lifecycleLock = new();
 
         private OfflineRecognizer[] _pool;
         private SemaphoreSlim _semaphore;
@@ -38,8 +38,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
         {
             if (profile == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrEngine.Load: profile is null.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrEngine.Load: profile is null.");
                 return;
             }
 
@@ -85,18 +84,14 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
                 }
                 else
                 {
-                    SherpaOnnxLog.RuntimeWarning(
-                        $"[SherpaOnnx] AsrEngine: pool instance {i} " +
-                        "creation failed, skipping.");
+                    SherpaOnnxLog.RuntimeWarning($"[SherpaOnnx] AsrEngine: pool instance {i} creation failed, skipping.");
                 }
             }
 
             _poolSize = poolSize;
             _semaphore = new SemaphoreSlim(poolSize, poolSize);
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] ASR engine loaded: {profile.profileName} " +
-                $"(pool={poolSize})");
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] ASR engine loaded: {profile.profileName} (pool={poolSize})");
         }
 
         public void Resize(int newPoolSize)
@@ -105,7 +100,8 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             if (newPoolSize == _poolSize || !IsLoaded)
                 return;
 
-            lock (_resizeLock)
+            _lifecycleLock.EnterWriteLock();
+            try
             {
                 if (newPoolSize > _poolSize)
                     GrowPool(newPoolSize);
@@ -118,34 +114,46 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
                 oldSem?.Dispose();
                 _poolSize = newPoolSize;
 
-                SherpaOnnxLog.RuntimeLog(
-                    $"[SherpaOnnx] AsrEngine resized to {newPoolSize}.");
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] AsrEngine resized to {newPoolSize}.");
+            }
+            finally
+            {
+                _lifecycleLock.ExitWriteLock();
             }
         }
 
         public void Unload()
         {
-            if (_pool == null)
-                return;
+            _lifecycleLock.EnterWriteLock();
+            try
+            {
+                if (_pool == null)
+                    return;
 
-            // Drain and dispose all instances.
-            while (_available.TryDequeue(out _)) { }
+                // Drain and dispose all instances.
+                while (_available.TryDequeue(out _)) { }
 
-            foreach (var recognizer in _pool)
-                recognizer?.Dispose();
+                foreach (var recognizer in _pool)
+                    recognizer?.Dispose();
 
-            _pool = null;
-            _poolSize = 0;
+                _pool = null;
+                _poolSize = 0;
 
-            _semaphore?.Dispose();
-            _semaphore = null;
+                _semaphore?.Dispose();
+                _semaphore = null;
 
-            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] ASR engine unloaded.");
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] ASR engine unloaded.");
+            }
+            finally
+            {
+                _lifecycleLock.ExitWriteLock();
+            }
         }
 
         public void Dispose()
         {
             Unload();
+            _lifecycleLock.Dispose();
         }
 
         // ── Recognition ──
@@ -176,26 +184,37 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 
         // ── Pool core ──
 
-        private AsrResult RentAndRecognize(
-            Func<OfflineRecognizer, AsrResult> action)
+        private AsrResult RentAndRecognize(Func<OfflineRecognizer, AsrResult> action)
         {
-            _semaphore.Wait();
-            OfflineRecognizer recognizer = null;
+            _lifecycleLock.EnterReadLock();
             try
             {
-                if (!_available.TryDequeue(out recognizer))
+                if (!IsLoaded)
                 {
-                    SherpaOnnxLog.RuntimeError(
-                        "[SherpaOnnx] AsrEngine: no engine available.");
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrEngine: engine not loaded.");
                     return null;
                 }
-                return action(recognizer);
+
+                _semaphore.Wait();
+                OfflineRecognizer recognizer = null;
+                try
+                {
+                    if (_available.TryDequeue(out recognizer))
+                        return action(recognizer);
+                    
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrEngine: no engine available.");
+                    return null;
+                }
+                finally
+                {
+                    if (recognizer != null)
+                        _available.Enqueue(recognizer);
+                    _semaphore.Release();
+                }
             }
             finally
             {
-                if (recognizer != null)
-                    _available.Enqueue(recognizer);
-                _semaphore.Release();
+                _lifecycleLock.ExitReadLock();
             }
         }
 
@@ -210,11 +229,10 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             for (int i = oldSize; i < newSize; i++)
             {
                 var recognizer = CreateInstance(_lastConfig);
-                if (recognizer != null)
-                {
-                    newPool[i] = recognizer;
-                    _available.Enqueue(recognizer);
-                }
+                if (recognizer == null)
+                    continue;
+                newPool[i] = recognizer;
+                _available.Enqueue(recognizer);
             }
 
             _pool = newPool;
@@ -245,8 +263,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
         /// Checks that the model directory and essential files exist.
         /// Prevents native segfaults caused by missing models.
         /// </summary>
-        private static bool ValidateModelDirectory(
-            string modelDir, AsrProfile profile)
+        private static bool ValidateModelDirectory(string modelDir, AsrProfile profile)
         {
             if (!Directory.Exists(modelDir))
             {
@@ -259,21 +276,16 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             }
 
             // Tokens file is required for all model types.
-            if (!string.IsNullOrEmpty(profile.tokens))
-            {
-                string tokensPath = Path.Combine(
-                    modelDir, profile.tokens);
-                if (!File.Exists(tokensPath))
-                {
-                    SherpaOnnxLog.RuntimeError(
-                        $"[SherpaOnnx] ASR tokens file not found: " +
-                        $"'{tokensPath}'. " +
-                        "Re-import the model or check the profile.");
-                    return false;
-                }
-            }
+            if (string.IsNullOrEmpty(profile.tokens))
+                return true;
+            
+            string tokensPath = Path.Combine(modelDir, profile.tokens);
+            if (File.Exists(tokensPath))
+                return true;
+                
+            SherpaOnnxLog.RuntimeError($"[SherpaOnnx] ASR tokens file not found: '{tokensPath}'. Re-import the model or check the profile.");
+            return false;
 
-            return true;
         }
 
         // ── Instance creation ──
@@ -318,9 +330,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] OfflineRecognizer creation failed: " +
-                    $"{ex.Message}");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] OfflineRecognizer creation failed: {ex.Message}");
                 return null;
             }
         }
@@ -340,9 +350,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 
                 if (field == null)
                 {
-                    SherpaOnnxLog.RuntimeWarning(
-                        "[SherpaOnnx] Cannot find _handle field " +
-                        "in OfflineRecognizer — skipping null check.");
+                    SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] Cannot find _handle field in OfflineRecognizer — skipping null check.");
                     return true;
                 }
 
@@ -351,9 +359,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeWarning(
-                    "[SherpaOnnx] Handle validation failed: " +
-                    $"{ex.Message} — skipping null check.");
+                SherpaOnnxLog.RuntimeWarning($"[SherpaOnnx] Handle validation failed: {ex.Message} — skipping null check.");
                 return true;
             }
         }
@@ -364,15 +370,13 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
         {
             if (!IsLoaded)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrEngine: engine not loaded.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrEngine: engine not loaded.");
                 return false;
             }
 
             if (samples == null || samples.Length == 0)
             {
-                SherpaOnnxLog.RuntimeWarning(
-                    "[SherpaOnnx] AsrEngine: samples are empty.");
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] AsrEngine: samples are empty.");
                 return false;
             }
 
@@ -383,8 +387,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
         {
             if (result == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrEngine: native returned null result.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrEngine: native returned null result.");
                 return null;
             }
 
@@ -398,10 +401,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             if (timestamps != null && timestamps.Length == 0) timestamps = null;
             if (durations != null && durations.Length == 0) durations = null;
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] ASR recognized: " +
-                $"\"{Truncate(text, 80)}\"");
-
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] ASR recognized: \"{Truncate(text, 80)}\"");
             return new AsrResult(text, tokens, timestamps, durations);
         }
 
