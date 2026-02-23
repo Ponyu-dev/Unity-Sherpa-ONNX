@@ -184,8 +184,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             catch (Exception ex)
             {
                 SetStatus("Error");
-                SherpaOnnxLog.EditorError(
-                    $"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
             {
@@ -220,6 +219,19 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 pipeline.OnError += HandlePipelineError;
                 pipeline.Run(LibraryInstallStatus.GetDeleteTargetPath(_libraryArch));
 
+                // Cascade: when deleting managed DLL, also remove
+                // all non-iOS native libraries that depend on it.
+                if (_libraryArch == LibraryPlatforms.ManagedLibrary)
+                {
+                    var dependentPaths = LibraryInstallStatus.GetNonIosInstalledPaths();
+
+                    foreach (string path in dependentPaths)
+                        pipeline.Run(path);
+
+                    if (!LibraryInstallStatus.HasAnyAndroidInstalled())
+                        AndroidJavaContentHandler.CleanOrphanedJavaFiles();
+                }
+
                 AssetDatabase.Refresh();
 
                 if (InstallPipelineFactory.IsAndroid(_libraryArch)
@@ -244,8 +256,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             catch (Exception ex)
             {
                 SetStatus("Error");
-                SherpaOnnxLog.EditorError(
-                    $"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
             {

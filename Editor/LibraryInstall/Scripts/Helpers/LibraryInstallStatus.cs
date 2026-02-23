@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -44,16 +45,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         /// </summary>
         internal static bool IsAnyManagedDllPresent()
         {
-            return IsAnyManagedDllPresent(
-                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
-                ConstantsInstallerPaths.ManagedDllFileName);
+            return IsAnyManagedDllPresent(ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, ConstantsInstallerPaths.ManagedDllFileName);
         }
 
         /// <summary>
         /// Testable overload that accepts explicit paths.
         /// </summary>
-        internal static bool IsAnyManagedDllPresent(
-            string baseDir, string fileName)
+        internal static bool IsAnyManagedDllPresent(string baseDir, string fileName)
         {
             return File.Exists(Path.Combine(baseDir, fileName))
                    || File.Exists(Path.Combine(
@@ -116,6 +114,30 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 
             string[] dirs = Directory.GetDirectories(iosDir, marker, SearchOption.AllDirectories);
             return dirs.Length > 0;
+        }
+
+        /// <summary>
+        /// Returns install directories of all non-iOS native libraries
+        /// that are currently installed. Used for cascade deletion when
+        /// the managed DLL is removed.
+        /// </summary>
+        internal static List<string> GetNonIosInstalledPaths()
+        {
+            var paths = new List<string>();
+
+            foreach (var platform in LibraryPlatforms.Platforms)
+            {
+                foreach (var arch in platform.Arches)
+                {
+                    if (arch.Platform == PlatformType.iOS)
+                        continue;
+
+                    if (IsInstalled(arch))
+                        paths.Add(GetInstallDirectory(arch));
+                }
+            }
+
+            return paths;
         }
 
         internal static string GetInstallDirectory(LibraryArch arch)
