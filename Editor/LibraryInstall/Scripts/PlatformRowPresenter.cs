@@ -91,22 +91,19 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             {
                 SetStatus("Update available");
                 ApplyStatusStyle("update");
-                SetInstallButtonText("Update");
-                _installButton?.SetEnabled(canOperate);
+                _installButton?.SetEnabled(false);
             }
             else if (installed)
             {
                 SetStatus("Installed");
                 ApplyStatusStyle("installed");
-                SetInstallButtonText("Install");
                 _installButton?.SetEnabled(false);
             }
             else
             {
                 SetStatus("Not installed");
                 ApplyStatusStyle("notinstalled");
-                SetInstallButtonText("Install");
-                _installButton?.SetEnabled(canOperate);
+                _installButton?.SetEnabled(canOperate && !IsVersionLocked());
             }
 
             _deleteButton?.SetEnabled(canOperate && installed);
@@ -268,6 +265,16 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _statusLabel.AddToClassList("status-label--" + state);
         }
 
+        /// <summary>
+        /// Returns true when a different version is already installed,
+        /// meaning new installs must go through "Update All" instead.
+        /// </summary>
+        private bool IsVersionLocked()
+        {
+            string installed = SherpaOnnxProjectSettings.instance.installedVersion;
+            return !string.IsNullOrEmpty(installed) && installed != _getVersion();
+        }
+
         private void HandlePipelineError(string message)
         {
             SetStatus("Error");
@@ -278,12 +285,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
-        }
-
-        private void SetInstallButtonText(string text)
-        {
-            if (_installButton != null)
-                _installButton.text = text;
         }
 
         private void SetProgress01(float p01)

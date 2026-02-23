@@ -4,6 +4,7 @@ using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
+using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
@@ -38,6 +39,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
             BuildAutoConfigureButton(profile);
             BuildInt8SwitchButton(profile);
+            BuildVersionWarning(profile.modelType);
             BuildIdentitySection(profile, binder);
             BuildCommonSection(binder);
             BuildFeatureSection(binder);
@@ -99,6 +101,21 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                     "issues.",
                     HelpBoxMessageType.Warning));
             }
+        }
+
+        private void BuildVersionWarning(AsrModelType modelType)
+        {
+            string ver = SherpaOnnxProjectSettings.instance.installedVersion;
+            if (string.IsNullOrEmpty(ver))
+                return;
+            if (ModelVersionRequirements.IsSupported(modelType, ver))
+                return;
+
+            string minVer = ModelVersionRequirements.GetMinVersion(modelType);
+            _detailContent.Add(new HelpBox(
+                $"Model type {modelType} requires sherpa-onnx >= {minVer}. " +
+                $"Installed: {ver}. Update in Project Settings > Sherpa ONNX.",
+                HelpBoxMessageType.Warning));
         }
 
         private void BuildIdentitySection(

@@ -1,6 +1,7 @@
 using System;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
+using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
@@ -47,6 +48,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             var binder = new VadProfileFieldBinder(profile, _settings);
 
             BuildAutoConfigureButton(profile);
+            BuildVersionWarning(profile.modelType);
             BuildIdentitySection(profile, binder);
             BuildThresholdsSection(binder);
             BuildRuntimeSection(binder);
@@ -78,6 +80,21 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             button.AddToClassList("model-btn-spaced");
             button.clicked += HandleAutoConfigureClicked;
             _detailContent.Add(button);
+        }
+
+        private void BuildVersionWarning(VadModelType modelType)
+        {
+            string ver = SherpaOnnxProjectSettings.instance.installedVersion;
+            if (string.IsNullOrEmpty(ver))
+                return;
+            if (ModelVersionRequirements.IsSupported(modelType, ver))
+                return;
+
+            string minVer = ModelVersionRequirements.GetMinVersion(modelType);
+            _detailContent.Add(new HelpBox(
+                $"Model type {modelType} requires sherpa-onnx >= {minVer}. " +
+                $"Installed: {ver}. Update in Project Settings > Sherpa ONNX.",
+                HelpBoxMessageType.Warning));
         }
 
         private void BuildIdentitySection(

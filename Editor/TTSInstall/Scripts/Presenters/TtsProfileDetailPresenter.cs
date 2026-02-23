@@ -1,6 +1,7 @@
 using System;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
+using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -50,6 +51,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
             BuildAutoConfigureButton(profile);
             BuildInt8SwitchButton(profile);
+            BuildVersionWarning(profile.modelType);
             BuildIdentitySection(profile, binder);
             BuildCommonSection(binder);
             BuildModelFieldsSection(profile, binder);
@@ -111,6 +113,21 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                     "experience issues.",
                     HelpBoxMessageType.Warning));
             }
+        }
+
+        private void BuildVersionWarning(TtsModelType modelType)
+        {
+            string ver = SherpaOnnxProjectSettings.instance.installedVersion;
+            if (string.IsNullOrEmpty(ver))
+                return;
+            if (ModelVersionRequirements.IsSupported(modelType, ver))
+                return;
+
+            string minVer = ModelVersionRequirements.GetMinVersion(modelType);
+            _detailContent.Add(new HelpBox(
+                $"Model type {modelType} requires sherpa-onnx >= {minVer}. " +
+                $"Installed: {ver}. Update in Project Settings > Sherpa ONNX.",
+                HelpBoxMessageType.Warning));
         }
 
         private void BuildIdentitySection(TtsProfile profile, ProfileFieldBinder binder)
