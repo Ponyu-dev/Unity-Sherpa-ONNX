@@ -28,6 +28,40 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 ConstantsInstallerPaths.ManagedDllFileName));
         }
 
+        internal static bool IsIosManagedDllPresent()
+        {
+            return File.Exists(Path.Combine(
+                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                ConstantsInstallerPaths.IosManagedDllSubDir,
+                ConstantsInstallerPaths.ManagedDllFileName));
+        }
+
+        /// <summary>
+        /// Returns true if at least one managed DLL exists
+        /// (standard or iOS). Note: NOT used for the SHERPA_ONNX
+        /// define — the iOS DLL cannot provide types in Editor.
+        /// Use <see cref="IsManagedDllPresent"/> for define logic.
+        /// </summary>
+        internal static bool IsAnyManagedDllPresent()
+        {
+            return IsAnyManagedDllPresent(
+                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
+                ConstantsInstallerPaths.ManagedDllFileName);
+        }
+
+        /// <summary>
+        /// Testable overload that accepts explicit paths.
+        /// </summary>
+        internal static bool IsAnyManagedDllPresent(
+            string baseDir, string fileName)
+        {
+            return File.Exists(Path.Combine(baseDir, fileName))
+                   || File.Exists(Path.Combine(
+                       baseDir,
+                       ConstantsInstallerPaths.IosManagedDllSubDir,
+                       fileName));
+        }
+
         internal static bool HasAnyInstalled()
         {
             if (IsManagedDllPresent())

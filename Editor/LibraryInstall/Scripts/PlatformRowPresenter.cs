@@ -232,12 +232,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     AssetDatabase.Refresh();
                 }
 
+                // Sync define with managed DLL presence
+                ScriptingDefineHelper.SyncDefineWithInstallState();
+
                 if (!LibraryInstallStatus.HasAnyInstalled())
                 {
                     var s = SherpaOnnxProjectSettings.instance;
                     s.installedVersion = "";
                     s.SaveSettings();
-                    ScriptingDefineHelper.RemoveDefine();
                 }
 
                 SherpaOnnxLog.EditorLog($"[SherpaOnnx] DeleteFlow completed: {_libraryArch.Name}");
