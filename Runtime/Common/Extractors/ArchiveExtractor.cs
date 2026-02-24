@@ -70,10 +70,15 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
             if (lower.EndsWith(".tar.gz"))
                 return new TarGzArchiveExtractor();
 
+            if (lower.EndsWith(".tgz"))
+                return new TarGzArchiveExtractor();
+
             if (lower.EndsWith(".zip") || lower.EndsWith(".nupkg"))
                 return new ZipArchiveExtractor();
 
-            throw new NotSupportedException("Unsupported archive format: " + Path.GetFileName(archivePath));
+            throw new NotSupportedException(
+                $"Unsupported archive format: '{Path.GetFileName(archivePath)}'. " +
+                "Supported formats: .tar.bz2, .tar.gz, .tgz, .zip");
         }
 
         private void HandleStarted(string archivePath, string dir) => OnStarted?.Invoke(archivePath, dir);
