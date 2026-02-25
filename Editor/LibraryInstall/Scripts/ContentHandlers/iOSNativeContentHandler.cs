@@ -22,6 +22,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
         public event Action<float> OnProgress01;
         public event Action<string> OnError;
 
+        public string DestinationDirectory => null;
+
         private const string SherpaXcframework = "sherpa-onnx.xcframework";
         private const string OnnxruntimeXcframework = "onnxruntime.xcframework";
 

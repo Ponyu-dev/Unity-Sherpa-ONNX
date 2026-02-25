@@ -20,10 +20,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
         private readonly string _archiveName;
         private readonly Func<string, string> _getModelDir;
 
-        internal string DestinationDirectory { get; private set; }
+        public string DestinationDirectory { get; private set; }
 
-        internal ModelContentHandler(
-            string archiveName, Func<string, string> getModelDir)
+        internal ModelContentHandler(string archiveName, Func<string, string> getModelDir)
         {
             if (string.IsNullOrEmpty(archiveName))
                 throw new ArgumentNullException(nameof(archiveName));
@@ -48,13 +47,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
 
             Directory.CreateDirectory(destDir);
 
-            string[] files = Directory.GetFiles(
-                sourceDir, "*", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
 
             if (files.Length == 0)
             {
-                string msg = "No files found in extracted directory: "
-                    + sourceDir;
+                string msg = "No files found in extracted directory: " + sourceDir;
                 OnError?.Invoke(msg);
                 throw new FileNotFoundException(msg);
             }
@@ -65,8 +62,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
 
                 string relativePath = files[i]
                     .Substring(sourceDir.Length)
-                    .TrimStart(Path.DirectorySeparatorChar,
-                        Path.AltDirectorySeparatorChar);
+                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
                 string destPath = Path.Combine(destDir, relativePath);
                 string destSubDir = Path.GetDirectoryName(destPath);

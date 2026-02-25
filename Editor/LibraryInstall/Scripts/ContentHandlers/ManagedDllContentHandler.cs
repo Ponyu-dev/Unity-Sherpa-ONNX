@@ -17,6 +17,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
         public event Action<float> OnProgress01;
         public event Action<string> OnError;
 
+        public string DestinationDirectory => null;
+
         public Task HandleAsync(string extractedDirectory, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();

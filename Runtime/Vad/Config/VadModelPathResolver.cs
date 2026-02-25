@@ -1,4 +1,5 @@
 using System.IO;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Vad.Config
@@ -10,7 +11,8 @@ namespace PonyuDev.SherpaOnnx.Vad.Config
     /// </summary>
     public static class VadModelPathResolver
     {
-        private const string VadModelsFolder = "SherpaOnnx/vad-models";
+        internal const string ModelsSubfolder = "vad-models";
+        private const string VadModelsFolder = "SherpaOnnx/" + ModelsSubfolder;
 
         /// <summary>
         /// Returns the absolute directory for a given profile name.
@@ -22,6 +24,19 @@ namespace PonyuDev.SherpaOnnx.Vad.Config
                 VadModelsFolder,
                 profileName);
             return NativePathSanitizer.Sanitize(path);
+        }
+
+        /// <summary>
+        /// Returns the model directory based on <paramref name="source"/>.
+        /// For <see cref="ModelSource.LocalZip"/> returns the extracted
+        /// directory under persistentDataPath.
+        /// </summary>
+        public static string GetModelDirectory(string profileName, ModelSource source)
+        {
+            if (source == ModelSource.LocalZip)
+                return LocalZipExtractor.GetExtractedModelDirectory(ModelsSubfolder, profileName);
+
+            return GetModelDirectory(profileName);
         }
 
         /// <summary>

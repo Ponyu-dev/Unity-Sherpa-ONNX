@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
@@ -57,6 +59,17 @@ namespace PonyuDev.SherpaOnnx.Tts
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = TtsModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        "[SherpaOnnx] TtsService: LocalZip profile not yet extracted. Use InitializeAsync() instead.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService initialized.");
@@ -82,6 +95,17 @@ namespace PonyuDev.SherpaOnnx.Tts
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = await LocalZipExtractor.EnsureExtractedAsync(
+                    TtsModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
+                if (dir == null)
+                {
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService: LocalZip extraction failed.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initialized.");
@@ -104,7 +128,7 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (_engine == null)
                 return;
 
-            string modelDir = TtsModelPathResolver.GetModelDirectory(profile.profileName);
+            string modelDir = TtsModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
 
             int poolSize = _settings?.cache?.offlineTtsPoolSize ?? 1;
             _engine.Load(profile, modelDir, poolSize);

@@ -13,17 +13,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
     /// The manifest lists every file under StreamingAssets/SherpaOnnx/
     /// so <see cref="StreamingAssetsCopier"/> can copy them on Android.
     /// </summary>
-    internal sealed class StreamingAssetsManifestBuilder
-        : IPreprocessBuildWithReport
+    internal sealed class StreamingAssetsManifestBuilder : IPreprocessBuildWithReport
     {
-        private const string SherpaOnnxDir =
-            "Assets/StreamingAssets/SherpaOnnx";
-
-        private const string ManifestPath =
-            SherpaOnnxDir + "/streaming-assets-manifest.json";
-
-        private const string StreamingAssetsRoot =
-            "Assets/StreamingAssets/";
+        private const string SherpaOnnxDir = "Assets/StreamingAssets/SherpaOnnx";
+        private const string ManifestPath = SherpaOnnxDir + "/streaming-assets-manifest.json";
+        private const string StreamingAssetsRoot = "Assets/StreamingAssets/";
 
         // Run before TtsLocalZipBuildProcessor (100).
         public int callbackOrder => 50;
@@ -38,14 +32,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
         {
             if (!Directory.Exists(SherpaOnnxDir))
             {
-                Debug.LogWarning(
-                    $"[SherpaOnnx] Directory not found: {SherpaOnnxDir}. " +
-                    "Manifest not generated.");
+                Debug.LogWarning($"[SherpaOnnx] Directory not found: {SherpaOnnxDir}. Manifest not generated.");
                 return;
             }
 
-            string[] allFiles = Directory.GetFiles(
-                SherpaOnnxDir, "*", SearchOption.AllDirectories);
+            string[] allFiles = Directory.GetFiles(SherpaOnnxDir, "*", SearchOption.AllDirectories);
 
             // Exclude .meta, .DS_Store, and the manifest itself.
             var filtered = allFiles
@@ -70,20 +61,18 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
             var manifest = new StreamingAssetsManifest
             {
                 version = version,
+                totalSizeBytes = totalSize,
                 files = relativePaths,
             };
 
             string json = JsonUtility.ToJson(manifest, true);
 
-            Directory.CreateDirectory(
-                Path.GetDirectoryName(ManifestPath)!);
+            Directory.CreateDirectory(Path.GetDirectoryName(ManifestPath)!);
             File.WriteAllText(ManifestPath, json);
 
             AssetDatabase.Refresh();
 
-            Debug.Log(
-                $"[SherpaOnnx] Manifest generated: " +
-                $"{relativePaths.Count} files, version={version}");
+            Debug.Log($"[SherpaOnnx] Manifest generated: {relativePaths.Count} files, version={version}");
         }
     }
 }

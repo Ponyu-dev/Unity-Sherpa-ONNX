@@ -18,6 +18,12 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         public string version;
 
         /// <summary>
+        /// Total size of all listed files in bytes.
+        /// Used for storage space checks before extraction.
+        /// </summary>
+        public long totalSizeBytes;
+
+        /// <summary>
         /// Relative paths from StreamingAssets root
         /// (e.g. "SherpaOnnx/tts-settings.json",
         ///  "SherpaOnnx/tts-models/profile/model.onnx").

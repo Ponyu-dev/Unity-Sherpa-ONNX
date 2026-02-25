@@ -3,6 +3,8 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Asr.Config;
 using PonyuDev.SherpaOnnx.Asr.Online.Config;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
@@ -57,6 +59,17 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = AsrModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        "[SherpaOnnx] OnlineAsrService: LocalZip profile not yet extracted. Use InitializeAsync() instead.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] OnlineAsrService initialized.");
         }
@@ -73,6 +86,17 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
             {
                 SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] OnlineAsrService: no active profile.");
                 return;
+            }
+
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = await LocalZipExtractor.EnsureExtractedAsync(
+                    AsrModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
+                if (dir == null)
+                {
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] OnlineAsrService: LocalZip extraction failed.");
+                    return;
+                }
             }
 
             LoadProfile(profile);
@@ -93,7 +117,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
             if (_engine == null)
                 return;
 
-            string modelDir = AsrModelPathResolver.GetModelDirectory(profile.profileName);
+            string modelDir = AsrModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
             _engine.Load(profile, modelDir);
             _activeProfile = profile;
             SubscribeEngine();

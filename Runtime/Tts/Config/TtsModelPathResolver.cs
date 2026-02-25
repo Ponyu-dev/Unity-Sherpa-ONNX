@@ -1,4 +1,5 @@
 using System.IO;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Platform;
 using UnityEngine;
 
@@ -11,7 +12,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
     /// </summary>
     public static class TtsModelPathResolver
     {
-        private const string TtsModelsFolder = "SherpaOnnx/tts-models";
+        internal const string ModelsSubfolder = "tts-models";
+        private const string TtsModelsFolder = "SherpaOnnx/" + ModelsSubfolder;
 
         /// <summary>
         /// Returns the absolute directory for a given profile name.
@@ -25,6 +27,19 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
                 TtsModelsFolder,
                 profileName);
             return NativePathSanitizer.Sanitize(path);
+        }
+
+        /// <summary>
+        /// Returns the model directory based on <paramref name="source"/>.
+        /// For <see cref="ModelSource.LocalZip"/> returns the extracted
+        /// directory under persistentDataPath.
+        /// </summary>
+        public static string GetModelDirectory(string profileName, ModelSource source)
+        {
+            if (source == ModelSource.LocalZip)
+                return LocalZipExtractor.GetExtractedModelDirectory(ModelsSubfolder, profileName);
+
+            return GetModelDirectory(profileName);
         }
 
         /// <summary>

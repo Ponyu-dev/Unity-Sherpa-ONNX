@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Asr.Config;
 using PonyuDev.SherpaOnnx.Asr.Offline.Config;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
@@ -72,6 +74,17 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = AsrModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        "[SherpaOnnx] AsrService: LocalZip profile not yet extracted. Use InitializeAsync() instead.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrService initialized.");
@@ -97,6 +110,16 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = await LocalZipExtractor.EnsureExtractedAsync(AsrModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
+                if (dir == null)
+                {
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService: LocalZip extraction failed.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrService async initialized.");
@@ -118,7 +141,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             if (_engine == null)
                 return;
 
-            string modelDir = AsrModelPathResolver.GetModelDirectory(profile.profileName);
+            string modelDir = AsrModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
             int poolSize = _settings?.offlineRecognizerPoolSize ?? 1;
             _engine.Load(profile, modelDir, poolSize);
             _activeProfile = profile;

@@ -17,6 +17,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
         public event Action<float> OnProgress01;
         public event Action<string> OnError;
 
+        public string DestinationDirectory => null;
+
         private readonly string _archName;
 
         internal AndroidNativeContentHandler(string archName)
@@ -52,10 +54,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
                 throw new FileNotFoundException(msg);
             }
 
-            string destDir = Path.Combine(
-                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
-                "Android",
-                _archName);
+            string destDir = Path.Combine(ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, "Android", _archName);
             Directory.CreateDirectory(destDir);
 
             for (int i = 0; i < files.Length; i++)

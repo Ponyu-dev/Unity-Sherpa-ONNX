@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Extractors;
+using PonyuDev.SherpaOnnx.Common.IO;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using UnityEngine;
 
@@ -77,6 +78,14 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
                 string magicError = ArchiveMagicValidator.Validate(downloadedPath);
                 if (magicError != null)
                     throw new InvalidOperationException(magicError);
+
+                long estimatedSize = StorageChecker.EstimateArchiveExtractedSize(downloadedPath);
+                if (estimatedSize > 0)
+                {
+                    string spaceError = StorageChecker.CheckSpace(_extractTemp.Path, estimatedSize);
+                    if (spaceError != null)
+                        throw new IOException(spaceError);
+                }
 
                 ChangeStage(PipelineStage.Extracting);
                 await _extractor.ExtractAsync(downloadedPath, _extractTemp.Path, cancellationToken);
@@ -202,7 +211,14 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
             OnError?.Invoke(message);
 
             // best effort cleanup
-            try { CleanupTemps(); }
+            try
+            {
+                CleanupTemps();
+
+                string dest = _contentHandler?.DestinationDirectory;
+                if (!string.IsNullOrEmpty(dest))
+                    FileSystemHelper.TryDeleteDirectory(dest);
+            }
             catch (Exception cleanupEx)
             {
                 SherpaOnnxLog.RuntimeWarning(

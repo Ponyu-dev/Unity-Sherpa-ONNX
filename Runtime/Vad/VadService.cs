@@ -4,6 +4,8 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Vad.Config;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using PonyuDev.SherpaOnnx.Vad.Engine;
@@ -61,6 +63,16 @@ namespace PonyuDev.SherpaOnnx.Vad
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = VadModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
+                if (!System.IO.Directory.Exists(dir))
+                {
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] VadService: LocalZip profile not yet extracted. Use InitializeAsync() instead.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService initialized.");
@@ -81,6 +93,16 @@ namespace PonyuDev.SherpaOnnx.Vad
                 return;
             }
 
+            if (profile.modelSource == ModelSource.LocalZip)
+            {
+                string dir = await LocalZipExtractor.EnsureExtractedAsync(VadModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
+                if (dir == null)
+                {
+                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] VadService: LocalZip extraction failed.");
+                    return;
+                }
+            }
+
             LoadProfile(profile);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService async initialized.");
@@ -99,7 +121,7 @@ namespace PonyuDev.SherpaOnnx.Vad
             if (_engine == null)
                 return;
 
-            string modelDir = VadModelPathResolver.GetModelDirectory(profile.profileName);
+            string modelDir = VadModelPathResolver.GetModelDirectory(profile.profileName, profile.modelSource);
 
             _engine.Load(profile, modelDir);
             _activeProfile = profile;

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -97,34 +98,56 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
                 return true;
             }
 
+            // Check available disk space before extraction.
+            if (manifest.totalSizeBytes > 0)
+            {
+                string spaceError = StorageChecker.CheckSpace(
+                    Application.persistentDataPath, manifest.totalSizeBytes);
+                if (spaceError != null)
+                {
+                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] {spaceError}");
+                    return false;
+                }
+            }
+
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] Extracting {manifest.files.Count} files...");
 
             int total = manifest.files.Count;
+            bool success = false;
 
-            for (int i = 0; i < total; i++)
+            try
             {
-                ct.ThrowIfCancellationRequested();
-
-                string relativePath = manifest.files[i];
-                byte[] data = await ReadStreamingAssetAsync(relativePath, ct);
-
-                if (data == null)
+                for (int i = 0; i < total; i++)
                 {
-                    SherpaOnnxLog.RuntimeError(
-                        $"[SherpaOnnx] Failed to read: {relativePath}");
-                    return false;
+                    ct.ThrowIfCancellationRequested();
+
+                    string relativePath = manifest.files[i];
+                    byte[] data = await ReadStreamingAssetAsync(relativePath, ct);
+
+                    if (data == null)
+                    {
+                        SherpaOnnxLog.RuntimeError(
+                            $"[SherpaOnnx] Failed to read: {relativePath}");
+                        return false;
+                    }
+
+                    WriteFile(Application.persistentDataPath, relativePath, data);
+                    progress?.Report((i + 1f) / total);
                 }
 
-                WriteFile(Application.persistentDataPath, relativePath, data);
-                progress?.Report((i + 1f) / total);
+                WriteVersionMarker(targetDir, manifest.version);
+                success = true;
+
+                SherpaOnnxLog.RuntimeLog(
+                    "[SherpaOnnx] Extraction complete.");
+                return true;
             }
-
-            WriteVersionMarker(targetDir, manifest.version);
-
-            SherpaOnnxLog.RuntimeLog(
-                "[SherpaOnnx] Extraction complete.");
-            return true;
+            finally
+            {
+                if (!success)
+                    FileSystemHelper.TryDeleteDirectory(targetDir);
+            }
         }
 
         private static async UniTask<StreamingAssetsManifest> LoadManifestAsync(
