@@ -5,6 +5,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using SherpaOnnx;
@@ -19,7 +20,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
     public sealed class TtsEngine : ITtsEngine
     {
         private readonly ConcurrentQueue<OfflineTts> _available = new();
-        private readonly object _resizeLock = new();
+        private readonly ReaderWriterLockSlim _lifecycleLock = new();
 
         private OfflineTts[] _pool;
         private SemaphoreSlim _semaphore;
@@ -49,6 +50,10 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loading: {profile.profileName}" +
                 $" (pool={poolSize})");
+
+            if (ModelFileValidator.BlockIfInt8Model(
+                    modelDir, "TTS", profile.allowInt8))
+                return;
 
             _lastConfig = TtsConfigBuilder.Build(profile, modelDir);
 
@@ -88,6 +93,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             SampleRate = first.SampleRate;
             NumSpeakers = first.NumSpeakers;
 
+            EngineRegistry.Register(this);
+
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loaded: {profile.profileName} " +
                 $"(sampleRate={SampleRate}, speakers={NumSpeakers}, " +
@@ -100,7 +107,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             if (newPoolSize == _poolSize || !IsLoaded)
                 return;
 
-            lock (_resizeLock)
+            _lifecycleLock.EnterWriteLock();
+            try
             {
                 if (newPoolSize > _poolSize)
                     GrowPool(newPoolSize);
@@ -116,34 +124,49 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 SherpaOnnxLog.RuntimeLog(
                     $"[SherpaOnnx] TtsEngine resized to {newPoolSize}.");
             }
+            finally
+            {
+                _lifecycleLock.ExitWriteLock();
+            }
         }
 
         public void Unload()
         {
-            if (_pool == null)
-                return;
+            EngineRegistry.Unregister(this);
 
-            // Drain and dispose all instances.
-            while (_available.TryDequeue(out _)) { }
+            _lifecycleLock.EnterWriteLock();
+            try
+            {
+                if (_pool == null)
+                    return;
 
-            foreach (var tts in _pool)
-                tts?.Dispose();
+                // Drain and dispose all instances.
+                while (_available.TryDequeue(out _)) { }
 
-            _pool = null;
-            _poolSize = 0;
+                foreach (var tts in _pool)
+                    tts?.Dispose();
 
-            _semaphore?.Dispose();
-            _semaphore = null;
+                _pool = null;
+                _poolSize = 0;
 
-            SampleRate = 0;
-            NumSpeakers = 0;
+                _semaphore?.Dispose();
+                _semaphore = null;
 
-            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS engine unloaded.");
+                SampleRate = 0;
+                NumSpeakers = 0;
+
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS engine unloaded.");
+            }
+            finally
+            {
+                _lifecycleLock.ExitWriteLock();
+            }
         }
 
         public void Dispose()
         {
             Unload();
+            _lifecycleLock.Dispose();
         }
 
         // ── Simple generation ──
@@ -264,23 +287,38 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
         private TtsResult RentAndGenerate(Func<OfflineTts, TtsResult> action)
         {
-            _semaphore.Wait();
-            OfflineTts tts = null;
+            _lifecycleLock.EnterReadLock();
             try
             {
-                if (!_available.TryDequeue(out tts))
+                if (!IsLoaded)
                 {
                     SherpaOnnxLog.RuntimeError(
-                        "[SherpaOnnx] TtsEngine: no engine available.");
+                        "[SherpaOnnx] TtsEngine: engine not loaded.");
                     return null;
                 }
-                return action(tts);
+
+                _semaphore.Wait();
+                OfflineTts tts = null;
+                try
+                {
+                    if (!_available.TryDequeue(out tts))
+                    {
+                        SherpaOnnxLog.RuntimeError(
+                            "[SherpaOnnx] TtsEngine: no engine available.");
+                        return null;
+                    }
+                    return action(tts);
+                }
+                finally
+                {
+                    if (tts != null)
+                        _available.Enqueue(tts);
+                    _semaphore.Release();
+                }
             }
             finally
             {
-                if (tts != null)
-                    _available.Enqueue(tts);
-                _semaphore.Release();
+                _lifecycleLock.ExitReadLock();
             }
         }
 

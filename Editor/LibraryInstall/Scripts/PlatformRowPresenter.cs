@@ -91,22 +91,19 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             {
                 SetStatus("Update available");
                 ApplyStatusStyle("update");
-                SetInstallButtonText("Update");
-                _installButton?.SetEnabled(canOperate);
+                _installButton?.SetEnabled(false);
             }
             else if (installed)
             {
                 SetStatus("Installed");
                 ApplyStatusStyle("installed");
-                SetInstallButtonText("Install");
                 _installButton?.SetEnabled(false);
             }
             else
             {
                 SetStatus("Not installed");
                 ApplyStatusStyle("notinstalled");
-                SetInstallButtonText("Install");
-                _installButton?.SetEnabled(canOperate);
+                _installButton?.SetEnabled(canOperate && !IsVersionLocked());
             }
 
             _deleteButton?.SetEnabled(canOperate && installed);
@@ -187,8 +184,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             catch (Exception ex)
             {
                 SetStatus("Error");
-                SherpaOnnxLog.EditorError(
-                    $"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Install failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
             {
@@ -223,6 +219,19 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 pipeline.OnError += HandlePipelineError;
                 pipeline.Run(LibraryInstallStatus.GetDeleteTargetPath(_libraryArch));
 
+                // Cascade: when deleting managed DLL, also remove
+                // all non-iOS native libraries that depend on it.
+                if (_libraryArch == LibraryPlatforms.ManagedLibrary)
+                {
+                    var dependentPaths = LibraryInstallStatus.GetNonIosInstalledPaths();
+
+                    foreach (string path in dependentPaths)
+                        pipeline.Run(path);
+
+                    if (!LibraryInstallStatus.HasAnyAndroidInstalled())
+                        AndroidJavaContentHandler.CleanOrphanedJavaFiles();
+                }
+
                 AssetDatabase.Refresh();
 
                 if (InstallPipelineFactory.IsAndroid(_libraryArch)
@@ -232,12 +241,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     AssetDatabase.Refresh();
                 }
 
+                // Sync define with managed DLL presence
+                ScriptingDefineHelper.SyncDefineWithInstallState();
+
                 if (!LibraryInstallStatus.HasAnyInstalled())
                 {
                     var s = SherpaOnnxProjectSettings.instance;
                     s.installedVersion = "";
                     s.SaveSettings();
-                    ScriptingDefineHelper.RemoveDefine();
                 }
 
                 SherpaOnnxLog.EditorLog($"[SherpaOnnx] DeleteFlow completed: {_libraryArch.Name}");
@@ -245,8 +256,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             catch (Exception ex)
             {
                 SetStatus("Error");
-                SherpaOnnxLog.EditorError(
-                    $"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Delete failed for {_libraryArch.Name}: {ex.Message}");
             }
             finally
             {
@@ -266,6 +276,16 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _statusLabel.AddToClassList("status-label--" + state);
         }
 
+        /// <summary>
+        /// Returns true when a different version is already installed,
+        /// meaning new installs must go through "Update All" instead.
+        /// </summary>
+        private bool IsVersionLocked()
+        {
+            string installed = SherpaOnnxProjectSettings.instance.installedVersion;
+            return !string.IsNullOrEmpty(installed) && installed != _getVersion();
+        }
+
         private void HandlePipelineError(string message)
         {
             SetStatus("Error");
@@ -276,12 +296,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
-        }
-
-        private void SetInstallButtonText(string text)
-        {
-            if (_installButton != null)
-                _installButton.text = text;
         }
 
         private void SetProgress01(float p01)

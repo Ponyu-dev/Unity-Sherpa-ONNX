@@ -3,6 +3,7 @@
   "rootNamespace": "PonyuDev.SherpaOnnx.Tests",
   "references": [
     "PonyuDev.SherpaOnnx",
+    "PonyuDev.SherpaOnnx.Editor",
     "UniTask"
   ],
   "includePlatforms": [

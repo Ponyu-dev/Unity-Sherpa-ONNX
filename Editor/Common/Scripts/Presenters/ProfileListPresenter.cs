@@ -122,13 +122,27 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
             return label;
         }
 
+        private const string MissingClass = "model-list-item--missing";
+
         private void BindItem(VisualElement element, int index)
         {
             var label = (Label)element;
             List<TProfile> profiles = _data.Profiles;
 
-            label.text = index < profiles.Count
-                ? profiles[index].ProfileName : "\u2014";
+            if (index >= profiles.Count)
+            {
+                label.text = "\u2014";
+                label.RemoveFromClassList(MissingClass);
+                return;
+            }
+
+            string name = profiles[index].ProfileName;
+            bool missing = ModelFileService.IsProfileMissing(name, _getModelDir);
+
+            label.text = missing ? $"{name} (missing files)" : name;
+
+            if (missing) label.AddToClassList(MissingClass);
+            else label.RemoveFromClassList(MissingClass);
         }
 
         private void PingSelectedProfile(int index)

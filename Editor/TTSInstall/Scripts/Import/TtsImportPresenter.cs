@@ -94,6 +94,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 return;
             }
 
+            string urlError = UrlValidator.Validate(url);
+            if (urlError != null)
+            {
+                SetStatus(urlError, true);
+                return;
+            }
+
             if (_isBusy)
                 return;
 
@@ -113,7 +120,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             }
             catch (Exception ex)
             {
-                SetStatus($"Error: {ex.Message}");
+                SetStatus($"Error: {ex.Message}", true);
                 SherpaOnnxLog.EditorError($"[SherpaOnnx] TTS import failed: {ex}");
             }
             finally
@@ -166,7 +173,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         private void HandlePipelineError(string error)
         {
-            SetStatus($"Error: {error}");
+            SetStatus($"Error: {error}", true);
         }
 
         // ── Import flow ──
@@ -229,11 +236,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         // ── Helpers ──
 
-        private void SetStatus(string text)
+        private const string ErrorClass = "model-import-status--error";
+
+        private void SetStatus(string text, bool isError = false)
         {
             if (_statusLabel == null) return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
+
+            if (isError)
+                _statusLabel.AddToClassList(ErrorClass);
+            else
+                _statusLabel.RemoveFromClassList(ErrorClass);
         }
 
         private void SetBusy(bool busy)

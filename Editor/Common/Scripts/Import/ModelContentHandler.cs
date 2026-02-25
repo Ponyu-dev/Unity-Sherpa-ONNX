@@ -85,15 +85,27 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
             return Task.CompletedTask;
         }
 
-        private static string FindModelRoot(string extractedDir)
+        /// <summary>
+        /// Walks down wrapper directories until it finds model files.
+        /// Unwraps up to 3 levels of single-subdirectory nesting.
+        /// </summary>
+        internal static string FindModelRoot(string extractedDir)
         {
-            string[] topFiles = Directory.GetFiles(extractedDir);
-            string[] topDirs = Directory.GetDirectories(extractedDir);
+            const int maxDepth = 3;
+            string current = extractedDir;
 
-            if (topFiles.Length == 0 && topDirs.Length == 1)
-                return topDirs[0];
+            for (int i = 0; i < maxDepth; i++)
+            {
+                string[] files = Directory.GetFiles(current);
+                string[] dirs = Directory.GetDirectories(current);
 
-            return extractedDir;
+                if (files.Length > 0 || dirs.Length != 1)
+                    break;
+
+                current = dirs[0];
+            }
+
+            return current;
         }
     }
 }

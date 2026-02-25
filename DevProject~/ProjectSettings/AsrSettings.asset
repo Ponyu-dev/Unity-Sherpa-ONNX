@@ -22,6 +22,7 @@ MonoBehaviour:
       numThreads: 1
       provider: cpu
       tokens: tokens.txt
+      allowInt8: 0
       sampleRate: 16000
       featureDim: 80
       decodingMethod: greedy_search
@@ -86,6 +87,7 @@ MonoBehaviour:
       numThreads: 1
       provider: cpu
       tokens: tokens.txt
+      allowInt8: 0
       sampleRate: 16000
       featureDim: 80
       decodingMethod: greedy_search

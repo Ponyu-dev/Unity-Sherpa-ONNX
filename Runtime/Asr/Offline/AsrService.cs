@@ -86,8 +86,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             IProgress<float> progress = null,
             CancellationToken ct = default)
         {
-            SherpaOnnxLog.RuntimeLog(
-                "[SherpaOnnx] AsrService async initializing...");
+            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrService async initializing...");
 
             _settings = await AsrSettingsLoader.LoadAsync(progress, ct);
             var profile = AsrSettingsLoader.GetActiveProfile(_settings);
@@ -110,8 +109,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         {
             if (profile == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrService.LoadProfile: profile is null.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService.LoadProfile: profile is null.");
                 return;
             }
 
@@ -120,9 +118,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             if (_engine == null)
                 return;
 
-            string modelDir = AsrModelPathResolver.GetModelDirectory(
-                profile.profileName);
-
+            string modelDir = AsrModelPathResolver.GetModelDirectory(profile.profileName);
             int poolSize = _settings?.offlineRecognizerPoolSize ?? 1;
             _engine.Load(profile, modelDir, poolSize);
             _activeProfile = profile;
@@ -135,9 +131,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         {
             if (_settings?.profiles == null || _settings.profiles.Count == 0)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrService.SwitchProfile: " +
-                    "no profiles loaded.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService.SwitchProfile: no profiles loaded.");
                 return;
             }
 
@@ -160,9 +154,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         {
             if (_settings?.profiles == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrService.SwitchProfile: " +
-                    "no profiles loaded.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService.SwitchProfile: no profiles loaded.");
                 return;
             }
 
@@ -171,9 +163,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
 
             if (profile == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] AsrService.SwitchProfile: " +
-                    $"profile '{profileName}' not found.");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] AsrService.SwitchProfile: profile '{profileName}' not found.");
                 return;
             }
 
@@ -203,7 +193,11 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             if (!CheckReady())
                 return Task.FromResult<AsrResult>(null);
 
-            return Task.Run(() => _engine.Recognize(samples, sampleRate));
+            var engine = _engine;
+            if (engine == null)
+                return Task.FromResult<AsrResult>(null);
+
+            return Task.Run(() => engine.Recognize(samples, sampleRate));
         }
 
         // ── Cleanup ──
@@ -237,9 +231,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             if (_engine != null && _engine.IsLoaded)
                 return true;
             
-            SherpaOnnxLog.RuntimeError(
-                "[SherpaOnnx] AsrService is not initialized. " +
-                "Call Initialize() first.");
+            SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService is not initialized. Call Initialize() first.");
             return false;
 
         }
