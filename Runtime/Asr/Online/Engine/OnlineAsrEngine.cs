@@ -91,6 +91,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
             try
             {
                 using var testStream = _recognizer.CreateStream();
+                EngineRegistry.Register(this);
                 SherpaOnnxLog.RuntimeLog(
                     "[SherpaOnnx] OnlineAsrEngine loaded: " +
                     $"'{profile.profileName}'");
@@ -110,6 +111,8 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
             StopSession();
             if (_recognizer == null)
                 return;
+
+            EngineRegistry.Unregister(this);
 
             _recognizer.Dispose();
             _recognizer = null;

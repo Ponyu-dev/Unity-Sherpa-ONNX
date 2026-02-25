@@ -53,8 +53,7 @@ namespace PonyuDev.SherpaOnnx.Tts
 
             if (profile == null)
             {
-                SherpaOnnxLog.RuntimeWarning(
-                    "[SherpaOnnx] TtsService: no active profile found.");
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] TtsService: no active profile found.");
                 return;
             }
 
@@ -72,23 +71,20 @@ namespace PonyuDev.SherpaOnnx.Tts
             IProgress<float> progress = null,
             CancellationToken ct = default)
         {
-            SherpaOnnxLog.RuntimeLog(
-                "[SherpaOnnx] TtsService async initializing...");
+            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initializing...");
 
             _settings = await TtsSettingsLoader.LoadAsync(progress, ct);
             var profile = TtsSettingsLoader.GetActiveProfile(_settings);
 
             if (profile == null)
             {
-                SherpaOnnxLog.RuntimeWarning(
-                    "[SherpaOnnx] TtsService: no active profile found.");
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] TtsService: no active profile found.");
                 return;
             }
 
             LoadProfile(profile);
 
-            SherpaOnnxLog.RuntimeLog(
-                "[SherpaOnnx] TtsService async initialized.");
+            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initialized.");
         }
 
         /// <summary>
@@ -108,8 +104,7 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (_engine == null)
                 return;
 
-            string modelDir = TtsModelPathResolver.GetModelDirectory(
-                profile.profileName);
+            string modelDir = TtsModelPathResolver.GetModelDirectory(profile.profileName);
 
             int poolSize = _settings?.cache?.offlineTtsPoolSize ?? 1;
             _engine.Load(profile, modelDir, poolSize);
@@ -123,8 +118,7 @@ namespace PonyuDev.SherpaOnnx.Tts
         {
             if (_settings?.profiles == null || _settings.profiles.Count == 0)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] TtsService.SwitchProfile: no profiles loaded.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService.SwitchProfile: no profiles loaded.");
                 return;
             }
 
@@ -146,8 +140,7 @@ namespace PonyuDev.SherpaOnnx.Tts
         {
             if (_settings?.profiles == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] TtsService.SwitchProfile: no profiles loaded.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService.SwitchProfile: no profiles loaded.");
                 return;
             }
 
@@ -256,15 +249,12 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         private bool CheckReady()
         {
-            if (_engine == null || !_engine.IsLoaded)
-            {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] TtsService is not initialized. " +
-                    "Call Initialize() first.");
-                return false;
-            }
+            if (_engine != null && _engine.IsLoaded)
+                return true;
+            
+            SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService is not initialized. Call Initialize() first.");
+            return false;
 
-            return true;
         }
     }
 }

@@ -93,6 +93,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             SampleRate = first.SampleRate;
             NumSpeakers = first.NumSpeakers;
 
+            EngineRegistry.Register(this);
+
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loaded: {profile.profileName} " +
                 $"(sampleRate={SampleRate}, speakers={NumSpeakers}, " +
@@ -130,6 +132,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
         public void Unload()
         {
+            EngineRegistry.Unregister(this);
+
             _lifecycleLock.EnterWriteLock();
             try
             {

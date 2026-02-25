@@ -80,6 +80,8 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
                 _windowSize = profile.windowSize;
                 _sampleRate = profile.sampleRate;
 
+                EngineRegistry.Register(this);
+
                 SherpaOnnxLog.RuntimeLog(
                     $"[SherpaOnnx] VAD engine loaded: " +
                     $"{profile.profileName} " +
@@ -97,6 +99,8 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
         {
             if (_detector == null)
                 return;
+
+            EngineRegistry.Unregister(this);
 
             _detector.Dispose();
             _detector = null;

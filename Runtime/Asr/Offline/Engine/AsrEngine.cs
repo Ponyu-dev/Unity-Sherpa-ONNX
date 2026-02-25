@@ -91,6 +91,8 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             _poolSize = poolSize;
             _semaphore = new SemaphoreSlim(poolSize, poolSize);
 
+            EngineRegistry.Register(this);
+
             SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] ASR engine loaded: {profile.profileName} (pool={poolSize})");
         }
 
@@ -124,6 +126,8 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
 
         public void Unload()
         {
+            EngineRegistry.Unregister(this);
+
             _lifecycleLock.EnterWriteLock();
             try
             {
