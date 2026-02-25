@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Networking;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using UnityEditor;
@@ -82,6 +83,13 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
                 return;
             }
 
+            string urlError = UrlValidator.Validate(url);
+            if (urlError != null)
+            {
+                SetStatus(urlError, true);
+                return;
+            }
+
             if (_isBusy)
                 return;
 
@@ -101,7 +109,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             }
             catch (Exception ex)
             {
-                SetStatus($"Error: {ex.Message}");
+                SetStatus($"Error: {ex.Message}", true);
                 SherpaOnnxLog.EditorError($"[SherpaOnnx] VAD import failed: {ex}");
             }
             finally
@@ -130,7 +138,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
 
         private void HandleDownloadError(string url, string message)
         {
-            SetStatus($"Error: {message}");
+            SetStatus($"Error: {message}", true);
         }
 
         // ── Import flow ──
@@ -207,11 +215,18 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             }
         }
 
-        private void SetStatus(string text)
+        private const string ErrorClass = "model-import-status--error";
+
+        private void SetStatus(string text, bool isError = false)
         {
             if (_statusLabel == null) return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
+
+            if (isError)
+                _statusLabel.AddToClassList(ErrorClass);
+            else
+                _statusLabel.RemoveFromClassList(ErrorClass);
         }
 
         private void SetBusy(bool busy)

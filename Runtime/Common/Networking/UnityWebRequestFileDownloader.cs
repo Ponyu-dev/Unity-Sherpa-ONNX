@@ -30,6 +30,12 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
 
         private const int ProgressReportDelayMs = 50;
 
+        /// <summary>
+        /// Connection + transfer timeout in seconds.
+        /// 0 = no timeout (UnityWebRequest default).
+        /// </summary>
+        private const int TimeoutSeconds = 120;
+
         private bool _disposed;
 
         public async Task DownloadAsync(
@@ -120,6 +126,7 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
             request.disposeDownloadHandlerOnDispose = true;
             request.disposeUploadHandlerOnDispose = true;
             request.disposeCertificateHandlerOnDispose = true;
+            request.timeout = TimeoutSeconds;
 
             return request;
         }

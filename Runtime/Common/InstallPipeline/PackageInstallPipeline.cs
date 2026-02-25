@@ -74,6 +74,10 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
                 string downloadedPath = Path.Combine(_downloadTemp.Path, fileName);
                 await _downloader.DownloadAsync(url, _downloadTemp.Path, fileName, cancellationToken);
 
+                string magicError = ArchiveMagicValidator.Validate(downloadedPath);
+                if (magicError != null)
+                    throw new InvalidOperationException(magicError);
+
                 ChangeStage(PipelineStage.Extracting);
                 await _extractor.ExtractAsync(downloadedPath, _extractTemp.Path, cancellationToken);
 

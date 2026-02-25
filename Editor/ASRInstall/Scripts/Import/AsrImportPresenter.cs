@@ -45,22 +45,17 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             _urlField = parent.Q<TextField>("offlineImportUrlField");
             _urlField.RegisterValueChangedCallback(HandleUrlChanged);
 
-            _optionsRow = parent.Q<VisualElement>(
-                "offlineImportOptionsRow");
-            _int8Toggle = parent.Q<Toggle>(
-                "offlineImportInt8Toggle");
+            _optionsRow = parent.Q<VisualElement>("offlineImportOptionsRow");
+            _int8Toggle = parent.Q<Toggle>("offlineImportInt8Toggle");
 
             _importButton = parent.Q<Button>("offlineImportButton");
             _importButton.clicked += HandleImportClicked;
 
-            _cancelButton = parent.Q<Button>(
-                "offlineImportCancelButton");
+            _cancelButton = parent.Q<Button>("offlineImportCancelButton");
             _cancelButton.clicked += HandleCancelClicked;
 
-            _progressBar = parent.Q<ProgressBar>(
-                "offlineImportProgressBar");
-            _statusLabel = parent.Q<Label>(
-                "offlineImportStatusLabel");
+            _progressBar = parent.Q<ProgressBar>("offlineImportProgressBar");
+            _statusLabel = parent.Q<Label>("offlineImportStatusLabel");
         }
 
         public void Dispose()
@@ -92,30 +87,34 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 SetStatus("Please enter a URL.");
                 return;
             }
+
+            string urlError = UrlValidator.Validate(url);
+            if (urlError != null)
+            {
+                SetStatus(urlError, true);
+                return;
+            }
+
             if (_isBusy) return;
 
             _cts = new CancellationTokenSource();
             SetBusy(true);
-            SherpaOnnxLog.EditorLog(
-                $"[SherpaOnnx] ASR import started: {url}");
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] ASR import started: {url}");
 
             try
             {
                 await ImportAsync(url, _cts.Token);
-                SherpaOnnxLog.EditorLog(
-                    "[SherpaOnnx] ASR import completed.");
+                SherpaOnnxLog.EditorLog("[SherpaOnnx] ASR import completed.");
             }
             catch (OperationCanceledException)
             {
                 SetStatus("Import canceled.");
-                SherpaOnnxLog.EditorWarning(
-                    "[SherpaOnnx] ASR import canceled by user.");
+                SherpaOnnxLog.EditorWarning("[SherpaOnnx] ASR import canceled by user.");
             }
             catch (Exception ex)
             {
-                SetStatus($"Error: {ex.Message}");
-                SherpaOnnxLog.EditorError(
-                    $"[SherpaOnnx] ASR import failed: {ex}");
+                SetStatus($"Error: {ex.Message}", true);
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] ASR import failed: {ex}");
             }
             finally
             {
@@ -152,21 +151,19 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         private void HandlePipelineError(string error)
         {
-            SetStatus($"Error: {error}");
+            SetStatus($"Error: {error}", true);
         }
 
         // ── Import flow ──
 
-        private async Task ImportAsync(
-            string url, CancellationToken ct)
+        private async Task ImportAsync(string url, CancellationToken ct)
         {
             string archiveName = ArchiveNameParser.GetArchiveName(url);
             string fileName = ArchiveNameParser.GetFileName(url);
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new ModelContentHandler(
-                archiveName, AsrModelPaths.GetModelDir);
+            var handler = new ModelContentHandler(archiveName, AsrModelPaths.GetModelDir);
             _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
@@ -176,12 +173,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             await _pipeline.RunAsync(url, fileName, ct);
             ct.ThrowIfCancellationRequested();
 
-            AsrModelType? detected =
-                AsrModelTypeDetector.Detect(archiveName);
-
-            if (!detected.HasValue)
-                detected = AsrModelTypeDetector.DetectFromFiles(
-                    handler.DestinationDirectory);
+            AsrModelType? detected = AsrModelTypeDetector.Detect(archiveName) ?? AsrModelTypeDetector.DetectFromFiles(handler.DestinationDirectory);
 
             var profile = new AsrProfile
             {
@@ -192,8 +184,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 profile.modelType = detected.Value;
 
             bool useInt8 = _int8Toggle != null && _int8Toggle.value;
-            AsrProfileAutoFiller.Fill(
-                profile, handler.DestinationDirectory, useInt8);
+            AsrProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
 
             _settings.offlineData.profiles.Add(profile);
             _settings.SaveSettings();
@@ -202,8 +193,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             string typeLabel = detected.HasValue
                 ? detected.Value.ToString() : "Unknown";
-            SetStatus(
-                $"Import complete: {archiveName} ({typeLabel})");
+            SetStatus($"Import complete: {archiveName} ({typeLabel})");
 
             if (_urlField != null) _urlField.value = "";
             _onImportCompleted?.Invoke();
@@ -211,11 +201,18 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         // ── Helpers ──
 
-        private void SetStatus(string text)
+        private const string ErrorClass = "model-import-status--error";
+
+        private void SetStatus(string text, bool isError = false)
         {
             if (_statusLabel == null) return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
+
+            if (isError)
+                _statusLabel.AddToClassList(ErrorClass);
+            else
+                _statusLabel.RemoveFromClassList(ErrorClass);
         }
 
         private void SetBusy(bool busy)
