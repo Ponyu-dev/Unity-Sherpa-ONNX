@@ -47,6 +47,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             VadProfile profile = _settings.data.profiles[index];
             var binder = new VadProfileFieldBinder(profile, _settings);
 
+            MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, VadModelPaths.GetModelDir);
             BuildAutoConfigureButton(profile);
             BuildVersionWarning(profile.modelType);
             BuildIdentitySection(profile, binder);

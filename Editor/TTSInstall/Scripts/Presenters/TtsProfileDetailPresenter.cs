@@ -49,6 +49,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             TtsProfile profile = _settings.data.profiles[index];
             var binder = new ProfileFieldBinder(profile, _settings);
 
+            MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, TtsModelPaths.GetModelDir);
             BuildAutoConfigureButton(profile);
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);

@@ -132,7 +132,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
             VisualElement root, VadProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
-            _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings);
+            _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings, VadModelPaths.GetModelDir);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");

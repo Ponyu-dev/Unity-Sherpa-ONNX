@@ -17,17 +17,22 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
 
         private readonly ISettingsData<TProfile> _data;
         private readonly ISaveableSettings _settings;
+        private readonly Func<string, string> _getModelDir;
         private PopupField<string> _dropdown;
 
         internal ActiveProfilePresenter(
-            ISettingsData<TProfile> data, ISaveableSettings settings)
+            ISettingsData<TProfile> data, ISaveableSettings settings,
+            Func<string, string> getModelDir)
         {
             _data = data;
             _settings = settings;
+            _getModelDir = getModelDir;
         }
 
         internal void Build(VisualElement parent)
         {
+            ResetIfMissing();
+
             List<string> choices = BuildChoices();
             int savedIndex = _data.ActiveProfileIndex;
             string current = IndexToChoice(choices, savedIndex);
@@ -48,6 +53,8 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
         {
             if (_dropdown == null) return;
 
+            ResetIfMissing();
+
             List<string> choices = BuildChoices();
             int savedIndex = _data.ActiveProfileIndex;
             string current = IndexToChoice(choices, savedIndex);
@@ -61,6 +68,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
         private void HandleChanged(ChangeEvent<string> evt)
         {
             int index = ChoiceToIndex(evt.newValue);
+            if (index >= 0 && IsIndexMissing(index))
+            {
+                _dropdown?.SetValueWithoutNotify(NoneLabel);
+                return;
+            }
             _data.ActiveProfileIndex = index;
             _settings.SaveSettings();
         }
@@ -99,6 +111,20 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
                     return i;
             }
             return -1;
+        }
+
+        private bool IsIndexMissing(int index)
+        {
+            if (index < 0 || index >= _data.Profiles.Count) return false;
+            return ModelFileService.IsProfileMissing(_data.Profiles[index].ProfileName, _getModelDir);
+        }
+
+        private void ResetIfMissing()
+        {
+            int index = _data.ActiveProfileIndex;
+            if (!IsIndexMissing(index)) return;
+            _data.ActiveProfileIndex = -1;
+            _settings.SaveSettings();
         }
     }
 }

@@ -198,7 +198,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
             _activeProfilePresenter =
-                new ActiveProfilePresenter<TtsProfile>(settings.data, settings);
+                new ActiveProfilePresenter<TtsProfile>(settings.data, settings, TtsModelPaths.GetModelDir);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");

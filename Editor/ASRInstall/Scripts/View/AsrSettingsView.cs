@@ -167,7 +167,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
                 "offlineActiveProfileSection");
             _offlineActivePresenter =
                 new ActiveProfilePresenter<AsrProfile>(
-                    settings.offlineData, settings);
+                    settings.offlineData, settings, AsrModelPaths.GetModelDir);
             _offlineActivePresenter.Build(activeSection);
 
             _offlineImportSection = root.Q<VisualElement>(
@@ -221,7 +221,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
                 "onlineActiveProfileSection");
             _onlineActivePresenter =
                 new ActiveProfilePresenter<OnlineAsrProfile>(
-                    settings.onlineData, settings);
+                    settings.onlineData, settings, AsrModelPaths.GetModelDir);
             _onlineActivePresenter.Build(activeSection);
 
             _onlineImportSection = root.Q<VisualElement>(
