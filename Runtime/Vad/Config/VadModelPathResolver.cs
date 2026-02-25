@@ -17,10 +17,11 @@ namespace PonyuDev.SherpaOnnx.Vad.Config
         /// </summary>
         public static string GetModelDirectory(string profileName)
         {
-            return Path.Combine(
+            string path = Path.Combine(
                 StreamingAssetsCopier.GetResolvedStreamingAssetsPath(),
                 VadModelsFolder,
                 profileName);
+            return NativePathSanitizer.Sanitize(path);
         }
 
         /// <summary>

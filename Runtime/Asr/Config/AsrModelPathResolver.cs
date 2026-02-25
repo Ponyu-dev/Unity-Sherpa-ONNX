@@ -19,10 +19,11 @@ namespace PonyuDev.SherpaOnnx.Asr.Config
         /// </summary>
         public static string GetModelDirectory(string profileName)
         {
-            return Path.Combine(
+            string path = Path.Combine(
                 StreamingAssetsCopier.GetResolvedStreamingAssetsPath(),
                 AsrModelsFolder,
                 profileName);
+            return NativePathSanitizer.Sanitize(path);
         }
 
         /// <summary>
