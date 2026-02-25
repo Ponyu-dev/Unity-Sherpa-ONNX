@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
 
         public string profileName = "New VAD Profile";
         public VadModelType modelType = VadModelType.SileroVad;
+        public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
 
         // ── Common ──
@@ -58,5 +59,9 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
         // ── Buffer ──
 
         public float bufferSizeInSeconds = 60f;
+
+        // ── Remote ──
+
+        public string remoteBaseUrl = "";
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
@@ -24,7 +25,10 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
         private ProfileListPresenter<VadProfile> _listPresenter;
         private Button _redownloadButton;
+        private Button _packZipButton;
+        private Button _deleteZipButton;
         private int _currentIndex = -1;
+        private bool _disposed;
 
         internal VadProfileDetailPresenter(
             VisualElement detailContent,
@@ -43,6 +47,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         internal void ShowProfile(int index)
         {
             UnsubscribeRedownload();
+            UnsubscribeZipButtons();
             _currentIndex = index;
             _detailContent.Clear();
 
@@ -61,17 +66,21 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             BuildThresholdsSection(binder);
             BuildRuntimeSection(binder);
             BuildModelFieldsSection(profile, binder);
+            BuildRemoteSection(profile, binder);
+            BuildLocalZipSection(profile);
         }
 
         internal void Clear()
         {
             UnsubscribeRedownload();
+            UnsubscribeZipButtons();
             _currentIndex = -1;
             _detailContent.Clear();
         }
 
         public void Dispose()
         {
+            _disposed = true;
             Clear();
         }
 
@@ -82,6 +91,17 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             if (_redownloadButton != null)
                 _redownloadButton.clicked -= HandleRedownloadClicked;
             _redownloadButton = null;
+        }
+
+        private void UnsubscribeZipButtons()
+        {
+            if (_packZipButton != null)
+                _packZipButton.clicked -= HandlePackToZipClicked;
+            _packZipButton = null;
+
+            if (_deleteZipButton != null)
+                _deleteZipButton.clicked -= HandleDeleteZipClicked;
+            _deleteZipButton = null;
         }
 
         private async void HandleRedownloadClicked()
@@ -150,6 +170,10 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             typeField.RegisterValueChangedCallback(HandleModelTypeChanged);
             _detailContent.Add(typeField);
 
+            var sourceField = new EnumField("Model source", profile.modelSource);
+            sourceField.RegisterValueChangedCallback(HandleModelSourceChanged);
+            _detailContent.Add(sourceField);
+
             var urlField = binder.BindText("Source URL", profile.sourceUrl, VadProfileField.SourceUrl);
             if (!string.IsNullOrEmpty(profile.sourceUrl))
                 urlField.isReadOnly = true;
@@ -200,6 +224,40 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             VadProfileFieldBuilder.BuildModelFields(_detailContent, b);
         }
 
+        private void BuildRemoteSection(VadProfile profile, VadProfileFieldBinder b)
+        {
+            if (profile.modelSource != ModelSource.Remote)
+                return;
+
+            AddSectionHeader("Remote");
+            _detailContent.Add(b.BindText(
+                "Base URL", profile.remoteBaseUrl, VadProfileField.RemoteBaseUrl));
+            _detailContent.Add(ModelSourceSectionBuilder.BuildArchiveUrlPreview(
+                profile.remoteBaseUrl, profile.profileName));
+        }
+
+        private void BuildLocalZipSection(VadProfile profile)
+        {
+            if (profile.modelSource != ModelSource.LocalZip)
+                return;
+
+            AddSectionHeader("Local Zip");
+
+            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            var result = ModelSourceSectionBuilder.BuildLocalZip(_detailContent, modelDir);
+
+            if (result.PackButton != null)
+            {
+                _packZipButton = result.PackButton;
+                _packZipButton.clicked += HandlePackToZipClicked;
+            }
+            if (result.DeleteButton != null)
+            {
+                _deleteZipButton = result.DeleteButton;
+                _deleteZipButton.clicked += HandleDeleteZipClicked;
+            }
+        }
+
         private void AddSectionHeader(string text)
         {
             var header = new Label(text);
@@ -238,6 +296,32 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             ShowProfile(_currentIndex);
         }
 
+        private void HandleModelSourceChanged(ChangeEvent<Enum> evt)
+        {
+            if (!TryGetCurrentProfile(out VadProfile profile)) return;
+            profile.modelSource = (ModelSource)evt.newValue;
+            _settings.SaveSettings();
+            ShowProfile(_currentIndex);
+        }
+
+        private void HandlePackToZipClicked()
+        {
+            if (!TryGetCurrentProfile(out VadProfile profile)) return;
+
+            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            ModelFileService.PackToZip(modelDir);
+            RefreshAfterAssetChange();
+        }
+
+        private void HandleDeleteZipClicked()
+        {
+            if (!TryGetCurrentProfile(out VadProfile profile)) return;
+
+            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            ModelFileService.DeleteZip(modelDir);
+            RefreshAfterAssetChange();
+        }
+
         // ── Helpers ──
 
         private static void AdjustWindowSizeForModelType(VadProfile profile)
@@ -261,6 +345,21 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
             profile = _settings.data.profiles[_currentIndex];
             return true;
+        }
+
+        private void RefreshAfterAssetChange()
+        {
+            if (_disposed) return;
+
+            int idx = _currentIndex;
+            AssetDatabase.Refresh();
+            EditorApplication.delayCall += HandleDelayedRefresh;
+
+            void HandleDelayedRefresh()
+            {
+                if (_disposed) return;
+                ShowProfile(idx);
+            }
         }
     }
 }

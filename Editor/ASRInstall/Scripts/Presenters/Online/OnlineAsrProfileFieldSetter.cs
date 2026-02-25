@@ -36,6 +36,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
                 case OnlineAsrProfileField.Zipformer2CtcModel: p.zipformer2CtcModel = v; break;
                 case OnlineAsrProfileField.NemoCtcModel: p.nemoCtcModel = v; break;
                 case OnlineAsrProfileField.ToneCtcModel: p.toneCtcModel = v; break;
+
+                // Remote
+                case OnlineAsrProfileField.RemoteBaseUrl: p.remoteBaseUrl = v; break;
             }
         }
 

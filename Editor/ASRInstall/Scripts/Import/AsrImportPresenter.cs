@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
@@ -33,8 +34,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private PackageInstallPipeline _pipeline;
         private bool _isBusy;
 
-        internal AsrImportPresenter(
-            AsrProjectSettings settings, Action onImportCompleted)
+        internal AsrImportPresenter(AsrProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -140,9 +140,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             string url = evt.newValue?.Trim() ?? "";
             bool hasUrl = !string.IsNullOrEmpty(url);
 
-            if (_optionsRow != null)
-                _optionsRow.style.display = hasUrl
-                    ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_optionsRow == null)
+                return;
+            
+            _optionsRow.style.display = hasUrl ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void HandlePipelineProgress(float progress01)
@@ -185,7 +186,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             var profile = new AsrProfile
             {
                 profileName = archiveName,
-                sourceUrl = url
+                sourceUrl = url,
+                modelSource = ModelSource.Local
             };
 
             if (detected.HasValue)
@@ -199,8 +201,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detected.HasValue
-                ? detected.Value.ToString() : "Unknown";
+            string typeLabel = detected.HasValue ? detected.Value.ToString() : "Unknown";
             SetStatus($"Import complete: {archiveName} ({typeLabel})");
 
             if (_urlField != null) _urlField.value = "";
@@ -229,11 +230,11 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             _importButton?.SetEnabled(!busy);
             _urlField?.SetEnabled(!busy);
             if (_cancelButton != null)
-                _cancelButton.style.display = busy
-                    ? DisplayStyle.Flex : DisplayStyle.None;
-            if (_progressBar == null) return;
-            _progressBar.style.display = busy
-                ? DisplayStyle.Flex : DisplayStyle.None;
+                _cancelButton.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_progressBar == null)
+                return;
+            
+            _progressBar.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
             _progressBar.value = 0f;
         }
 

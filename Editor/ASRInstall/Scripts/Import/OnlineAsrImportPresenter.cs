@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
@@ -33,8 +34,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private PackageInstallPipeline _pipeline;
         private bool _isBusy;
 
-        internal OnlineAsrImportPresenter(
-            AsrProjectSettings settings, Action onImportCompleted)
+        internal OnlineAsrImportPresenter(AsrProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -140,9 +140,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             string url = evt.newValue?.Trim() ?? "";
             bool hasUrl = !string.IsNullOrEmpty(url);
 
-            if (_optionsRow != null)
-                _optionsRow.style.display = hasUrl
-                    ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_optionsRow == null)
+                return;
+            
+            _optionsRow.style.display = hasUrl ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void HandlePipelineProgress(float progress01)
@@ -185,7 +186,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             var profile = new OnlineAsrProfile
             {
                 profileName = archiveName,
-                sourceUrl = url
+                sourceUrl = url,
+                modelSource = ModelSource.Local
             };
 
             if (detected.HasValue)
@@ -230,11 +232,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             _importButton?.SetEnabled(!busy);
             _urlField?.SetEnabled(!busy);
             if (_cancelButton != null)
-                _cancelButton.style.display = busy
-                    ? DisplayStyle.Flex : DisplayStyle.None;
-            if (_progressBar == null) return;
-            _progressBar.style.display = busy
-                ? DisplayStyle.Flex : DisplayStyle.None;
+                _cancelButton.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_progressBar == null)
+                return;
+            _progressBar.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
             _progressBar.value = 0f;
         }
 

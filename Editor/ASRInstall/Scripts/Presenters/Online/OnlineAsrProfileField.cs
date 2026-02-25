@@ -53,6 +53,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         NemoCtcModel,
 
         // ToneCtc
-        ToneCtcModel
+        ToneCtcModel,
+
+        // Remote
+        RemoteBaseUrl
     }
 }

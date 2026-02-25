@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
 
         public string profileName = "New Online Profile";
         public OnlineAsrModelType modelType = OnlineAsrModelType.Transducer;
+        public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
 
         // ── Common (OnlineModelConfig) ──
@@ -89,5 +90,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
         // ── ToneCtc ──
 
         public string toneCtcModel = "";
+
+        // ── Remote ──
+
+        public string remoteBaseUrl = "";
     }
 }

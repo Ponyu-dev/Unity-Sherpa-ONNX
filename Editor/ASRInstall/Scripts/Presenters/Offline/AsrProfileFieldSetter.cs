@@ -75,6 +75,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrProfileField.FunAsrNanoUserPrompt: p.funAsrNanoUserPrompt = v; break;
                 case AsrProfileField.FunAsrNanoLanguage: p.funAsrNanoLanguage = v; break;
                 case AsrProfileField.FunAsrNanoHotwords: p.funAsrNanoHotwords = v; break;
+
+                // Remote
+                case AsrProfileField.RemoteBaseUrl: p.remoteBaseUrl = v; break;
             }
         }
 

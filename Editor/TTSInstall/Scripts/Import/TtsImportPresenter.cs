@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
@@ -202,7 +203,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             {
                 profileName = archiveName,
                 sourceUrl = url,
-                modelSource = TtsModelSource.Local
+                modelSource = ModelSource.Local
             };
 
             if (detectedType.HasValue)

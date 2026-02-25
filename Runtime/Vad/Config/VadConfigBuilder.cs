@@ -17,6 +17,7 @@ namespace PonyuDev.SherpaOnnx.Vad.Config
                 $"[SherpaOnnx] VadConfigBuilder.Build: " +
                 $"profile='{profile.profileName}', " +
                 $"modelType={profile.modelType}, " +
+                $"modelSource={profile.modelSource}, " +
                 $"modelDir='{modelDir}'");
 
             var config = new VadModelConfig();

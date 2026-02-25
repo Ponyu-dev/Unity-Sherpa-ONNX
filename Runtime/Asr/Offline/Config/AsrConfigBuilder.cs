@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Config
                 $"[SherpaOnnx] AsrConfigBuilder.Build: " +
                 $"profile='{profile.profileName}', " +
                 $"modelType={profile.modelType}, " +
+                $"modelSource={profile.modelSource}, " +
                 $"modelDir='{modelDir}'");
 
             var config = new OfflineRecognizerConfig();

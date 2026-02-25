@@ -18,7 +18,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Config
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] OnlineAsrConfigBuilder.Build: " +
                 $"profile='{profile.profileName}', " +
-                $"modelType={profile.modelType}");
+                $"modelType={profile.modelType}, " +
+                $"modelSource={profile.modelSource}, " +
+                $"modelDir='{modelDir}'");
 
             var config = new OnlineRecognizerConfig();
 

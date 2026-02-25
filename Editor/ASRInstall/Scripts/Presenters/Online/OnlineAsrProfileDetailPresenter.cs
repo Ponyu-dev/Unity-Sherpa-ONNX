@@ -3,6 +3,7 @@ using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
@@ -19,7 +20,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 
         private ProfileListPresenter<OnlineAsrProfile> _listPresenter;
         private Button _redownloadButton;
+        private Button _packZipButton;
+        private Button _deleteZipButton;
         private int _currentIndex = -1;
+        private bool _disposed;
 
         internal OnlineAsrProfileDetailPresenter(VisualElement detailContent, AsrProjectSettings settings)
         {
@@ -35,6 +39,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         internal void ShowProfile(int index)
         {
             UnsubscribeRedownload();
+            UnsubscribeZipButtons();
             _currentIndex = index;
             _detailContent.Clear();
             if (index < 0 || index >= _settings.onlineData.profiles.Count)
@@ -56,16 +61,23 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             BuildEndpointSection(profile, binder);
             BuildCtcFstDecoderSection(binder);
             BuildModelFieldsSection(profile, binder);
+            BuildRemoteSection(profile, binder);
+            BuildLocalZipSection(profile);
         }
 
         internal void Clear()
         {
             UnsubscribeRedownload();
+            UnsubscribeZipButtons();
             _currentIndex = -1;
             _detailContent.Clear();
         }
 
-        public void Dispose() => Clear();
+        public void Dispose()
+        {
+            _disposed = true;
+            Clear();
+        }
 
         // ── Redownload ──
 
@@ -74,6 +86,17 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             if (_redownloadButton != null)
                 _redownloadButton.clicked -= HandleRedownloadClicked;
             _redownloadButton = null;
+        }
+
+        private void UnsubscribeZipButtons()
+        {
+            if (_packZipButton != null)
+                _packZipButton.clicked -= HandlePackToZipClicked;
+            _packZipButton = null;
+
+            if (_deleteZipButton != null)
+                _deleteZipButton.clicked -= HandleDeleteZipClicked;
+            _deleteZipButton = null;
         }
 
         private async void HandleRedownloadClicked()
@@ -164,6 +187,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             var typeField = new EnumField("Model type", profile.modelType);
             typeField.RegisterValueChangedCallback(HandleModelTypeChanged);
             _detailContent.Add(typeField);
+
+            var sourceField = new EnumField("Model source", profile.modelSource);
+            sourceField.RegisterValueChangedCallback(HandleModelSourceChanged);
+            _detailContent.Add(sourceField);
 
             var urlField = binder.BindText("Source URL", profile.sourceUrl, OnlineAsrProfileField.SourceUrl);
             if (!string.IsNullOrEmpty(profile.sourceUrl))
@@ -276,6 +303,40 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             }
         }
 
+        private void BuildRemoteSection(OnlineAsrProfile profile, OnlineAsrProfileFieldBinder b)
+        {
+            if (profile.modelSource != ModelSource.Remote)
+                return;
+
+            AddSectionHeader("Remote");
+            _detailContent.Add(b.BindText(
+                "Base URL", profile.remoteBaseUrl, OnlineAsrProfileField.RemoteBaseUrl));
+            _detailContent.Add(ModelSourceSectionBuilder.BuildArchiveUrlPreview(
+                profile.remoteBaseUrl, profile.profileName));
+        }
+
+        private void BuildLocalZipSection(OnlineAsrProfile profile)
+        {
+            if (profile.modelSource != ModelSource.LocalZip)
+                return;
+
+            AddSectionHeader("Local Zip");
+
+            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            var result = ModelSourceSectionBuilder.BuildLocalZip(_detailContent, modelDir);
+
+            if (result.PackButton != null)
+            {
+                _packZipButton = result.PackButton;
+                _packZipButton.clicked += HandlePackToZipClicked;
+            }
+            if (result.DeleteButton != null)
+            {
+                _deleteZipButton = result.DeleteButton;
+                _deleteZipButton.clicked += HandleDeleteZipClicked;
+            }
+        }
+
         private void AddSectionHeader(string text)
         {
             var header = new Label(text);
@@ -309,16 +370,43 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             ShowProfile(_currentIndex);
         }
 
+        private void HandlePackToZipClicked()
+        {
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
+
+            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            ModelFileService.PackToZip(modelDir);
+            RefreshAfterAssetChange();
+        }
+
+        private void HandleDeleteZipClicked()
+        {
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
+
+            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            ModelFileService.DeleteZip(modelDir);
+            RefreshAfterAssetChange();
+        }
+
         private void HandleNameFocusOut(FocusOutEvent evt) => _listPresenter?.RefreshList();
 
         private void HandleModelTypeChanged(ChangeEvent<Enum> evt)
         {
-            if (!TryGetCurrentProfile(out OnlineAsrProfile profile))
-                return;
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
             profile.modelType = (OnlineAsrModelType)evt.newValue;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }
+
+        private void HandleModelSourceChanged(ChangeEvent<Enum> evt)
+        {
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
+            profile.modelSource = (ModelSource)evt.newValue;
+            _settings.SaveSettings();
+            ShowProfile(_currentIndex);
+        }
+
+        // ── Helpers ──
 
         private bool TryGetCurrentProfile(out OnlineAsrProfile profile)
         {
@@ -328,6 +416,21 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 
             profile = _settings.onlineData.profiles[_currentIndex];
             return true;
+        }
+
+        private void RefreshAfterAssetChange()
+        {
+            if (_disposed) return;
+
+            int idx = _currentIndex;
+            AssetDatabase.Refresh();
+            EditorApplication.delayCall += HandleDelayedRefresh;
+
+            void HandleDelayedRefresh()
+            {
+                if (_disposed) return;
+                ShowProfile(idx);
+            }
         }
 
         private sealed class EndpointToggleHandler

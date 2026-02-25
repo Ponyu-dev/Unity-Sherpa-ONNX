@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 
         public string profileName = "New Profile";
         public AsrModelType modelType = AsrModelType.Whisper;
+        public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
 
         // ── Common (OfflineModelConfig) ──
@@ -149,5 +150,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         public string funAsrNanoLanguage = "";
         public bool funAsrNanoItn;
         public string funAsrNanoHotwords = "";
+
+        // ── Remote ──
+
+        public string remoteBaseUrl = "";
     }
 }

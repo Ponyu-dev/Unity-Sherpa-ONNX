@@ -99,6 +99,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         FunAsrNanoTopP,
         FunAsrNanoSeed,
         FunAsrNanoLanguage,
-        FunAsrNanoHotwords
+        FunAsrNanoHotwords,
+
+        // Remote
+        RemoteBaseUrl
     }
 }

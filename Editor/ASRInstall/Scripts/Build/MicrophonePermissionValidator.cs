@@ -13,14 +13,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Build
     /// macOS: checks PlayerSettings.macOS camera/microphone usage description.
     /// Never modifies user settings — only validates.
     /// </summary>
-    internal sealed class MicrophonePermissionValidator
-        : IPreprocessBuildWithReport
+    internal sealed class MicrophonePermissionValidator : IPreprocessBuildWithReport
     {
-        private const string AndroidManifestPath =
-            "Assets/Plugins/Android/AndroidManifest.xml";
-
-        private const string RecordAudioPermission =
-            "android.permission.RECORD_AUDIO";
+        private const string AndroidManifestPath = "Assets/Plugins/Android/AndroidManifest.xml";
+        private const string RecordAudioPermission = "android.permission.RECORD_AUDIO";
 
         public int callbackOrder => 30;
 

@@ -201,6 +201,12 @@
     margin-bottom: 4px;
 }
 
+.model-url-preview {
+    opacity: 0.6;
+    font-size: 11px;
+    white-space: normal;
+}
+
 .model-btn-spaced {
     margin-bottom: 8px;
 }

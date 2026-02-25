@@ -6,6 +6,7 @@ using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -24,6 +25,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private ProfileListPresenter<TtsProfile> _listPresenter;
         private Button _redownloadButton;
+        private Button _packZipButton;
+        private Button _deleteZipButton;
         private int _currentIndex = -1;
         private bool _disposed;
 
@@ -44,6 +47,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         internal void ShowProfile(int index)
         {
             UnsubscribeRedownload();
+            UnsubscribeZipButtons();
             _currentIndex = index;
             _detailContent.Clear();
 
@@ -69,6 +73,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         internal void Clear()
         {
             UnsubscribeRedownload();
+            UnsubscribeZipButtons();
             _currentIndex = -1;
             _detailContent.Clear();
         }
@@ -86,6 +91,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             if (_redownloadButton != null)
                 _redownloadButton.clicked -= HandleRedownloadClicked;
             _redownloadButton = null;
+        }
+
+        private void UnsubscribeZipButtons()
+        {
+            if (_packZipButton != null)
+                _packZipButton.clicked -= HandlePackToZipClicked;
+            _packZipButton = null;
+
+            if (_deleteZipButton != null)
+                _deleteZipButton.clicked -= HandleDeleteZipClicked;
+            _deleteZipButton = null;
         }
 
         private async void HandleRedownloadClicked()
@@ -250,54 +266,35 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void BuildRemoteSection(TtsProfile profile, ProfileFieldBinder b)
         {
-            if (profile.modelSource != TtsModelSource.Remote)
+            if (profile.modelSource != ModelSource.Remote)
                 return;
 
             AddSectionHeader("Remote");
             _detailContent.Add(b.BindText(
                 "Base URL", profile.remoteBaseUrl, ProfileField.RemoteBaseUrl));
-
-            string archiveUrl = string.IsNullOrEmpty(profile.remoteBaseUrl)
-                ? "(set Base URL first)"
-                : profile.remoteBaseUrl.TrimEnd('/') + "/" + profile.profileName + ".zip";
-
-            var urlPreview = new Label("Archive URL: " + archiveUrl);
-            urlPreview.AddToClassList("tts-url-preview");
-            _detailContent.Add(urlPreview);
+            _detailContent.Add(ModelSourceSectionBuilder.BuildArchiveUrlPreview(
+                profile.remoteBaseUrl, profile.profileName));
         }
 
         private void BuildLocalZipSection(TtsProfile profile)
         {
-            if (profile.modelSource != TtsModelSource.LocalZip)
+            if (profile.modelSource != ModelSource.LocalZip)
                 return;
 
             AddSectionHeader("Local Zip");
 
-            var infoLabel = new Label(
-                "Model files will be zipped at build time and extracted " +
-                "from StreamingAssets to persistentDataPath on first launch.");
-            infoLabel.AddToClassList("model-info-label");
-            _detailContent.Add(infoLabel);
-
             string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
-            if (!ModelFileService.ModelDirExists(modelDir))
-                return;
+            var result = ModelSourceSectionBuilder.BuildLocalZip(_detailContent, modelDir);
 
-            if (ModelFileService.ZipExists(modelDir))
+            if (result.PackButton != null)
             {
-                var deleteButton = new Button { text = "Delete zip" };
-                deleteButton.AddToClassList("btn");
-                deleteButton.AddToClassList("btn-secondary");
-                deleteButton.clicked += HandleDeleteZipClicked;
-                _detailContent.Add(deleteButton);
+                _packZipButton = result.PackButton;
+                _packZipButton.clicked += HandlePackToZipClicked;
             }
-            else
+            if (result.DeleteButton != null)
             {
-                var packButton = new Button { text = "Pack to zip (test)" };
-                packButton.AddToClassList("btn");
-                packButton.AddToClassList("btn-primary");
-                packButton.clicked += HandlePackToZipClicked;
-                _detailContent.Add(packButton);
+                _deleteZipButton = result.DeleteButton;
+                _deleteZipButton.clicked += HandleDeleteZipClicked;
             }
         }
 
@@ -400,7 +397,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            profile.modelSource = (TtsModelSource)evt.newValue;
+            profile.modelSource = (ModelSource)evt.newValue;
             _settings.SaveSettings();
             ShowProfile(_currentIndex);
         }

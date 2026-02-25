@@ -1,9 +1,10 @@
-namespace PonyuDev.SherpaOnnx.Tts.Data
+namespace PonyuDev.SherpaOnnx.Common.Data
 {
     /// <summary>
-    /// Where the TTS model files are located.
+    /// Where model files are located at runtime.
+    /// Shared by all model types (TTS, ASR, VAD).
     /// </summary>
-    public enum TtsModelSource
+    public enum ModelSource
     {
         /// <summary>Model folder bundled in StreamingAssets for offline use.</summary>
         Local = 0,

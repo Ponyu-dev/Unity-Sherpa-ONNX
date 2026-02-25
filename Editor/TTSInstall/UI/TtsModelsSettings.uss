@@ -9,14 +9,6 @@
     opacity: 0.4;
 }
 
-/* ── URL preview ── */
-
-.tts-url-preview {
-    opacity: 0.6;
-    font-size: 11px;
-    white-space: normal;
-}
-
 /* ── Cache ── */
 
 .tts-cache-group {

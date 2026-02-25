@@ -3,6 +3,7 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
@@ -167,6 +168,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             {
                 profileName = profileName,
                 sourceUrl = url,
+                modelSource = ModelSource.Local,
                 model = fileName
             };
 

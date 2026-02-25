@@ -26,6 +26,9 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         WindowSize,
 
         // Buffer
-        BufferSizeInSeconds
+        BufferSizeInSeconds,
+
+        // Remote
+        RemoteBaseUrl
     }
 }

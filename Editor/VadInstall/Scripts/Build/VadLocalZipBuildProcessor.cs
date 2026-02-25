@@ -1,38 +1,38 @@
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Editor.Common.Build;
-using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
-using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
-using PonyuDev.SherpaOnnx.Tts.Data;
+using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
+using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
+using PonyuDev.SherpaOnnx.Vad.Data;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 
-namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Build
+namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Build
 {
     /// <summary>
-    /// Zips LocalZip TTS model directories before build
+    /// Zips LocalZip VAD model directories before build
     /// and restores them after. Delegates to shared
     /// <see cref="LocalZipBuildHelper"/>.
     /// </summary>
-    internal sealed class TtsLocalZipBuildProcessor
+    internal sealed class VadLocalZipBuildProcessor
         : IPreprocessBuildWithReport, IPostprocessBuildWithReport
     {
-        private const string BackupRoot = "TtsBuildBackup";
+        private const string BackupRoot = "VadBuildBackup";
 
-        public int callbackOrder => 100;
+        public int callbackOrder => 102;
 
         public void OnPreprocessBuild(BuildReport report)
         {
             var entries = new List<LocalZipBuildHelper.ProfileEntry>();
 
-            foreach (TtsProfile p in TtsProjectSettings.instance.data.profiles)
+            foreach (VadProfile p in VadProjectSettings.instance.data.profiles)
                 entries.Add(new LocalZipBuildHelper.ProfileEntry(p.profileName, p.modelSource));
 
-            LocalZipBuildHelper.Preprocess(BackupRoot, entries, TtsModelPaths.GetModelDir);
+            LocalZipBuildHelper.Preprocess(BackupRoot, entries, VadModelPaths.GetModelDir);
         }
 
         public void OnPostprocessBuild(BuildReport report)
         {
-            LocalZipBuildHelper.Postprocess(BackupRoot, TtsModelPaths.GetModelDir);
+            LocalZipBuildHelper.Postprocess(BackupRoot, VadModelPaths.GetModelDir);
         }
     }
 }
