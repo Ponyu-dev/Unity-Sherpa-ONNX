@@ -28,8 +28,10 @@ MonoBehaviour:
     - profileName: vits-piper-en_GB-southern_english_female-low
       modelType: 0
       modelSource: 0
+      sourceUrl: 
       numThreads: 1
       provider: cpu
+      allowInt8: 0
       speakerId: 0
       speed: 1
       ruleFsts: 
