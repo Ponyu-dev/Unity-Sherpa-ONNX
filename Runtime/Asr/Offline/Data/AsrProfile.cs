@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 
         public string profileName = "New Profile";
         public AsrModelType modelType = AsrModelType.Whisper;
+        public string sourceUrl = "";
 
         // ── Common (OfflineModelConfig) ──
 

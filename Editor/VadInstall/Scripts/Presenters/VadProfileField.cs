@@ -8,6 +8,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
     {
         // Identity
         ProfileName,
+        SourceUrl,
 
         // Common
         SampleRate,

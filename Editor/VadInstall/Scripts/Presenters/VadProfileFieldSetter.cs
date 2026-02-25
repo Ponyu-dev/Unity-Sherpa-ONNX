@@ -13,6 +13,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             switch (f)
             {
                 case VadProfileField.ProfileName: p.profileName = v; break;
+                case VadProfileField.SourceUrl: p.sourceUrl = v; break;
                 case VadProfileField.Provider: p.provider = v; break;
                 case VadProfileField.Model: p.model = v; break;
             }

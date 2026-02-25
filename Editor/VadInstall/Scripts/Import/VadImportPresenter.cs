@@ -166,6 +166,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             var profile = new VadProfile
             {
                 profileName = profileName,
+                sourceUrl = url,
                 model = fileName
             };
 

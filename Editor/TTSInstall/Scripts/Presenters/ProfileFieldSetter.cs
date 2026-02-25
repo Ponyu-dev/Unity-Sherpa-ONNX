@@ -13,6 +13,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             switch (f)
             {
                 case ProfileField.ProfileName: p.profileName = v; break;
+                case ProfileField.SourceUrl: p.sourceUrl = v; break;
                 case ProfileField.RuleFsts: p.ruleFsts = v; break;
                 case ProfileField.RuleFars: p.ruleFars = v; break;
                 case ProfileField.Provider: p.provider = v; break;

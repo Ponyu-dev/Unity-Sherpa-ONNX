@@ -7,6 +7,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
     {
         // Identity
         ProfileName,
+        SourceUrl,
 
         // Common
         NumThreads,

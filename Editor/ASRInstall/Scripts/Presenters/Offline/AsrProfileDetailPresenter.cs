@@ -1,10 +1,13 @@
 using System;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
+using UnityEditor;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
@@ -15,6 +18,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         private readonly VisualElement _detailContent;
 
         private ProfileListPresenter<AsrProfile> _listPresenter;
+        private Button _redownloadButton;
         private int _currentIndex = -1;
 
         internal AsrProfileDetailPresenter(VisualElement detailContent, AsrProjectSettings settings)
@@ -30,6 +34,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         internal void ShowProfile(int index)
         {
+            UnsubscribeRedownload();
             _currentIndex = index;
             _detailContent.Clear();
 
@@ -39,7 +44,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             AsrProfile profile = _settings.offlineData.profiles[index];
             var binder = new AsrProfileFieldBinder(profile, _settings);
 
-            MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, AsrModelPaths.GetModelDir);
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, AsrModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            if (_redownloadButton != null)
+                _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);
@@ -54,11 +61,42 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         internal void Clear()
         {
+            UnsubscribeRedownload();
             _currentIndex = -1;
             _detailContent.Clear();
         }
 
         public void Dispose() => Clear();
+
+        // ── Redownload ──
+
+        private void UnsubscribeRedownload()
+        {
+            if (_redownloadButton != null)
+                _redownloadButton.clicked -= HandleRedownloadClicked;
+            _redownloadButton = null;
+        }
+
+        private async void HandleRedownloadClicked()
+        {
+            if (!TryGetCurrentProfile(out AsrProfile profile)) return;
+            if (string.IsNullOrEmpty(profile.sourceUrl)) return;
+
+            try
+            {
+                using var redownloader = new ModelRedownloader();
+                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, AsrModelPaths.GetModelDir, default);
+                AsrProfileAutoFiller.Fill(profile, destDir);
+                _settings.SaveSettings();
+                AssetDatabase.Refresh();
+                _listPresenter?.RefreshList();
+                ShowProfile(_currentIndex);
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] ASR re-download failed: {ex}");
+            }
+        }
 
         private void BuildAutoConfigureButton(AsrProfile profile)
         {
@@ -133,6 +171,11 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             typeField.RegisterValueChangedCallback(
                 HandleModelTypeChanged);
             _detailContent.Add(typeField);
+
+            var urlField = binder.BindText("Source URL", profile.sourceUrl, AsrProfileField.SourceUrl);
+            if (!string.IsNullOrEmpty(profile.sourceUrl))
+                urlField.isReadOnly = true;
+            _detailContent.Add(urlField);
         }
 
         private void BuildCommonSection(AsrProfileFieldBinder b)

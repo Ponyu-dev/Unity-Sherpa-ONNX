@@ -22,6 +22,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         public string profileName = "New Profile";
         public TtsModelType modelType = TtsModelType.Vits;
         public TtsModelSource modelSource = TtsModelSource.Local;
+        public string sourceUrl = "";
 
         // ── Common (OfflineTtsModelConfig) ──
 

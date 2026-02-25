@@ -8,6 +8,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
     {
         // Identity
         ProfileName,
+        SourceUrl,
 
         // Generation
         SpeakerId,

@@ -1,5 +1,7 @@
 using System;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
@@ -21,6 +23,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         private readonly VisualElement _detailContent;
 
         private ProfileListPresenter<TtsProfile> _listPresenter;
+        private Button _redownloadButton;
         private int _currentIndex = -1;
         private bool _disposed;
 
@@ -40,6 +43,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         internal void ShowProfile(int index)
         {
+            UnsubscribeRedownload();
             _currentIndex = index;
             _detailContent.Clear();
 
@@ -49,7 +53,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             TtsProfile profile = _settings.data.profiles[index];
             var binder = new ProfileFieldBinder(profile, _settings);
 
-            MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, TtsModelPaths.GetModelDir);
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, TtsModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            if (_redownloadButton != null)
+                _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);
@@ -62,6 +68,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         internal void Clear()
         {
+            UnsubscribeRedownload();
             _currentIndex = -1;
             _detailContent.Clear();
         }
@@ -70,6 +77,36 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             _disposed = true;
             Clear();
+        }
+
+        // ── Redownload ──
+
+        private void UnsubscribeRedownload()
+        {
+            if (_redownloadButton != null)
+                _redownloadButton.clicked -= HandleRedownloadClicked;
+            _redownloadButton = null;
+        }
+
+        private async void HandleRedownloadClicked()
+        {
+            if (!TryGetCurrentProfile(out TtsProfile profile)) return;
+            if (string.IsNullOrEmpty(profile.sourceUrl)) return;
+
+            try
+            {
+                using var redownloader = new ModelRedownloader();
+                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, TtsModelPaths.GetModelDir, default);
+                TtsProfileAutoFiller.Fill(profile, destDir);
+                _settings.SaveSettings();
+                AssetDatabase.Refresh();
+                _listPresenter?.RefreshList();
+                ShowProfile(_currentIndex);
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] TTS re-download failed: {ex}");
+            }
         }
 
         // ── Sections ──
@@ -144,6 +181,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             var sourceField = new EnumField("Model source", profile.modelSource);
             sourceField.RegisterValueChangedCallback(HandleModelSourceChanged);
             _detailContent.Add(sourceField);
+
+            var urlField = binder.BindText("Source URL", profile.sourceUrl, ProfileField.SourceUrl);
+            if (!string.IsNullOrEmpty(profile.sourceUrl))
+                urlField.isReadOnly = true;
+            _detailContent.Add(urlField);
         }
 
         private void BuildCommonSection(ProfileFieldBinder b)

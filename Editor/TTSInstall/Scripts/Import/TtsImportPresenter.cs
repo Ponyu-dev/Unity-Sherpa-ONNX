@@ -201,6 +201,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             var profile = new TtsProfile
             {
                 profileName = archiveName,
+                sourceUrl = url,
                 modelSource = TtsModelSource.Local
             };
 

@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
 
         public string profileName = "New VAD Profile";
         public VadModelType modelType = VadModelType.SileroVad;
+        public string sourceUrl = "";
 
         // ── Common ──
 

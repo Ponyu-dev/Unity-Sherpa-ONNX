@@ -184,7 +184,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             var profile = new OnlineAsrProfile
             {
-                profileName = archiveName
+                profileName = archiveName,
+                sourceUrl = url
             };
 
             if (detected.HasValue)

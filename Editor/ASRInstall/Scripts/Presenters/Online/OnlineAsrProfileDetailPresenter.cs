@@ -1,10 +1,13 @@
 using System;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
+using UnityEditor;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
@@ -15,6 +18,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         private readonly VisualElement _detailContent;
 
         private ProfileListPresenter<OnlineAsrProfile> _listPresenter;
+        private Button _redownloadButton;
         private int _currentIndex = -1;
 
         internal OnlineAsrProfileDetailPresenter(VisualElement detailContent, AsrProjectSettings settings)
@@ -30,6 +34,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 
         internal void ShowProfile(int index)
         {
+            UnsubscribeRedownload();
             _currentIndex = index;
             _detailContent.Clear();
             if (index < 0 || index >= _settings.onlineData.profiles.Count)
@@ -38,7 +43,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             OnlineAsrProfile profile = _settings.onlineData.profiles[index];
             var binder = new OnlineAsrProfileFieldBinder(profile, _settings);
 
-            MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, AsrModelPaths.GetModelDir);
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, AsrModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            if (_redownloadButton != null)
+                _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);
@@ -53,11 +60,42 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 
         internal void Clear()
         {
+            UnsubscribeRedownload();
             _currentIndex = -1;
             _detailContent.Clear();
         }
 
         public void Dispose() => Clear();
+
+        // ── Redownload ──
+
+        private void UnsubscribeRedownload()
+        {
+            if (_redownloadButton != null)
+                _redownloadButton.clicked -= HandleRedownloadClicked;
+            _redownloadButton = null;
+        }
+
+        private async void HandleRedownloadClicked()
+        {
+            if (!TryGetCurrentProfile(out OnlineAsrProfile profile)) return;
+            if (string.IsNullOrEmpty(profile.sourceUrl)) return;
+
+            try
+            {
+                using var redownloader = new ModelRedownloader();
+                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, AsrModelPaths.GetModelDir, default);
+                OnlineAsrProfileAutoFiller.Fill(profile, destDir);
+                _settings.SaveSettings();
+                AssetDatabase.Refresh();
+                _listPresenter?.RefreshList();
+                ShowProfile(_currentIndex);
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Online ASR re-download failed: {ex}");
+            }
+        }
 
         private void BuildAutoConfigureButton(OnlineAsrProfile profile)
         {
@@ -126,6 +164,11 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             var typeField = new EnumField("Model type", profile.modelType);
             typeField.RegisterValueChangedCallback(HandleModelTypeChanged);
             _detailContent.Add(typeField);
+
+            var urlField = binder.BindText("Source URL", profile.sourceUrl, OnlineAsrProfileField.SourceUrl);
+            if (!string.IsNullOrEmpty(profile.sourceUrl))
+                urlField.isReadOnly = true;
+            _detailContent.Add(urlField);
         }
 
         private void BuildCommonSection(OnlineAsrProfileFieldBinder b)

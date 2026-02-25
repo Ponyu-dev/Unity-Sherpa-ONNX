@@ -1,10 +1,13 @@
 using System;
+using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
+using UnityEditor;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
@@ -20,6 +23,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         private readonly VisualElement _detailContent;
 
         private ProfileListPresenter<VadProfile> _listPresenter;
+        private Button _redownloadButton;
         private int _currentIndex = -1;
 
         internal VadProfileDetailPresenter(
@@ -38,6 +42,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
         internal void ShowProfile(int index)
         {
+            UnsubscribeRedownload();
             _currentIndex = index;
             _detailContent.Clear();
 
@@ -47,7 +52,9 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             VadProfile profile = _settings.data.profiles[index];
             var binder = new VadProfileFieldBinder(profile, _settings);
 
-            MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, VadModelPaths.GetModelDir);
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, VadModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            if (_redownloadButton != null)
+                _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
             BuildVersionWarning(profile.modelType);
             BuildIdentitySection(profile, binder);
@@ -58,6 +65,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
         internal void Clear()
         {
+            UnsubscribeRedownload();
             _currentIndex = -1;
             _detailContent.Clear();
         }
@@ -65,6 +73,37 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         public void Dispose()
         {
             Clear();
+        }
+
+        // ── Redownload ──
+
+        private void UnsubscribeRedownload()
+        {
+            if (_redownloadButton != null)
+                _redownloadButton.clicked -= HandleRedownloadClicked;
+            _redownloadButton = null;
+        }
+
+        private async void HandleRedownloadClicked()
+        {
+            if (!TryGetCurrentProfile(out VadProfile profile)) return;
+            if (string.IsNullOrEmpty(profile.sourceUrl)) return;
+
+            try
+            {
+                string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+                using var redownloader = new ModelRedownloader();
+                await redownloader.RedownloadFileAsync(profile.sourceUrl, modelDir, default);
+                VadProfileAutoFiller.Fill(profile, modelDir);
+                _settings.SaveSettings();
+                AssetDatabase.Refresh();
+                _listPresenter?.RefreshList();
+                ShowProfile(_currentIndex);
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] VAD re-download failed: {ex}");
+            }
         }
 
         // ── Sections ──
@@ -110,6 +149,11 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             var typeField = new EnumField("Model type", profile.modelType);
             typeField.RegisterValueChangedCallback(HandleModelTypeChanged);
             _detailContent.Add(typeField);
+
+            var urlField = binder.BindText("Source URL", profile.sourceUrl, VadProfileField.SourceUrl);
+            if (!string.IsNullOrEmpty(profile.sourceUrl))
+                urlField.isReadOnly = true;
+            _detailContent.Add(urlField);
         }
 
         private void BuildThresholdsSection(VadProfileFieldBinder b)

@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
 
         public string profileName = "New Online Profile";
         public OnlineAsrModelType modelType = OnlineAsrModelType.Transducer;
+        public string sourceUrl = "";
 
         // ── Common (OnlineModelConfig) ──
 

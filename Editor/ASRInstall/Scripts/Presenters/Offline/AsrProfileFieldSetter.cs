@@ -14,6 +14,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             switch (f)
             {
                 case AsrProfileField.ProfileName: p.profileName = v; break;
+                case AsrProfileField.SourceUrl: p.sourceUrl = v; break;
                 case AsrProfileField.Provider: p.provider = v; break;
                 case AsrProfileField.Tokens: p.tokens = v; break;
                 case AsrProfileField.DecodingMethod: p.decodingMethod = v; break;
