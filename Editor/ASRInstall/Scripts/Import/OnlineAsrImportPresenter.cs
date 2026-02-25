@@ -95,6 +95,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 return;
             }
 
+            string archiveName = ArchiveNameParser.GetArchiveName(url);
+            if (!AsrImportMismatchValidator.ConfirmOnlineImport(archiveName))
+            {
+                SetStatus("Import canceled: model type mismatch.");
+                return;
+            }
+
             if (_isBusy) return;
 
             _cts = new CancellationTokenSource();
@@ -205,7 +212,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         private void SetStatus(string text, bool isError = false)
         {
-            if (_statusLabel == null) return;
+            if (_statusLabel == null)
+                return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
 

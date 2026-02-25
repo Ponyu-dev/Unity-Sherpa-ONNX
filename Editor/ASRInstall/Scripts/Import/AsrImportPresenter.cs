@@ -95,6 +95,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 return;
             }
 
+            string archiveName = ArchiveNameParser.GetArchiveName(url);
+            if (!AsrImportMismatchValidator.ConfirmOfflineImport(archiveName))
+            {
+                SetStatus("Import canceled: model type mismatch.");
+                return;
+            }
+
             if (_isBusy) return;
 
             _cts = new CancellationTokenSource();
