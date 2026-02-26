@@ -8,9 +8,12 @@ EditorBuildSettings:
   - enabled: 0
     path: Assets/Samples/TTS/SampleScene.unity
     guid: 7502256bcf30142349355d5889affa5a
-  - enabled: 1
+  - enabled: 0
     path: Assets/Samples/ASR/SampleScene.unity
     guid: 141ad30308e9241eebb253bd395e66d1
+  - enabled: 1
+    path: Assets/Samples/VAD/VAD-SampleScene.unity
+    guid: fff12b4a5c46a4cd9949f8dbd08c53a9
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   m_UseUCBPForAssetBundles: 0

@@ -187,7 +187,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             SetStatus($"Starting import of {archiveName}...");
 
             var handler = new ModelContentHandler(
-                archiveName, TtsModelPaths.GetModelDir);
+                archiveName, ModelPaths.GetTtsModelDir);
             _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;

@@ -19,8 +19,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
         private const string ManifestPath = SherpaOnnxDir + "/streaming-assets-manifest.json";
         private const string StreamingAssetsRoot = "Assets/StreamingAssets/";
 
-        // Run before TtsLocalZipBuildProcessor (100).
-        public int callbackOrder => 50;
+        // Run after all LocalZipBuildProcessors (100–102)
+        // so the manifest reflects zipped directories.
+        public int callbackOrder => 110;
 
         public void OnPreprocessBuild(BuildReport report)
         {

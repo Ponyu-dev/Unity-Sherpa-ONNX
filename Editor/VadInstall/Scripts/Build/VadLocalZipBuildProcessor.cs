@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Editor.Common.Build;
-using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using UnityEditor.Build;
@@ -27,12 +27,12 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Build
             foreach (VadProfile p in VadProjectSettings.instance.data.profiles)
                 entries.Add(new LocalZipBuildHelper.ProfileEntry(p.profileName, p.modelSource));
 
-            LocalZipBuildHelper.Preprocess(BackupRoot, entries, VadModelPaths.GetModelDir);
+            LocalZipBuildHelper.Preprocess(BackupRoot, entries, ModelPaths.GetVadModelDir);
         }
 
         public void OnPostprocessBuild(BuildReport report)
         {
-            LocalZipBuildHelper.Postprocess(BackupRoot, VadModelPaths.GetModelDir);
+            LocalZipBuildHelper.Postprocess(BackupRoot, ModelPaths.GetVadModelDir);
         }
     }
 }

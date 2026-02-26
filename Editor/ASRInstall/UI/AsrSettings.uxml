@@ -5,84 +5,80 @@
             <ui:HelpBox text="Download models from GitHub releases. Paste the direct archive URL below and click Install." message-type="Info"/>
         </ui:VisualElement>
         <ui:Toggle name="asrEnabledToggle" label="Include ASR in Build" value="true" style="margin: 8px 0;"/>
-        
         <ui:VisualElement class="model-links-row">
             <ui:Label text="Pre-trained ASR models" name="linkModels" class="model-link-label"/>
         </ui:VisualElement>
-
         <!-- Tab bar -->
         <ui:VisualElement class="asr-tab-bar">
             <ui:Button name="offlineTabBtn" text="Offline" class="asr-tab asr-tab-active"/>
             <ui:Button name="onlineTabBtn" text="Online" class="asr-tab"/>
         </ui:VisualElement>
-
         <!-- Offline container -->
         <ui:VisualElement name="offlineContainer" class="asr-tab-content">
-            <ui:VisualElement name="offlineActiveProfileSection" class="model-active-profile-section"/>
+            <ui:VisualElement name="activeProfileSection" class="model-active-profile-section"/>
             <ui:VisualElement class="model-toolbar row">
-                <ui:Button name="offlineAddProfileButton" text="Add profile" class="btn btn-primary"/>
-                <ui:Button name="offlineRemoveProfileButton" text="Remove selected" class="btn btn-secondary"/>
-                <ui:Button name="offlineImportFromUrlButton" text="Import from URL" class="btn btn-accent"/>
+                <ui:Button name="addProfileButton" text="Add profile" class="btn btn-primary"/>
+                <ui:Button name="removeProfileButton" text="Remove selected" class="btn btn-secondary"/>
+                <ui:Button name="importFromUrlButton" text="Import from URL" class="btn btn-accent"/>
             </ui:VisualElement>
-            <ui:VisualElement name="offlineImportSection" class="model-import-section hidden">
+            <ui:VisualElement name="importSection" class="model-import-section hidden">
                 <ui:VisualElement class="model-import-row">
-                    <ui:TextField label="Model archive URL" name="offlineImportUrlField" class="model-import-url"/>
-                    <ui:VisualElement name="offlineImportOptionsRow" class="model-import-options-row hidden">
-                        <ui:Toggle label="Use int8 models" name="offlineImportInt8Toggle"/>
+                    <ui:TextField label="Model archive URL" name="importUrlField" class="model-import-url"/>
+                    <ui:VisualElement name="importOptionsRow" class="model-import-options-row hidden">
+                        <ui:Toggle label="Use int8 models" name="importInt8Toggle"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="model-import-buttons-row">
-                        <ui:Button text="Import" name="offlineImportButton" class="btn btn-primary"/>
-                        <ui:Button text="Cancel" name="offlineImportCancelButton" class="btn btn-secondary hidden"/>
+                        <ui:Button text="Import" name="importButton" class="btn btn-primary"/>
+                        <ui:Button text="Cancel" name="importCancelButton" class="btn btn-secondary hidden"/>
                     </ui:VisualElement>
-                    <ui:ProgressBar name="offlineImportProgressBar" class="model-import-progress hidden"/>
-                    <ui:Label name="offlineImportStatusLabel" class="model-import-status hidden"/>
+                    <ui:ProgressBar name="importProgressBar" class="model-import-progress hidden"/>
+                    <ui:Label name="importStatusLabel" class="model-import-status hidden"/>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="model-main">
                 <ui:VisualElement class="model-list-panel">
                     <ui:Label text="Profiles" class="model-list-label"/>
-                    <ui:ListView name="offlineProfilesListView" class="model-profiles-list"/>
+                    <ui:ListView name="profilesListView" class="model-profiles-list"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="model-detail-panel">
                     <ui:Label text="Profile details" class="model-detail-label"/>
-                    <ui:ScrollView name="offlineDetailScrollView" class="model-detail-scroll">
-                        <ui:VisualElement name="offlineDetailContent" class="model-detail-content"/>
+                    <ui:ScrollView name="detailScrollView" class="model-detail-scroll">
+                        <ui:VisualElement name="detailContent" class="model-detail-content"/>
                     </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>
         </ui:VisualElement>
-
         <!-- Online container -->
         <ui:VisualElement name="onlineContainer" class="asr-tab-content hidden">
-            <ui:VisualElement name="onlineActiveProfileSection" class="model-active-profile-section"/>
+            <ui:VisualElement name="activeProfileSection" class="model-active-profile-section"/>
             <ui:VisualElement class="model-toolbar row">
-                <ui:Button name="onlineAddProfileButton" text="Add profile" class="btn btn-primary"/>
-                <ui:Button name="onlineRemoveProfileButton" text="Remove selected" class="btn btn-secondary"/>
-                <ui:Button name="onlineImportFromUrlButton" text="Import from URL" class="btn btn-accent"/>
+                <ui:Button name="addProfileButton" text="Add profile" class="btn btn-primary"/>
+                <ui:Button name="removeProfileButton" text="Remove selected" class="btn btn-secondary"/>
+                <ui:Button name="importFromUrlButton" text="Import from URL" class="btn btn-accent"/>
             </ui:VisualElement>
-            <ui:VisualElement name="onlineImportSection" class="model-import-section hidden">
+            <ui:VisualElement name="importSection" class="model-import-section hidden">
                 <ui:VisualElement class="model-import-row">
-                    <ui:TextField label="Model archive URL" name="onlineImportUrlField" class="model-import-url"/>
-                    <ui:VisualElement name="onlineImportOptionsRow" class="model-import-options-row hidden">
-                        <ui:Toggle label="Use int8 models" name="onlineImportInt8Toggle"/>
+                    <ui:TextField label="Model archive URL" name="importUrlField" class="model-import-url"/>
+                    <ui:VisualElement name="importOptionsRow" class="model-import-options-row hidden">
+                        <ui:Toggle label="Use int8 models" name="importInt8Toggle"/>
                     </ui:VisualElement>
                     <ui:VisualElement class="model-import-buttons-row">
-                        <ui:Button text="Import" name="onlineImportButton" class="btn btn-primary"/>
-                        <ui:Button text="Cancel" name="onlineImportCancelButton" class="btn btn-secondary hidden"/>
+                        <ui:Button text="Import" name="importButton" class="btn btn-primary"/>
+                        <ui:Button text="Cancel" name="importCancelButton" class="btn btn-secondary hidden"/>
                     </ui:VisualElement>
-                    <ui:ProgressBar name="onlineImportProgressBar" class="model-import-progress hidden"/>
-                    <ui:Label name="onlineImportStatusLabel" class="model-import-status hidden"/>
+                    <ui:ProgressBar name="importProgressBar" class="model-import-progress hidden"/>
+                    <ui:Label name="importStatusLabel" class="model-import-status hidden"/>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement class="model-main">
                 <ui:VisualElement class="model-list-panel">
                     <ui:Label text="Profiles" class="model-list-label"/>
-                    <ui:ListView name="onlineProfilesListView" class="model-profiles-list"/>
+                    <ui:ListView name="profilesListView" class="model-profiles-list"/>
                 </ui:VisualElement>
                 <ui:VisualElement class="model-detail-panel">
                     <ui:Label text="Profile details" class="model-detail-label"/>
-                    <ui:ScrollView name="onlineDetailScrollView" class="model-detail-scroll">
-                        <ui:VisualElement name="onlineDetailContent" class="model-detail-content"/>
+                    <ui:ScrollView name="detailScrollView" class="model-detail-scroll">
+                        <ui:VisualElement name="detailContent" class="model-detail-content"/>
                     </ui:ScrollView>
                 </ui:VisualElement>
             </ui:VisualElement>

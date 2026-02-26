@@ -42,20 +42,20 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         internal void Build(VisualElement parent)
         {
-            _urlField = parent.Q<TextField>("onlineImportUrlField");
+            _urlField = parent.Q<TextField>("importUrlField");
             _urlField.RegisterValueChangedCallback(HandleUrlChanged);
 
-            _optionsRow = parent.Q<VisualElement>("onlineImportOptionsRow");
-            _int8Toggle = parent.Q<Toggle>("onlineImportInt8Toggle");
+            _optionsRow = parent.Q<VisualElement>("importOptionsRow");
+            _int8Toggle = parent.Q<Toggle>("importInt8Toggle");
 
-            _importButton = parent.Q<Button>("onlineImportButton");
+            _importButton = parent.Q<Button>("importButton");
             _importButton.clicked += HandleImportClicked;
 
-            _cancelButton = parent.Q<Button>("onlineImportCancelButton");
+            _cancelButton = parent.Q<Button>("importCancelButton");
             _cancelButton.clicked += HandleCancelClicked;
 
-            _progressBar = parent.Q<ProgressBar>("onlineImportProgressBar");
-            _statusLabel = parent.Q<Label>("onlineImportStatusLabel");
+            _progressBar = parent.Q<ProgressBar>("importProgressBar");
+            _statusLabel = parent.Q<Label>("importStatusLabel");
         }
 
         public void Dispose()
@@ -171,7 +171,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new ModelContentHandler(archiveName, AsrModelPaths.GetModelDir);
+            var handler = new ModelContentHandler(archiveName, ModelPaths.GetAsrModelDir);
             _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;

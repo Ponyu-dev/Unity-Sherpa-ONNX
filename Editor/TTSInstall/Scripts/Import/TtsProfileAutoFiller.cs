@@ -6,7 +6,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
     /// <summary>
     /// Scans a model directory and fills <see cref="TtsProfile"/> path fields.
     /// Stores only file names / folder names — full paths are assembled at runtime
-    /// from <see cref="TtsModelPaths.TtsModelsRelative"/> + profile name + entry name.
+    /// from <see cref="ModelPaths.TtsModelsDir"/> + profile name + entry name.
     /// </summary>
     internal static class TtsProfileAutoFiller
     {

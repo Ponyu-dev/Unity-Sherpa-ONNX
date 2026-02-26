@@ -57,7 +57,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             VadProfile profile = _settings.data.profiles[index];
             var binder = new VadProfileFieldBinder(profile, _settings);
 
-            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, VadModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, ModelPaths.GetVadModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
             if (_redownloadButton != null)
                 _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
@@ -111,7 +111,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
             try
             {
-                string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+                string modelDir = ModelPaths.GetVadModelDir(profile.profileName);
                 using var redownloader = new ModelRedownloader();
                 await redownloader.RedownloadFileAsync(profile.sourceUrl, modelDir, default);
                 VadProfileAutoFiller.Fill(profile, modelDir);
@@ -130,7 +130,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
         private void BuildAutoConfigureButton(VadProfile profile)
         {
-            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir))
                 return;
 
@@ -243,7 +243,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
             AddSectionHeader("Local Zip");
 
-            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profile.profileName);
             var result = ModelSourceSectionBuilder.BuildLocalZip(_detailContent, modelDir);
 
             if (result.PackButton != null)
@@ -271,7 +271,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         {
             if (!TryGetCurrentProfile(out VadProfile profile)) return;
 
-            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
             VadProfileAutoFiller.Fill(profile, modelDir);
@@ -308,7 +308,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         {
             if (!TryGetCurrentProfile(out VadProfile profile)) return;
 
-            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profile.profileName);
             ModelFileService.PackToZip(modelDir);
             RefreshAfterAssetChange();
         }
@@ -317,7 +317,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         {
             if (!TryGetCurrentProfile(out VadProfile profile)) return;
 
-            string modelDir = VadModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profile.profileName);
             ModelFileService.DeleteZip(modelDir);
             RefreshAfterAssetChange();
         }

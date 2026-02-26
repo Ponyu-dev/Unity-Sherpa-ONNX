@@ -118,8 +118,7 @@ namespace PonyuDev.SherpaOnnx.Tts
         {
             if (profile == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] TtsService.LoadProfile: profile is null.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService.LoadProfile: profile is null.");
                 return;
             }
 

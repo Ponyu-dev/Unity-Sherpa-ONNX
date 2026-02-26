@@ -57,7 +57,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             TtsProfile profile = _settings.data.profiles[index];
             var binder = new ProfileFieldBinder(profile, _settings);
 
-            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, TtsModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, ModelPaths.GetTtsModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
             if (_redownloadButton != null)
                 _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
@@ -112,7 +112,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             try
             {
                 using var redownloader = new ModelRedownloader();
-                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, TtsModelPaths.GetModelDir, default);
+                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, ModelPaths.GetTtsModelDir, default);
                 TtsProfileAutoFiller.Fill(profile, destDir);
                 _settings.SaveSettings();
                 AssetDatabase.Refresh();
@@ -129,7 +129,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void BuildAutoConfigureButton(TtsProfile profile)
         {
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir))
                 return;
 
@@ -143,7 +143,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         private void BuildInt8SwitchButton(TtsProfile profile)
         {
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
             if (!TtsInt8Switcher.HasInt8Alternative(profile, modelDir)) return;
 
@@ -283,7 +283,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
             AddSectionHeader("Local Zip");
 
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             var result = ModelSourceSectionBuilder.BuildLocalZip(_detailContent, modelDir);
 
             if (result.PackButton != null)
@@ -304,7 +304,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
             TtsProfileAutoFiller.Fill(profile, modelDir);
@@ -316,7 +316,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
             bool wasInt8 = TtsInt8Switcher.IsUsingInt8(profile);
@@ -333,7 +333,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             ModelFileService.PackToZip(modelDir);
             RefreshAfterAssetChange();
         }
@@ -342,7 +342,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             if (!TryGetCurrentProfile(out TtsProfile profile)) return;
 
-            string modelDir = TtsModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(profile.profileName);
             ModelFileService.DeleteZip(modelDir);
             RefreshAfterAssetChange();
         }

@@ -20,7 +20,7 @@ MonoBehaviour:
     - profileName: sherpa-onnx-zipformer-small-en-2023-06-26
       modelType: 0
       modelSource: 0
-      sourceUrl: 
+      sourceUrl: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-zipformer-small-en-2023-06-26.tar.bz2
       numThreads: 1
       provider: cpu
       tokens: tokens.txt
@@ -83,11 +83,11 @@ MonoBehaviour:
       funAsrNanoHotwords: 
       remoteBaseUrl: 
   onlineData:
-    activeProfileIndex: -1
+    activeProfileIndex: 0
     profiles:
     - profileName: sherpa-onnx-streaming-zipformer-en-20M-2023-02-17
       modelType: 0
-      modelSource: 0
+      modelSource: 2
       sourceUrl: https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2
       numThreads: 1
       provider: cpu

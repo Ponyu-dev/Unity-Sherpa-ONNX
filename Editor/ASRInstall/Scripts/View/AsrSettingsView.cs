@@ -5,6 +5,7 @@ using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using UnityEditor;
 using UnityEngine;
@@ -18,8 +19,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
     /// </summary>
     internal sealed class AsrSettingsView : IDisposable
     {
-        private const string GitHubModelsUrl =
-            "https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models";
+        private const string GitHubModelsUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models";
         private const string ActiveTabClass = "asr-tab-active";
 
         private readonly string _uxmlPath;
@@ -48,12 +48,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
 
         internal void Build(VisualElement hostRoot)
         {
-            var uxmlAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(
-                _uxmlPath);
+            var uxmlAsset = AssetDatabase.LoadAssetAtPath<VisualTreeAsset>(_uxmlPath);
             if (uxmlAsset == null)
             {
-                Debug.LogError(
-                    $"[SherpaOnnx] ASR UXML not found: {_uxmlPath}");
+                Debug.LogError($"[SherpaOnnx] ASR UXML not found: {_uxmlPath}");
                 return;
             }
 
@@ -65,16 +63,15 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             BindEnabledToggle(hostRoot, settings);
             BindLinks(hostRoot);
             BindTabs(hostRoot);
-            BuildOfflinePresenters(hostRoot, settings);
-            BuildOnlinePresenters(hostRoot, settings);
+            BuildOfflinePresenters(settings);
+            BuildOnlinePresenters(settings);
         }
 
         public void Dispose()
         {
             DisposeOffline();
             DisposeOnline();
-            _asrEnabledToggle?.UnregisterValueChangedCallback(
-                HandleAsrEnabledChanged);
+            _asrEnabledToggle?.UnregisterValueChangedCallback(HandleAsrEnabledChanged);
             _asrEnabledToggle = null;
             if (_offlineTabBtn != null) _offlineTabBtn.clicked -= HandleOfflineTabClicked;
             if (_onlineTabBtn != null) _onlineTabBtn.clicked -= HandleOnlineTabClicked;
@@ -84,19 +81,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             _onlineContainer = null;
         }
 
-        private void BindEnabledToggle(
-            VisualElement root, AsrProjectSettings settings)
+        private void BindEnabledToggle(VisualElement root, AsrProjectSettings settings)
         {
             _asrEnabledToggle = root.Q<Toggle>("asrEnabledToggle");
-            if (_asrEnabledToggle == null) return;
-
+            if (_asrEnabledToggle == null)
+                return;
             _asrEnabledToggle.value = settings.asrEnabled;
-            _asrEnabledToggle.RegisterValueChangedCallback(
-                HandleAsrEnabledChanged);
+            _asrEnabledToggle.RegisterValueChangedCallback(HandleAsrEnabledChanged);
         }
 
-        private static void HandleAsrEnabledChanged(
-            ChangeEvent<bool> evt)
+        private static void HandleAsrEnabledChanged(ChangeEvent<bool> evt)
         {
             var s = AsrProjectSettings.instance;
             s.asrEnabled = evt.newValue;
@@ -105,16 +99,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
 
         private void LoadStyleSheets(VisualElement root)
         {
-            const string commonUssPath =
-                "Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/ModelSettings.uss";
-            var commonUss =
-                AssetDatabase.LoadAssetAtPath<StyleSheet>(commonUssPath);
+            const string commonUssPath = "Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/ModelSettings.uss";
+            var commonUss = AssetDatabase.LoadAssetAtPath<StyleSheet>(commonUssPath);
             if (commonUss != null)
                 root.styleSheets.Add(commonUss);
 
             string ussPath = _uxmlPath.Replace(".uxml", ".uss");
-            var ussAsset =
-                AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
+            var ussAsset = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
             if (ussAsset != null)
                 root.styleSheets.Add(ussAsset);
         }
@@ -122,13 +113,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private static void BindLinks(VisualElement root)
         {
             var label = root.Q<Label>("linkModels");
-            if (label != null)
-                label.RegisterCallback<PointerUpEvent, string>(
-                    HandleLinkClicked, GitHubModelsUrl);
+            label?.RegisterCallback<PointerUpEvent, string>(HandleLinkClicked, GitHubModelsUrl);
         }
 
-        private static void HandleLinkClicked(
-            PointerUpEvent evt, string url)
+        private static void HandleLinkClicked(PointerUpEvent evt, string url)
         {
             Application.OpenURL(url);
         }
@@ -160,46 +148,33 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             _offlineContainer.AddToClassList("hidden");
         }
 
-        private void BuildOfflinePresenters(
-            VisualElement root, AsrProjectSettings settings)
+        private void BuildOfflinePresenters(AsrProjectSettings settings)
         {
-            var activeSection = root.Q<VisualElement>(
-                "offlineActiveProfileSection");
-            _offlineActivePresenter =
-                new ActiveProfilePresenter<AsrProfile>(
-                    settings.offlineData, settings, AsrModelPaths.GetModelDir);
+            var activeSection = _offlineContainer.Q<VisualElement>("activeProfileSection");
+            _offlineActivePresenter = new ActiveProfilePresenter<AsrProfile>(settings.offlineData, settings, ModelPaths.GetAsrModelDir);
             _offlineActivePresenter.Build(activeSection);
 
-            _offlineImportSection = root.Q<VisualElement>(
-                "offlineImportSection");
-            _offlineImportPresenter = new AsrImportPresenter(
-                settings, HandleOfflineImportCompleted);
+            _offlineImportSection = _offlineContainer.Q<VisualElement>("importSection");
+            _offlineImportPresenter = new AsrImportPresenter(settings, HandleOfflineImportCompleted);
             _offlineImportPresenter.Build(_offlineImportSection);
 
-            _offlineImportFromUrlButton = root.Q<Button>(
-                "offlineImportFromUrlButton");
-            _offlineImportFromUrlButton.clicked +=
-                HandleOfflineImportFromUrlClicked;
+            _offlineImportFromUrlButton = _offlineContainer.Q<Button>("importFromUrlButton");
+            _offlineImportFromUrlButton.clicked += HandleOfflineImportFromUrlClicked;
 
-            var listView = root.Q<ListView>("offlineProfilesListView");
-            var addBtn = root.Q<Button>("offlineAddProfileButton");
-            var removeBtn = root.Q<Button>("offlineRemoveProfileButton");
-            var detail = root.Q<VisualElement>("offlineDetailContent");
+            var listView = _offlineContainer.Q<ListView>("profilesListView");
+            var addBtn = _offlineContainer.Q<Button>("addProfileButton");
+            var removeBtn = _offlineContainer.Q<Button>("removeProfileButton");
+            var detail = _offlineContainer.Q<VisualElement>("detailContent");
 
-            _offlineListPresenter = new ProfileListPresenter<AsrProfile>(
-                settings.offlineData, settings,
-                AsrModelPaths.GetModelDir, "model-list-item");
-            _offlineDetailPresenter = new AsrProfileDetailPresenter(
-                detail, settings);
+            _offlineListPresenter = new ProfileListPresenter<AsrProfile>(settings.offlineData, settings, ModelPaths.GetAsrModelDir, "model-list-item");
+            _offlineDetailPresenter = new AsrProfileDetailPresenter(detail, settings);
             _offlineDetailPresenter.SetListPresenter(_offlineListPresenter);
 
-            _offlineListPresenter.SelectionChanged +=
-                HandleOfflineSelectionChanged;
+            _offlineListPresenter.SelectionChanged += HandleOfflineSelectionChanged;
             _offlineListPresenter.Build(listView, addBtn, removeBtn);
         }
 
-        private void HandleOfflineImportFromUrlClicked() =>
-            _offlineImportSection?.ToggleInClassList("hidden");
+        private void HandleOfflineImportFromUrlClicked() => _offlineImportSection?.ToggleInClassList("hidden");
 
         private void HandleOfflineImportCompleted()
         {
@@ -214,47 +189,33 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             _offlineActivePresenter?.Refresh();
         }
 
-        private void BuildOnlinePresenters(
-            VisualElement root, AsrProjectSettings settings)
+        private void BuildOnlinePresenters(AsrProjectSettings settings)
         {
-            var activeSection = root.Q<VisualElement>(
-                "onlineActiveProfileSection");
-            _onlineActivePresenter =
-                new ActiveProfilePresenter<OnlineAsrProfile>(
-                    settings.onlineData, settings, AsrModelPaths.GetModelDir);
+            var activeSection = _onlineContainer.Q<VisualElement>("activeProfileSection");
+            _onlineActivePresenter = new ActiveProfilePresenter<OnlineAsrProfile>(settings.onlineData, settings, ModelPaths.GetAsrModelDir);
             _onlineActivePresenter.Build(activeSection);
 
-            _onlineImportSection = root.Q<VisualElement>(
-                "onlineImportSection");
-            _onlineImportPresenter = new OnlineAsrImportPresenter(
-                settings, HandleOnlineImportCompleted);
+            _onlineImportSection = _onlineContainer.Q<VisualElement>("importSection");
+            _onlineImportPresenter = new OnlineAsrImportPresenter(settings, HandleOnlineImportCompleted);
             _onlineImportPresenter.Build(_onlineImportSection);
 
-            _onlineImportFromUrlButton = root.Q<Button>(
-                "onlineImportFromUrlButton");
-            _onlineImportFromUrlButton.clicked +=
-                HandleOnlineImportFromUrlClicked;
+            _onlineImportFromUrlButton = _onlineContainer.Q<Button>("importFromUrlButton");
+            _onlineImportFromUrlButton.clicked += HandleOnlineImportFromUrlClicked;
 
-            var listView = root.Q<ListView>("onlineProfilesListView");
-            var addBtn = root.Q<Button>("onlineAddProfileButton");
-            var removeBtn = root.Q<Button>("onlineRemoveProfileButton");
-            var detail = root.Q<VisualElement>("onlineDetailContent");
+            var listView = _onlineContainer.Q<ListView>("profilesListView");
+            var addBtn = _onlineContainer.Q<Button>("addProfileButton");
+            var removeBtn = _onlineContainer.Q<Button>("removeProfileButton");
+            var detail = _onlineContainer.Q<VisualElement>("detailContent");
 
-            _onlineListPresenter =
-                new ProfileListPresenter<OnlineAsrProfile>(
-                    settings.onlineData, settings,
-                    AsrModelPaths.GetModelDir, "model-list-item");
-            _onlineDetailPresenter =
-                new OnlineAsrProfileDetailPresenter(detail, settings);
+            _onlineListPresenter = new ProfileListPresenter<OnlineAsrProfile>(settings.onlineData, settings, ModelPaths.GetAsrModelDir, "model-list-item");
+            _onlineDetailPresenter = new OnlineAsrProfileDetailPresenter(detail, settings);
             _onlineDetailPresenter.SetListPresenter(_onlineListPresenter);
 
-            _onlineListPresenter.SelectionChanged +=
-                HandleOnlineSelectionChanged;
+            _onlineListPresenter.SelectionChanged += HandleOnlineSelectionChanged;
             _onlineListPresenter.Build(listView, addBtn, removeBtn);
         }
 
-        private void HandleOnlineImportFromUrlClicked() =>
-            _onlineImportSection?.ToggleInClassList("hidden");
+        private void HandleOnlineImportFromUrlClicked() => _onlineImportSection?.ToggleInClassList("hidden");
 
         private void HandleOnlineImportCompleted()
         {

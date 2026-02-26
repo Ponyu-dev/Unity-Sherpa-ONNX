@@ -6,6 +6,7 @@ using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using UnityEditor;
@@ -151,7 +152,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
 
             SetStatus($"Downloading {fileName}...");
 
-            string modelDir = VadModelPaths.GetModelDir(profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profileName);
             Directory.CreateDirectory(modelDir);
 
             _downloader = new UnityWebRequestFileDownloader();

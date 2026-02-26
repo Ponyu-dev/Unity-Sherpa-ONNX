@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters;
@@ -16,10 +17,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
     /// </summary>
     internal sealed class TtsSettingsView : IDisposable
     {
-        private const string HuggingFaceUrl =
-            "https://huggingface.co/spaces/k2-fsa/text-to-speech";
-        private const string GitHubModelsUrl =
-            "https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models";
+        private const string HuggingFaceUrl = "https://huggingface.co/spaces/k2-fsa/text-to-speech";
+        private const string GitHubModelsUrl = "https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models";
 
         private readonly string _uxmlPath;
         private Toggle _ttsEnabledToggle;
@@ -59,8 +58,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         public void Dispose()
         {
-            _ttsEnabledToggle?.UnregisterValueChangedCallback(
-                HandleTtsEnabledChanged);
+            _ttsEnabledToggle?.UnregisterValueChangedCallback(HandleTtsEnabledChanged);
             _ttsEnabledToggle = null;
 
             _activeProfilePresenter?.Dispose();
@@ -86,15 +84,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         // ── Module Toggle ──
 
-        private void BindEnabledToggle(
-            VisualElement root, TtsProjectSettings settings)
+        private void BindEnabledToggle(VisualElement root, TtsProjectSettings settings)
         {
             _ttsEnabledToggle = root.Q<Toggle>("ttsEnabledToggle");
             if (_ttsEnabledToggle == null) return;
 
             _ttsEnabledToggle.value = settings.ttsEnabled;
-            _ttsEnabledToggle.RegisterValueChangedCallback(
-                HandleTtsEnabledChanged);
+            _ttsEnabledToggle.RegisterValueChangedCallback(HandleTtsEnabledChanged);
         }
 
         private static void HandleTtsEnabledChanged(
@@ -109,16 +105,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private void LoadStyleSheets(VisualElement root)
         {
-            const string commonUssPath =
-                "Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/ModelSettings.uss";
-            var commonUss =
-                AssetDatabase.LoadAssetAtPath<StyleSheet>(commonUssPath);
+            const string commonUssPath = "Packages/com.ponyudev.sherpa-onnx/Editor/Common/UI/ModelSettings.uss";
+            var commonUss = AssetDatabase.LoadAssetAtPath<StyleSheet>(commonUssPath);
             if (commonUss != null)
                 root.styleSheets.Add(commonUss);
 
             string ussPath = _uxmlPath.Replace(".uxml", ".uss");
-            var ussAsset =
-                AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
+            var ussAsset = AssetDatabase.LoadAssetAtPath<StyleSheet>(ussPath);
             if (ussAsset != null)
                 root.styleSheets.Add(ussAsset);
         }
@@ -134,9 +127,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private static void RegisterLink(VisualElement root, string name, string url)
         {
             var label = root.Q<Label>(name);
-            if (label == null) return;
-
-            label.RegisterCallback<PointerUpEvent, string>(HandleLinkClicked, url);
+            label?.RegisterCallback<PointerUpEvent, string>(HandleLinkClicked, url);
         }
 
         private static void HandleLinkClicked(PointerUpEvent evt, string url)
@@ -146,8 +137,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         // ── Cache ──
 
-        private static void BuildCacheSection(
-            VisualElement root, TtsProjectSettings settings)
+        private static void BuildCacheSection(VisualElement root, TtsProjectSettings settings)
         {
             var header = root.Q<VisualElement>("tts-header");
             if (header?.parent == null)
@@ -191,14 +181,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             container.Insert(idx, foldout);
         }
 
-        // ── Profiles ──
-
-        private void BuildProfilePresenters(
-            VisualElement root, TtsProjectSettings settings)
+        private void BuildProfilePresenters(VisualElement root, TtsProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
-            _activeProfilePresenter =
-                new ActiveProfilePresenter<TtsProfile>(settings.data, settings, TtsModelPaths.GetModelDir);
+            _activeProfilePresenter = new ActiveProfilePresenter<TtsProfile>(settings.data, settings, ModelPaths.GetTtsModelDir);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");
@@ -213,9 +199,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             var removeButton = root.Q<Button>("removeProfileButton");
             var detailContent = root.Q<VisualElement>("detailContent");
 
-            _listPresenter = new ProfileListPresenter<TtsProfile>(
-                settings.data, settings,
-                TtsModelPaths.GetModelDir, "model-list-item");
+            _listPresenter = new ProfileListPresenter<TtsProfile>(settings.data, settings, ModelPaths.GetTtsModelDir, "model-list-item");
             _detailPresenter = new TtsProfileDetailPresenter(detailContent, settings);
             _detailPresenter.SetListPresenter(_listPresenter);
 
@@ -225,9 +209,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private void HandleImportFromUrlClicked()
         {
-            if (_importSection == null) return;
-
-            _importSection.ToggleInClassList("hidden");
+            _importSection?.ToggleInClassList("hidden");
         }
 
         private void HandleImportCompleted()

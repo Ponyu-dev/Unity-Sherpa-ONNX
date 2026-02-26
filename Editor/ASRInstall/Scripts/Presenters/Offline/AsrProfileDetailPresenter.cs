@@ -49,7 +49,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             AsrProfile profile = _settings.offlineData.profiles[index];
             var binder = new AsrProfileFieldBinder(profile, _settings);
 
-            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, AsrModelPaths.GetModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
+            _redownloadButton = MissingFilesWarningBuilder.Build(_detailContent, profile.profileName, ModelPaths.GetAsrModelDir, !string.IsNullOrEmpty(profile.sourceUrl));
             if (_redownloadButton != null)
                 _redownloadButton.clicked += HandleRedownloadClicked;
             BuildAutoConfigureButton(profile);
@@ -108,7 +108,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             try
             {
                 using var redownloader = new ModelRedownloader();
-                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, AsrModelPaths.GetModelDir, default);
+                string destDir = await redownloader.RedownloadArchiveAsync(profile.sourceUrl, ModelPaths.GetAsrModelDir, default);
                 AsrProfileAutoFiller.Fill(profile, destDir);
                 _settings.SaveSettings();
                 AssetDatabase.Refresh();
@@ -123,7 +123,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         private void BuildAutoConfigureButton(AsrProfile profile)
         {
-            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetAsrModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
             var button = new Button { text = "Auto-configure paths" };
@@ -136,16 +136,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         private void BuildInt8SwitchButton(AsrProfile profile)
         {
-            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetAsrModelDir(profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
             if (!AsrInt8Switcher.HasInt8Alternative(profile, modelDir))
                 return;
 
             bool usingInt8 = AsrInt8Switcher.IsUsingInt8(profile);
-            string label = usingInt8
-                ? "Use normal models"
-                : "Use int8 models";
-
+            string label = usingInt8 ? "Use normal models" : "Use int8 models";
             var button = new Button { text = label };
             button.AddToClassList("btn");
             button.AddToClassList(usingInt8 ? "btn-secondary" : "btn-accent");
@@ -180,11 +177,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 HelpBoxMessageType.Warning));
         }
 
-        private void BuildIdentitySection(
-            AsrProfile profile, AsrProfileFieldBinder binder)
+        private void BuildIdentitySection(AsrProfile profile, AsrProfileFieldBinder binder)
         {
-            var nameField = binder.BindText("Profile name",
-                profile.profileName, AsrProfileField.ProfileName);
+            var nameField = binder.BindText("Profile name", profile.profileName, AsrProfileField.ProfileName);
             nameField.RegisterCallback<FocusOutEvent>(HandleNameFocusOut);
             _detailContent.Add(nameField);
 
@@ -338,7 +333,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
             AddSectionHeader("Local Zip");
 
-            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetAsrModelDir(profile.profileName);
             var result = ModelSourceSectionBuilder.BuildLocalZip(_detailContent, modelDir);
 
             if (result.PackButton != null)
@@ -364,7 +359,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         {
             if (!TryGetCurrentProfile(out AsrProfile profile)) return;
 
-            string modelDir = AsrModelPaths.GetModelDir(
+            string modelDir = ModelPaths.GetAsrModelDir(
                 profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
@@ -377,7 +372,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         {
             if (!TryGetCurrentProfile(out AsrProfile profile)) return;
 
-            string modelDir = AsrModelPaths.GetModelDir(
+            string modelDir = ModelPaths.GetAsrModelDir(
                 profile.profileName);
             if (!ModelFileService.ModelDirExists(modelDir)) return;
 
@@ -395,7 +390,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         {
             if (!TryGetCurrentProfile(out AsrProfile profile)) return;
 
-            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetAsrModelDir(profile.profileName);
             ModelFileService.PackToZip(modelDir);
             RefreshAfterAssetChange();
         }
@@ -404,7 +399,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         {
             if (!TryGetCurrentProfile(out AsrProfile profile)) return;
 
-            string modelDir = AsrModelPaths.GetModelDir(profile.profileName);
+            string modelDir = ModelPaths.GetAsrModelDir(profile.profileName);
             ModelFileService.DeleteZip(modelDir);
             RefreshAfterAssetChange();
         }

@@ -35,8 +35,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
 
             if (IsAlreadyExtracted(destDir))
             {
-                SherpaOnnxLog.RuntimeLog(
-                    $"[SherpaOnnx] LocalZip '{profileName}' already extracted.");
+                SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] LocalZip '{profileName}' already extracted.");
                 progress?.Report(1f);
                 return destDir;
             }
@@ -48,8 +47,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
                 string zipPath = await ResolveZipPathAsync(zipRelativePath, ct);
                 if (zipPath == null)
                 {
-                    SherpaOnnxLog.RuntimeError(
-                        $"[SherpaOnnx] LocalZip not found: {zipRelativePath}");
+                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] LocalZip not found: {zipRelativePath}");
                     return null;
                 }
 
@@ -125,11 +123,9 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         /// On Desktop: returns StreamingAssets path directly.
         /// On Android: copies zip from APK to temp file via UnityWebRequest.
         /// </summary>
-        private static async UniTask<string> ResolveZipPathAsync(
-            string zipRelativePath, CancellationToken ct)
+        private static async UniTask<string> ResolveZipPathAsync(string zipRelativePath, CancellationToken ct)
         {
-            string streamingPath = Path.Combine(
-                Application.streamingAssetsPath, zipRelativePath);
+            string streamingPath = Path.Combine(Application.streamingAssetsPath, zipRelativePath);
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             return await CopyFromApkToTempAsync(streamingPath, ct);
@@ -144,19 +140,16 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         }
 
 #if UNITY_ANDROID && !UNITY_EDITOR
-        private static async UniTask<string> CopyFromApkToTempAsync(
-            string apkUrl, CancellationToken ct)
+        private static async UniTask<string> CopyFromApkToTempAsync(string apkUrl, CancellationToken ct)
         {
-            string tempZip = Path.Combine(
-                Application.temporaryCachePath, "localzip_temp.zip");
+            string tempZip = Path.Combine(Application.temporaryCachePath, "localzip_temp.zip");
 
             using var request = UnityWebRequest.Get(apkUrl);
             await request.SendWebRequest().ToUniTask(cancellationToken: ct);
 
             if (request.result != UnityWebRequest.Result.Success)
             {
-                SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] Failed to read zip from APK: {request.error}");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] Failed to read zip from APK: {request.error}");
                 return null;
             }
 

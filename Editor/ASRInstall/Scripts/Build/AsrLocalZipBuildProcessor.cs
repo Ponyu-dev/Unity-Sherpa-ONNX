@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
-using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common.Build;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 
@@ -31,12 +31,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Build
             foreach (OnlineAsrProfile p in settings.onlineData.profiles)
                 entries.Add(new LocalZipBuildHelper.ProfileEntry(p.profileName, p.modelSource));
 
-            LocalZipBuildHelper.Preprocess(BackupRoot, entries, AsrModelPaths.GetModelDir);
+            LocalZipBuildHelper.Preprocess(BackupRoot, entries, ModelPaths.GetAsrModelDir);
         }
 
         public void OnPostprocessBuild(BuildReport report)
         {
-            LocalZipBuildHelper.Postprocess(BackupRoot, AsrModelPaths.GetModelDir);
+            LocalZipBuildHelper.Postprocess(BackupRoot, ModelPaths.GetAsrModelDir);
         }
     }
 }

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Editor.Common.Build;
-using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using UnityEditor.Build;
@@ -27,12 +27,12 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Build
             foreach (TtsProfile p in TtsProjectSettings.instance.data.profiles)
                 entries.Add(new LocalZipBuildHelper.ProfileEntry(p.profileName, p.modelSource));
 
-            LocalZipBuildHelper.Preprocess(BackupRoot, entries, TtsModelPaths.GetModelDir);
+            LocalZipBuildHelper.Preprocess(BackupRoot, entries, ModelPaths.GetTtsModelDir);
         }
 
         public void OnPostprocessBuild(BuildReport report)
         {
-            LocalZipBuildHelper.Postprocess(BackupRoot, TtsModelPaths.GetModelDir);
+            LocalZipBuildHelper.Postprocess(BackupRoot, ModelPaths.GetTtsModelDir);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters;
@@ -132,7 +133,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
             VisualElement root, VadProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
-            _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings, VadModelPaths.GetModelDir);
+            _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");
@@ -147,7 +148,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
             var removeButton = root.Q<Button>("removeProfileButton");
             var detailContent = root.Q<VisualElement>("detailContent");
 
-            _listPresenter = new ProfileListPresenter<VadProfile>(settings.data, settings, VadModelPaths.GetModelDir, "model-list-item");
+            _listPresenter = new ProfileListPresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir, "model-list-item");
             _detailPresenter = new VadProfileDetailPresenter(detailContent, settings);
             _detailPresenter.SetListPresenter(_listPresenter);
 

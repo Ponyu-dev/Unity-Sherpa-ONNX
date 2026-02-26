@@ -19,7 +19,7 @@ MonoBehaviour:
     - profileName: silero_vad
       modelType: 0
       modelSource: 0
-      sourceUrl: 
+      sourceUrl: https://github.com/snakers4/silero-vad/raw/refs/tags/v5.0/files/silero_vad.onnx
       sampleRate: 16000
       numThreads: 1
       provider: cpu

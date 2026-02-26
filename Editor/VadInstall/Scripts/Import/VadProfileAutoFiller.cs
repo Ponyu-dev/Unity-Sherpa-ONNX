@@ -6,7 +6,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
     /// <summary>
     /// Scans a model directory and fills <see cref="VadProfile"/> path fields.
     /// Stores only file names — full paths are assembled at runtime
-    /// from <see cref="VadModelPaths.VadModelsRelative"/> + profile name + entry name.
+    /// from <see cref="ModelPaths.VadModelsDir"/> + profile name + entry name.
     /// </summary>
     internal static class VadProfileAutoFiller
     {
