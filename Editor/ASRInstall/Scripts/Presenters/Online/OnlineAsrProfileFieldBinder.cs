@@ -1,5 +1,6 @@
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
@@ -12,16 +13,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
     {
         internal readonly OnlineAsrProfile Profile;
         private readonly AsrProjectSettings _settings;
+        private readonly string _modelDir;
 
-        internal OnlineAsrProfileFieldBinder(
-            OnlineAsrProfile profile, AsrProjectSettings settings)
+        internal OnlineAsrProfileFieldBinder(OnlineAsrProfile profile, AsrProjectSettings settings, string modelDir)
         {
             Profile = profile;
             _settings = settings;
+            _modelDir = modelDir;
         }
 
-        internal TextField BindText(
-            string label, string value, OnlineAsrProfileField field)
+        internal TextField BindText(string label, string value, OnlineAsrProfileField field)
         {
             var textField = new TextField(label) { value = value };
             var handler = new TextHandler(Profile, _settings, field);
@@ -29,8 +30,17 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             return textField;
         }
 
-        internal FloatField BindFloat(
-            string label, float value, OnlineAsrProfileField field)
+        internal ModelObjectField BindFile(string label, string value, OnlineAsrProfileField field,
+            string extension = "onnx", string keyword = "", bool isRequired = false)
+        {
+            var picker = new ModelObjectField(label, value, _modelDir, extension, keyword,
+                isRequired: isRequired);
+            var handler = new TextHandler(Profile, _settings, field);
+            picker.RegisterFileChangedCallback(handler.SetValue);
+            return picker;
+        }
+
+        internal FloatField BindFloat(string label, float value, OnlineAsrProfileField field)
         {
             var floatField = new FloatField(label) { value = value };
             var handler = new FloatHandler(Profile, _settings, field);
@@ -38,8 +48,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             return floatField;
         }
 
-        internal IntegerField BindInt(
-            string label, int value, OnlineAsrProfileField field)
+        internal IntegerField BindInt(string label, int value, OnlineAsrProfileField field)
         {
             var intField = new IntegerField(label) { value = value };
             var handler = new IntHandler(Profile, _settings, field);
@@ -55,17 +64,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             private readonly AsrProjectSettings _s;
             private readonly OnlineAsrProfileField _f;
 
-            internal TextHandler(
-                OnlineAsrProfile p, AsrProjectSettings s,
-                OnlineAsrProfileField f)
+            internal TextHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
-            internal void Handle(ChangeEvent<string> evt)
+            internal void SetValue(string value)
             {
-                OnlineAsrProfileFieldSetter.SetString(
-                    _p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetString(_p, _f, value);
                 _s.SaveSettings();
             }
+
+            internal void Handle(ChangeEvent<string> evt) => SetValue(evt.newValue);
         }
 
         private sealed class FloatHandler
@@ -74,15 +82,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             private readonly AsrProjectSettings _s;
             private readonly OnlineAsrProfileField _f;
 
-            internal FloatHandler(
-                OnlineAsrProfile p, AsrProjectSettings s,
-                OnlineAsrProfileField f)
+            internal FloatHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<float> evt)
             {
-                OnlineAsrProfileFieldSetter.SetFloat(
-                    _p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetFloat(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }
@@ -93,15 +98,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             private readonly AsrProjectSettings _s;
             private readonly OnlineAsrProfileField _f;
 
-            internal IntHandler(
-                OnlineAsrProfile p, AsrProjectSettings s,
-                OnlineAsrProfileField f)
+            internal IntHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<int> evt)
             {
-                OnlineAsrProfileFieldSetter.SetInt(
-                    _p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetInt(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }

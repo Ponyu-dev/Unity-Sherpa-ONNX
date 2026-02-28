@@ -35,9 +35,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
         private UnityWebRequestFileDownloader _downloader;
         private bool _isBusy;
 
-        internal VadImportPresenter(
-            VadProjectSettings settings,
-            Action onImportCompleted)
+        internal VadImportPresenter(VadProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -126,8 +124,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             CancelIfBusy();
         }
 
-        private void HandleDownloadProgress(
-            string url, float progress01, ulong downloadedBytes, long totalBytes)
+        private void HandleDownloadProgress(string url, float progress01, ulong downloadedBytes, long totalBytes)
         {
             if (_progressBar == null) return;
             _progressBar.value = progress01 * 100f;
@@ -184,9 +181,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detectedType.HasValue
-                ? detectedType.Value.ToString()
-                : "Unknown";
+            string typeLabel = detectedType.HasValue ? detectedType.Value.ToString() : "Unknown";
 
             SetStatus($"Import complete: {profileName} ({typeLabel})");
 

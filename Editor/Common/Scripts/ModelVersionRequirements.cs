@@ -86,6 +86,26 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         internal static bool IsSupported(VadModelType type, string installedVersion)
             => Check(type, VadVersions, installedVersion);
 
+        // ── Generic Enum dispatchers (used by base presenter) ──
+
+        internal static string GetMinVersion(Enum type) => type switch
+        {
+            TtsModelType t => GetMinVersion(t),
+            AsrModelType t => GetMinVersion(t),
+            OnlineAsrModelType t => GetMinVersion(t),
+            VadModelType t => GetMinVersion(t),
+            _ => null
+        };
+
+        internal static bool IsSupported(Enum type, string installedVersion) => type switch
+        {
+            TtsModelType t => IsSupported(t, installedVersion),
+            AsrModelType t => IsSupported(t, installedVersion),
+            OnlineAsrModelType t => IsSupported(t, installedVersion),
+            VadModelType t => IsSupported(t, installedVersion),
+            _ => false
+        };
+
         // ── Testable core ──
 
         internal static string Lookup<T>(T type, Dictionary<T, string> map)

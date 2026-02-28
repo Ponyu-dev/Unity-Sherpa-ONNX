@@ -201,8 +201,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detected.HasValue
-                ? detected.Value.ToString() : "Unknown";
+            string typeLabel = detected.HasValue ? detected.Value.ToString() : "Unknown";
             SetStatus($"Import complete: {archiveName} ({typeLabel})");
 
             if (_urlField != null) _urlField.value = "";

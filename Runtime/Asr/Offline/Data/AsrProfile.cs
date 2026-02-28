@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
     /// Mirrors sherpa-onnx OfflineRecognizerConfig + OfflineModelConfig sub-configs.
     /// </summary>
     [Serializable]
-    public sealed class AsrProfile : IProfileData
+    public sealed class AsrProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -23,6 +23,15 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         public AsrModelType modelType = AsrModelType.Whisper;
         public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common (OfflineModelConfig) ──
 

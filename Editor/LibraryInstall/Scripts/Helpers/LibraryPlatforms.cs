@@ -4,14 +4,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 {
     internal static class LibraryPlatforms
     {
-        /// <summary>
-        /// URL for the iOS-specific managed DLL (with __Internal binding).
-        /// Downloaded as sherpa-onnx.zip containing sherpa-onnx.dll.
-        /// Tag format: sherpa-v{version}
-        /// </summary>
-        public const string IosManagedDllUrl =
-            "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases/download/sherpa-v{0}/sherpa-onnx.zip";
-
         public static readonly LibraryArch ManagedLibrary =
             new()
             {
@@ -142,16 +134,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 {
                     new()
                     {
-                        Name = "arm64",
-                        Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-ios.tar.bz2",
-                        RootPath = "",
-                        IsManagedDllRoot = false,
-                        Platform = PlatformType.iOS,
-                    },
-                    new()
-                    {
-                        Name = "x86_64-simulator",
-                        Url = "https://github.com/k2-fsa/sherpa-onnx/releases/download/v{0}/sherpa-onnx-v{1}-ios.tar.bz2",
+                        Name = "iOS",
+                        Url = "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases/download/sherpa-v{0}/sherpa-onnx-ios.zip",
                         RootPath = "",
                         IsManagedDllRoot = false,
                         Platform = PlatformType.iOS,

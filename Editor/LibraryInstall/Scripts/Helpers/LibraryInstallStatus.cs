@@ -96,10 +96,11 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         }
 
         /// <summary>
-        /// iOS installs share one folder. arm64 is installed when ios-arm64/
-        /// subfolder exists inside any xcframework. Simulator checks for
-        /// ios-arm64_x86_64-simulator/.
+        /// iOS is installed when the device (ios-arm64) subfolder exists
+        /// inside any xcframework under the iOS directory.
         /// </summary>
+        internal static bool IsIosInstalled() => IsIosInstalled(null);
+
         private static bool IsIosInstalled(LibraryArch arch)
         {
             string iosDir = Path.Combine(
@@ -108,11 +109,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             if (!Directory.Exists(iosDir))
                 return false;
 
-            string marker = arch.Name == "arm64"
-                ? "ios-arm64"
-                : "ios-arm64_x86_64-simulator";
-
-            string[] dirs = Directory.GetDirectories(iosDir, marker, SearchOption.AllDirectories);
+            string[] dirs = Directory.GetDirectories(iosDir, "ios-arm64", SearchOption.AllDirectories);
             return dirs.Length > 0;
         }
 

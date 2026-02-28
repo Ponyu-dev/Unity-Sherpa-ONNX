@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -31,9 +32,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             {
                 return new CacheSectionUi(
                     iOSArchiveCache.Cache,
-                    "iOS libraries are downloaded as a single archive containing both device "
-                    + "and simulator frameworks. The extracted archive is cached so each "
-                    + "architecture can be installed without re-downloading. "
+                    "iOS libraries (DLL + xcframeworks) are downloaded as a single archive "
+                    + "from PonyuDev/Unity-Sherpa-ONNX releases. The extracted archive is "
+                    + "cached so each configuration can be applied without re-downloading. "
                     + "Use 'Clean cache' to remove the cached archive.");
             }
 
@@ -57,16 +58,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             var helpBox = new HelpBox(_helpText, HelpBoxMessageType.Info);
             foldout.Add(helpBox);
 
-            bool ready = _cache.IsReady;
-
             _cleanButton = new Button(HandleClean) { text = "Clean cache" };
-            _cleanButton.SetEnabled(ready);
             foldout.Add(_cleanButton);
 
             _openButton = new Button(HandleOpen) { text = "Open cache" };
-            _openButton.SetEnabled(ready);
             foldout.Add(_openButton);
 
+            RefreshButtons();
             _cache.OnCacheChanged += HandleCacheChanged;
         }
 
@@ -77,11 +75,13 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _openButton = null;
         }
 
-        private void HandleCacheChanged()
+        private void HandleCacheChanged() => RefreshButtons();
+
+        private void RefreshButtons()
         {
-            bool ready = _cache.IsReady;
-            _cleanButton?.SetEnabled(ready);
-            _openButton?.SetEnabled(ready);
+            bool exists = Directory.Exists(_cache.CachePath);
+            _cleanButton?.SetEnabled(exists);
+            _openButton?.SetEnabled(exists);
         }
 
         private void HandleClean() => _cache.Clean();

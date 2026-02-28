@@ -188,6 +188,8 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (string.IsNullOrEmpty(_resolvedDevice))
                 _resolvedDevice = Microphone.devices[0];
 
+            iOSAudioSessionBridge.ConfigureForRecording();
+
             _clip = Microphone.Start(
                 _resolvedDevice, true,
                 _clipLengthSec, _sampleRate);

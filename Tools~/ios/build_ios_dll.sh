@@ -5,11 +5,10 @@
 # instead of "sherpa-onnx-c-api".
 #
 # Usage:
-#   ./Tools/build_ios_dll.sh /path/to/sherpa-onnx
+#   ./Tools~/ios/build_ios_dll.sh /path/to/sherpa-onnx
 #
 # Output:
-#   Tools/output/sherpa-onnx.dll
-#   Tools/output/sherpa-onnx.zip
+#   Tools~/output/sherpa-onnx.dll
 
 set -euo pipefail
 
@@ -40,7 +39,7 @@ echo "=== sherpa-onnx version: $SHERPA_VERSION ==="
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/.build-ios"
-OUTPUT_DIR="$SCRIPT_DIR/output"
+OUTPUT_DIR="$SCRIPT_DIR/../output"
 
 # Clean previous build
 rm -rf "$BUILD_DIR"
@@ -57,6 +56,13 @@ rm -f "$BUILD_DIR/Dll.cs.bak"
 echo "Patched Dll.cs:"
 grep Filename "$BUILD_DIR/Dll.cs"
 
+# Reject versions that depend on System.Text.Json — not compatible with Unity
+if grep -rq "System\.Text\.Json" "$BUILD_DIR"/*.cs 2>/dev/null; then
+  echo "ERROR: Sources use System.Text.Json — incompatible with Unity. Skipping."
+  rm -rf "$BUILD_DIR"
+  exit 1
+fi
+
 # Create .csproj
 cat > "$BUILD_DIR/sherpa-onnx-ios.csproj" << EOF
 <Project Sdk="Microsoft.NET.Sdk">
@@ -69,9 +75,6 @@ cat > "$BUILD_DIR/sherpa-onnx-ios.csproj" << EOF
     <Version>${SHERPA_VERSION}</Version>
     <SignAssembly>false</SignAssembly>
   </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" Version="8.0.5" />
-  </ItemGroup>
 </Project>
 EOF
 
@@ -90,18 +93,12 @@ fi
 # Copy DLL to output
 cp "$DLL_PATH" "$OUTPUT_DIR/sherpa-onnx.dll"
 
-# Create zip archive
-cd "$OUTPUT_DIR"
-rm -f sherpa-onnx.zip
-zip sherpa-onnx.zip sherpa-onnx.dll
-
 # Clean build dir
 rm -rf "$BUILD_DIR"
 
 echo ""
-echo "=== Build successful ==="
+echo "=== DLL build successful ==="
 echo "Version:  $SHERPA_VERSION"
 echo "DLL:      $OUTPUT_DIR/sherpa-onnx.dll"
-echo "ZIP:      $OUTPUT_DIR/sherpa-onnx.zip"
 echo "Dll.Filename = \"__Internal\" (for iOS static linking)"
 echo ""

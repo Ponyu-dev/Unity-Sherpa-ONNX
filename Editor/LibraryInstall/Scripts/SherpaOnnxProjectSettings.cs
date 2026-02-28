@@ -12,6 +12,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         public bool macPostprocess = true;
         public bool debugLogEditor = true;
         public bool debugLogRuntime = true;
+        public bool iosIncludeSimulator = false;
+        public bool iosIncludeMac = false;
 
         internal void SaveSettings()
         {

@@ -44,12 +44,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             string url, string fileName, CancellationToken ct) =>
             Impl.EnsureExtractedAsync(url, fileName, ct);
 
-        /// <summary>
-        /// Returns the path to build-ios/ inside the cache.
-        /// </summary>
-        internal static string FindBuildIosPath() =>
-            Impl.FindDirectoryInCache("build-ios");
-
         private sealed class iOSCacheImpl : ArchiveCacheBase
         {
             protected override string CacheFolderName => "SherpaOnnx_iOSCache";

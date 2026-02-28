@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
@@ -81,8 +82,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
         // ── Module Toggle ──
 
-        private void BindEnabledToggle(
-            VisualElement root, VadProjectSettings settings)
+        private void BindEnabledToggle(VisualElement root, VadProjectSettings settings)
         {
             _vadEnabledToggle = root.Q<Toggle>("vadEnabledToggle");
             if (_vadEnabledToggle == null) return;
@@ -121,19 +121,17 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
             label?.RegisterCallback<PointerUpEvent, string>(HandleLinkClicked, VadDocsUrl);
         }
 
-        private static void HandleLinkClicked(
-            PointerUpEvent evt, string url)
+        private static void HandleLinkClicked(PointerUpEvent evt, string url)
         {
             Application.OpenURL(url);
         }
 
         // ── Profiles ──
 
-        private void BuildProfilePresenters(
-            VisualElement root, VadProjectSettings settings)
+        private void BuildProfilePresenters(VisualElement root, VadProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
-            _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir);
+            _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir, ProfileFieldValidator.HasMissingFields);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");
@@ -148,7 +146,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
             var removeButton = root.Q<Button>("removeProfileButton");
             var detailContent = root.Q<VisualElement>("detailContent");
 
-            _listPresenter = new ProfileListPresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir, "model-list-item");
+            _listPresenter = new ProfileListPresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir, "model-list-item", ProfileFieldValidator.HasMissingFields);
             _detailPresenter = new VadProfileDetailPresenter(detailContent, settings);
             _detailPresenter.SetListPresenter(_listPresenter);
 

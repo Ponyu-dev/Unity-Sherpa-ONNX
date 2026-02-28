@@ -5,10 +5,9 @@ using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Extractors;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
-using PonyuDev.SherpaOnnx.Common.IO;
 using PonyuDev.SherpaOnnx.Common.Networking;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers;
-using UnityEngine;
+using UnityEditor;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 {
@@ -66,13 +65,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 string jniLibsPath = AndroidArchiveCache.FindJniLibsPath();
 
                 if (string.IsNullOrEmpty(jniLibsPath))
-                    throw new InvalidOperationException(
-                        "jniLibs directory not found in Android cache.");
+                    throw new InvalidOperationException("jniLibs directory not found in Android cache.");
 
                 var handler = new AndroidNativeContentHandler(arch.Name);
                 await handler.HandleAsync(jniLibsPath, ct);
-
-                AndroidJavaContentHandler.CopyJavaSources();
 
                 SherpaOnnxLog.EditorLog($"[SherpaOnnx] Android install completed: {arch.Name}");
             }
@@ -83,8 +79,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         }
 
         /// <summary>
-        /// iOS-specific install: uses shared cache, does not re-download
-        /// if archive is already extracted.
+        /// iOS-specific install: downloads our unified sherpa-onnx-ios.zip
+        /// (DLL + xcframeworks) and installs from cache.
         /// </summary>
         internal static async Task RuniOSInstallAsync(
             LibraryArch arch,
@@ -93,7 +89,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             Action<string> onStatus = null,
             Action<float> onProgress = null)
         {
-            SherpaOnnxLog.EditorLog($"[SherpaOnnx] iOS install started: {arch.Name} v{version}");
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] iOS install started: v{version}");
 
             IArchiveCache cache = iOSArchiveCache.Cache;
             SubscribeCache(cache, onStatus, onProgress);
@@ -104,23 +100,62 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
 
                 await iOSArchiveCache.EnsureExtractedAsync(url, fileName, ct);
 
-                string buildIosPath = iOSArchiveCache.FindBuildIosPath();
+                InstallIosFromCache(ct);
 
-                if (string.IsNullOrEmpty(buildIosPath))
-                    throw new InvalidOperationException(
-                        "build-ios directory not found in iOS cache.");
-
-                var handler = new iOSNativeContentHandler(arch.Name);
-                await handler.HandleAsync(buildIosPath, ct);
-
-                await DownloadIosManagedDllAsync(version, ct);
-
-                SherpaOnnxLog.EditorLog($"[SherpaOnnx] iOS install completed: {arch.Name}");
+                SherpaOnnxLog.EditorLog("[SherpaOnnx] iOS install completed.");
             }
             finally
             {
                 UnsubscribeCache(cache, onStatus, onProgress);
             }
+        }
+
+        /// <summary>
+        /// Re-installs iOS xcframeworks + DLL from cache using current settings.
+        /// Called when simulator/macOS toggles change. No download needed.
+        /// </summary>
+        internal static void ReinstallIosFromCache()
+        {
+            if (!iOSArchiveCache.IsReady)
+                return;
+
+            InstallIosFromCache(CancellationToken.None);
+
+            AssetDatabase.Refresh();
+
+            foreach (var platform in LibraryPlatforms.Platforms)
+                foreach (var arch in platform.Arches)
+                    if (arch.Platform == PlatformType.iOS)
+                        PluginImportConfigurator.Configure(arch);
+        }
+
+        private static void InstallIosFromCache(CancellationToken ct)
+        {
+            string cachePath = iOSArchiveCache.CachePath;
+            var s = SherpaOnnxProjectSettings.instance;
+
+            var handler = new iOSNativeContentHandler(s.iosIncludeSimulator, s.iosIncludeMac);
+            handler.HandleAsync(cachePath, ct).GetAwaiter().GetResult();
+
+            CopyIosManagedDll(cachePath);
+        }
+
+        private static void CopyIosManagedDll(string cachePath)
+        {
+            string[] files = Directory.GetFiles(
+                cachePath, ConstantsInstallerPaths.ManagedDllFileName,
+                SearchOption.AllDirectories);
+
+            if (files.Length == 0)
+                throw new FileNotFoundException("sherpa-onnx.dll not found in iOS cache.");
+
+            string destDir = Path.Combine(ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, "iOS");
+            Directory.CreateDirectory(destDir);
+
+            string destPath = Path.Combine(destDir, ConstantsInstallerPaths.ManagedDllFileName);
+            File.Copy(files[0], destPath, overwrite: true);
+
+            SherpaOnnxLog.EditorLog("[SherpaOnnx] iOS managed DLL installed from cache.");
         }
 
         private static void SubscribeCache(
@@ -141,61 +176,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             if (onProgress != null) cache.OnProgress01 -= onProgress;
         }
 
-        /// <summary>
-        /// Downloads sherpa-onnx.zip from our GitHub releases, extracts
-        /// sherpa-onnx.dll and copies it into Assets/Plugins/SherpaOnnx/iOS/.
-        /// </summary>
-        private static async Task DownloadIosManagedDllAsync(
-            string version,
-            CancellationToken ct)
-        {
-            string url = string.Format(LibraryPlatforms.IosManagedDllUrl, version);
-            const string fileName = "sherpa-onnx.zip";
-
-            string tempDir = Path.Combine(Application.temporaryCachePath, "SherpaOnnx_iOSDll");
-
-            try
-            {
-                SherpaOnnxLog.EditorLog("[SherpaOnnx] Downloading iOS managed DLL...");
-
-                Directory.CreateDirectory(tempDir);
-
-                var downloader = new UnityWebRequestFileDownloader();
-                await downloader.DownloadAsync(url, tempDir, fileName, ct);
-
-                string zipPath = Path.Combine(tempDir, fileName);
-
-                if (!File.Exists(zipPath))
-                    throw new FileNotFoundException(
-                        $"Failed to download iOS managed DLL from {url}. " +
-                        "Make sure the GitHub release exists.", zipPath);
-
-                string extractDir = Path.Combine(tempDir, "extracted");
-                Directory.CreateDirectory(extractDir);
-
-                using var extractor = new ArchiveExtractor();
-                await extractor.ExtractAsync(zipPath, extractDir, ct);
-
-                string dllSource = Path.Combine(extractDir, ConstantsInstallerPaths.ManagedDllFileName);
-
-                if (!File.Exists(dllSource))
-                    throw new FileNotFoundException("sherpa-onnx.dll not found in zip.", dllSource);
-
-                string destDir = Path.Combine(
-                    ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, "iOS");
-                Directory.CreateDirectory(destDir);
-
-                string destPath = Path.Combine(destDir, ConstantsInstallerPaths.ManagedDllFileName);
-                File.Copy(dllSource, destPath, overwrite: true);
-
-                SherpaOnnxLog.EditorLog("[SherpaOnnx] iOS managed DLL installed.");
-            }
-            finally
-            {
-                FileSystemHelper.TryDeleteDirectory(tempDir);
-            }
-        }
-
         internal static string BuildUrl(LibraryArch arch, string version)
         {
             return string.Format(arch.Url, version, version);
@@ -207,7 +187,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
                 return "sherpa-onnx-android.tar.bz2";
 
             if (IsIOS(arch))
-                return "sherpa-onnx-ios.tar.bz2";
+                return "sherpa-onnx-ios.zip";
 
             return arch.Name + ".nupkg";
         }

@@ -90,6 +90,16 @@
     background-color: rgb(140, 120, 40);
 }
 
+.btn-toggle {
+    min-width: 40px;
+    margin-left: 4px;
+    background-color: rgb(140, 120, 40);
+}
+
+.btn-toggle--active {
+    background-color: rgb(47, 95, 63);
+}
+
 .platform-foldout {
     margin-top: 6px;
 }

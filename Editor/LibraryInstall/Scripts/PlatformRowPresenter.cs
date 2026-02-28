@@ -31,7 +31,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 
         private readonly LibraryArch _libraryArch;
         private readonly Func<string> _getVersion;
+        private readonly bool _isIos;
 
+        private IosTogglePresenter _iosToggles;
         private CancellationTokenSource _cts;
         private bool _isBusy;
 
@@ -39,6 +41,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         {
             _libraryArch = libraryArch;
             _getVersion = getVersion;
+            _isIos = InstallPipelineFactory.IsIOS(libraryArch);
         }
 
         internal void Build(VisualElement rowRoot)
@@ -52,6 +55,12 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             if (_platformLabel != null)
                 _platformLabel.text = _libraryArch.Name;
 
+            if (_isIos)
+            {
+                _iosToggles = new IosTogglePresenter();
+                _iosToggles.Build(rowRoot, _statusLabel);
+            }
+
             SetProgress01(0f);
             RefreshStatus();
             Subscribe();
@@ -61,6 +70,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         {
             Unsubscribe();
             CancelAndDisposeCts();
+
+            _iosToggles?.Dispose();
+            _iosToggles = null;
 
             _platformLabel = null;
             _statusLabel = null;
@@ -97,7 +109,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             {
                 SetStatus("Installed");
                 ApplyStatusStyle("installed");
-                _installButton?.SetEnabled(false);
+
+                bool iosNeedsCache = _isIos && !iOSArchiveCache.IsReady;
+                _installButton?.SetEnabled(iosNeedsCache);
             }
             else
             {
@@ -107,6 +121,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
 
             _deleteButton?.SetEnabled(canOperate && installed);
+            _iosToggles?.Refresh();
         }
 
         private void Subscribe()
@@ -228,18 +243,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     foreach (string path in dependentPaths)
                         pipeline.Run(path);
 
-                    if (!LibraryInstallStatus.HasAnyAndroidInstalled())
-                        AndroidJavaContentHandler.CleanOrphanedJavaFiles();
                 }
 
                 AssetDatabase.Refresh();
-
-                if (InstallPipelineFactory.IsAndroid(_libraryArch)
-                    && !LibraryInstallStatus.HasAnyAndroidInstalled())
-                {
-                    AndroidJavaContentHandler.CleanOrphanedJavaFiles();
-                    AssetDatabase.Refresh();
-                }
 
                 // Sync define with managed DLL presence
                 ScriptingDefineHelper.SyncDefineWithInstallState();

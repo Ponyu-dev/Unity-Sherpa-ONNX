@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
     /// Mirrors sherpa-onnx OfflineTtsModelConfig + per-architecture configs.
     /// </summary>
     [Serializable]
-    public sealed class TtsProfile : IProfileData
+    public sealed class TtsProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -23,6 +23,15 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         public TtsModelType modelType = TtsModelType.Vits;
         public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common (OfflineTtsModelConfig) ──
 

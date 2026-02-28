@@ -37,7 +37,7 @@ echo ""
 # Build .unitypackage installer
 echo "Building .unitypackage installer..."
 "${SCRIPT_DIR}/build_installer.sh"
-INSTALLER_PKG="${SCRIPT_DIR}/output/SherpaOnnxInstaller.unitypackage"
+INSTALLER_PKG="${SCRIPT_DIR}/../output/SherpaOnnxInstaller.unitypackage"
 
 if [ ! -f "${INSTALLER_PKG}" ]; then
     echo "ERROR: Failed to build .unitypackage"

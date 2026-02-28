@@ -7,7 +7,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 INSTALLER_CS="${SCRIPT_DIR}/Installer/SherpaOnnxInstaller.cs"
-OUTPUT_DIR="${SCRIPT_DIR}/output"
+OUTPUT_DIR="${SCRIPT_DIR}/../output"
 OUTPUT_FILE="${OUTPUT_DIR}/SherpaOnnxInstaller.unitypackage"
 
 # Asset GUID (stable, so re-runs produce the same package)
