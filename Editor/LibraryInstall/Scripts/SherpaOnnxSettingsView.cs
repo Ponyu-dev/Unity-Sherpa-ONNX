@@ -97,6 +97,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _debugEditorToggle = null;
             _debugRuntimeToggle = null;
             _updateAllButton = null;
+
             _root = null;
         }
 

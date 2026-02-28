@@ -12,9 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83ddaf806c7940afb57d57a952fa132e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: PonyuDev.SherpaOnnx.Editor::PonyuDev.SherpaOnnx.Editor.Editor.LibraryInstall.Scripts.SherpaOnnxProjectSettings
-  version: 1.12.25
-  installedVersion: 1.12.25
+  version: 1.12.27
+  installedVersion: 1.12.27
   strictValidation: 1
   macPostprocess: 1
   debugLogEditor: 1
   debugLogRuntime: 1
+  iosIncludeSimulator: 1
+  iosIncludeMac: 1

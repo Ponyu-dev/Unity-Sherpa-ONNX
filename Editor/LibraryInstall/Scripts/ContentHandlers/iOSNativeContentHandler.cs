@@ -10,11 +10,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
 {
     /// <summary>
     /// Copies iOS xcframeworks (sherpa-onnx + onnxruntime) into
-    /// Assets/Plugins/SherpaOnnx/iOS/{archName}/.
-    /// Each xcframework is copied in full except excluded subfolders.
-    ///
-    /// arm64:            exclude macos-arm64_x86_64, ios-arm64_x86_64-simulator
-    /// x86_64-simulator: exclude macos-arm64_x86_64 only
+    /// Assets/Plugins/SherpaOnnx/iOS/.
+    /// Device (ios-arm64) is always included.
+    /// Simulator and macOS slices are optional via constructor flags.
     /// </summary>
     internal sealed class iOSNativeContentHandler : IExtractedContentHandler
     {
@@ -27,55 +25,34 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
         private const string SherpaXcframework = "sherpa-onnx.xcframework";
         private const string OnnxruntimeXcframework = "onnxruntime.xcframework";
 
-        /// <summary>
-        /// Maps arch name → set of xcframework subfolders to exclude.
-        /// </summary>
-        private static readonly Dictionary<string, HashSet<string>> s_excludeByArch = new()
+        private readonly bool _includeSimulator;
+        private readonly bool _includeMac;
+
+        internal iOSNativeContentHandler(bool includeSimulator, bool includeMac)
         {
-            ["arm64"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "macos-arm64_x86_64",
-                "ios-arm64_x86_64-simulator",
-            },
-            ["x86_64-simulator"] = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-            {
-                "macos-arm64_x86_64",
-            },
-        };
-
-        private readonly string _archName;
-
-        internal iOSNativeContentHandler(string archName)
-        {
-            if (string.IsNullOrEmpty(archName))
-                throw new ArgumentNullException(nameof(archName));
-
-            _archName = archName;
+            _includeSimulator = includeSimulator;
+            _includeMac = includeMac;
         }
 
-        public Task HandleAsync(string buildIosPath, CancellationToken cancellationToken)
+        public Task HandleAsync(string extractedRoot, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!s_excludeByArch.TryGetValue(_archName, out HashSet<string> excludes))
-                throw new ArgumentException($"Unknown iOS arch: {_archName}");
+            var excludes = BuildExcludes();
 
-            OnStatus?.Invoke($"Searching xcframeworks for iOS {_archName}...");
+            OnStatus?.Invoke("Searching xcframeworks for iOS...");
             OnProgress01?.Invoke(0f);
 
-            string destDir = Path.Combine(
-                ConstantsInstallerPaths.AssetsPluginsSherpaOnnx,
-                "iOS");
+            string destDir = Path.Combine(ConstantsInstallerPaths.AssetsPluginsSherpaOnnx, "iOS");
 
-            // Remove previous xcframeworks before installing
             if (Directory.Exists(destDir))
                 Directory.Delete(destDir, recursive: true);
 
-            var xcframeworks = FindXcframeworks(buildIosPath);
+            var xcframeworks = FindXcframeworks(extractedRoot);
 
             if (xcframeworks.Count == 0)
             {
-                string msg = $"No xcframeworks found in {buildIosPath}";
+                string msg = $"No xcframeworks found in {extractedRoot}";
                 OnError?.Invoke(msg);
                 throw new DirectoryNotFoundException(msg);
             }
@@ -94,27 +71,36 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
                 string destXcDir = Path.Combine(destDir, xcName);
 
                 OnStatus?.Invoke($"Copying {xcName}...");
-                CopyXcframeworkFiltered(
-                    xcDir, destXcDir, excludes,
-                    cancellationToken, ref copied, totalFiles);
+                CopyXcframeworkFiltered(xcDir, destXcDir, excludes, cancellationToken, ref copied, totalFiles);
             }
 
             OnProgress01?.Invoke(1f);
-            OnStatus?.Invoke($"iOS {_archName} frameworks installed.");
+            OnStatus?.Invoke("iOS frameworks installed.");
             return Task.CompletedTask;
         }
 
-        private static List<string> FindXcframeworks(string buildIosPath)
+        private HashSet<string> BuildExcludes()
+        {
+            var excludes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (!_includeMac)
+                excludes.Add("macos-arm64_x86_64");
+
+            if (!_includeSimulator)
+                excludes.Add("ios-arm64_x86_64-simulator");
+
+            return excludes;
+        }
+
+        private static List<string> FindXcframeworks(string extractedRoot)
         {
             var result = new List<string>(2);
 
-            string[] sherpa = Directory.GetDirectories(
-                buildIosPath, SherpaXcframework, SearchOption.AllDirectories);
+            string[] sherpa = Directory.GetDirectories(extractedRoot, SherpaXcframework, SearchOption.AllDirectories);
             if (sherpa.Length > 0)
                 result.Add(sherpa[0]);
 
-            string[] onnx = Directory.GetDirectories(
-                buildIosPath, OnnxruntimeXcframework, SearchOption.AllDirectories);
+            string[] onnx = Directory.GetDirectories(extractedRoot, OnnxruntimeXcframework, SearchOption.AllDirectories);
             if (onnx.Length > 0)
                 result.Add(onnx[0]);
 
@@ -178,8 +164,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
             foreach (string subDir in Directory.GetDirectories(sourceDir))
             {
                 string dirName = Path.GetFileName(subDir);
-                CopyDirectoryRecursive(
-                    subDir, Path.Combine(destDir, dirName), ct, ref copied, totalFiles);
+                CopyDirectoryRecursive(subDir, Path.Combine(destDir, dirName), ct, ref copied, totalFiles);
             }
         }
 
