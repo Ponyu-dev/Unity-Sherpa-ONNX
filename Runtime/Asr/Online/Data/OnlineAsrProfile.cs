@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
     /// unused fields are ignored at runtime.
     /// </summary>
     [Serializable]
-    public sealed class OnlineAsrProfile : IProfileData
+    public sealed class OnlineAsrProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -23,6 +23,15 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
         public OnlineAsrModelType modelType = OnlineAsrModelType.Transducer;
         public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common (OnlineModelConfig) ──
 

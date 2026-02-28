@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
     /// Mirrors sherpa-onnx <c>VadModelConfig</c> sub-configs.
     /// </summary>
     [Serializable]
-    public sealed class VadProfile : IProfileData
+    public sealed class VadProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -23,6 +23,15 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
         public VadModelType modelType = VadModelType.SileroVad;
         public ModelSource modelSource = ModelSource.Local;
         public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common ──
 
