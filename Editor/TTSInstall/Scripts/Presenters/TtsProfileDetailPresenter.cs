@@ -53,7 +53,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 
         protected override void BuildProfileSections(TtsProfile profile)
         {
-            var binder = new ProfileFieldBinder(profile, _settings);
+            string modelDir = GetModelDirFunc(profile.ProfileName);
+            var binder = new ProfileFieldBinder(profile, _settings, modelDir);
 
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);
@@ -77,8 +78,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             _detailContent.Add(b.BindFloat("Speed", b.Profile.speed, ProfileField.Speed));
 
             AddSectionHeader("Text Processing");
-            _detailContent.Add(b.BindText("Rule FSTs", b.Profile.ruleFsts, ProfileField.RuleFsts));
-            _detailContent.Add(b.BindText("Rule FARs", b.Profile.ruleFars, ProfileField.RuleFars));
+            _detailContent.Add(b.BindFile("Rule FSTs", b.Profile.ruleFsts, ProfileField.RuleFsts, "fst"));
+            _detailContent.Add(b.BindFile("Rule FARs", b.Profile.ruleFars, ProfileField.RuleFars, "far"));
             _detailContent.Add(b.BindInt("Max sentences", b.Profile.maxNumSentences, ProfileField.MaxNumSentences));
             _detailContent.Add(b.BindFloat("Silence scale", b.Profile.silenceScale, ProfileField.SilenceScale));
 

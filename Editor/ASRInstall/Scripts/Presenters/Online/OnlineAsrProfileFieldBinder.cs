@@ -1,5 +1,6 @@
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
@@ -12,11 +13,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
     {
         internal readonly OnlineAsrProfile Profile;
         private readonly AsrProjectSettings _settings;
+        private readonly string _modelDir;
 
-        internal OnlineAsrProfileFieldBinder(OnlineAsrProfile profile, AsrProjectSettings settings)
+        internal OnlineAsrProfileFieldBinder(OnlineAsrProfile profile, AsrProjectSettings settings, string modelDir)
         {
             Profile = profile;
             _settings = settings;
+            _modelDir = modelDir;
         }
 
         internal TextField BindText(string label, string value, OnlineAsrProfileField field)
@@ -25,6 +28,15 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             var handler = new TextHandler(Profile, _settings, field);
             textField.RegisterValueChangedCallback(handler.Handle);
             return textField;
+        }
+
+        internal ModelObjectField BindFile(string label, string value, OnlineAsrProfileField field,
+            string extension = "onnx", string keyword = "")
+        {
+            var picker = new ModelObjectField(label, value, _modelDir, extension, keyword);
+            var handler = new TextHandler(Profile, _settings, field);
+            picker.RegisterFileChangedCallback(handler.SetValue);
+            return picker;
         }
 
         internal FloatField BindFloat(string label, float value, OnlineAsrProfileField field)
@@ -54,11 +66,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             internal TextHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
-            internal void Handle(ChangeEvent<string> evt)
+            internal void SetValue(string value)
             {
-                OnlineAsrProfileFieldSetter.SetString(_p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetString(_p, _f, value);
                 _s.SaveSettings();
             }
+
+            internal void Handle(ChangeEvent<string> evt) => SetValue(evt.newValue);
         }
 
         private sealed class FloatHandler

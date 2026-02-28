@@ -11,8 +11,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         internal static void BuildCanary(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Encoder", b.Profile.canaryEncoder, AsrProfileField.CanaryEncoder));
-            root.Add(b.BindText("Decoder", b.Profile.canaryDecoder, AsrProfileField.CanaryDecoder));
+            root.Add(b.BindFile("Encoder", b.Profile.canaryEncoder, AsrProfileField.CanaryEncoder, keyword: "encoder"));
+            root.Add(b.BindFile("Decoder", b.Profile.canaryDecoder, AsrProfileField.CanaryDecoder, keyword: "decoder"));
             root.Add(b.BindText("Source language", b.Profile.canarySrcLang, AsrProfileField.CanarySrcLang));
             root.Add(b.BindText("Target language", b.Profile.canaryTgtLang, AsrProfileField.CanaryTgtLang));
         }
@@ -20,28 +20,28 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         internal static void BuildWenetCtc(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.wenetCtcModel, AsrProfileField.WenetCtcModel));
+            root.Add(b.BindFile("Model", b.Profile.wenetCtcModel, AsrProfileField.WenetCtcModel));
         }
 
         internal static void BuildOmnilingual(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.omnilingualModel, AsrProfileField.OmnilingualModel));
+            root.Add(b.BindFile("Model", b.Profile.omnilingualModel, AsrProfileField.OmnilingualModel));
         }
 
         internal static void BuildMedAsr(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.medAsrModel, AsrProfileField.MedAsrModel));
+            root.Add(b.BindFile("Model", b.Profile.medAsrModel, AsrProfileField.MedAsrModel));
         }
 
         internal static void BuildFunAsrNano(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Encoder adaptor", b.Profile.funAsrNanoEncoderAdaptor, AsrProfileField.FunAsrNanoEncoderAdaptor));
-            root.Add(b.BindText("LLM", b.Profile.funAsrNanoLlm, AsrProfileField.FunAsrNanoLlm));
-            root.Add(b.BindText("Embedding", b.Profile.funAsrNanoEmbedding, AsrProfileField.FunAsrNanoEmbedding));
-            root.Add(b.BindText("Tokenizer", b.Profile.funAsrNanoTokenizer, AsrProfileField.FunAsrNanoTokenizer));
+            root.Add(b.BindFile("Encoder adaptor", b.Profile.funAsrNanoEncoderAdaptor, AsrProfileField.FunAsrNanoEncoderAdaptor, keyword: "encoder"));
+            root.Add(b.BindFile("LLM", b.Profile.funAsrNanoLlm, AsrProfileField.FunAsrNanoLlm, keyword: "llm"));
+            root.Add(b.BindFile("Embedding", b.Profile.funAsrNanoEmbedding, AsrProfileField.FunAsrNanoEmbedding, keyword: "embedding"));
+            root.Add(b.BindFile("Tokenizer", b.Profile.funAsrNanoTokenizer, AsrProfileField.FunAsrNanoTokenizer, "json", "tokenizer"));
             root.Add(b.BindText("System prompt", b.Profile.funAsrNanoSystemPrompt, AsrProfileField.FunAsrNanoSystemPrompt));
             root.Add(b.BindText("User prompt", b.Profile.funAsrNanoUserPrompt, AsrProfileField.FunAsrNanoUserPrompt));
             root.Add(b.BindInt("Max new tokens", b.Profile.funAsrNanoMaxNewTokens, AsrProfileField.FunAsrNanoMaxNewTokens));

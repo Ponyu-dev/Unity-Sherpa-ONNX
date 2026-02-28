@@ -53,7 +53,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
 
         protected override void BuildProfileSections(OnlineAsrProfile profile)
         {
-            var binder = new OnlineAsrProfileFieldBinder(profile, _settings);
+            string modelDir = GetModelDirFunc(profile.ProfileName);
+            var binder = new OnlineAsrProfileFieldBinder(profile, _settings, modelDir);
 
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);
@@ -79,7 +80,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             AddSectionHeader("Runtime");
             _detailContent.Add(b.BindInt("Threads", b.Profile.numThreads, OnlineAsrProfileField.NumThreads));
             _detailContent.Add(b.BindText("Provider", b.Profile.provider, OnlineAsrProfileField.Provider));
-            _detailContent.Add(b.BindText("Tokens", b.Profile.tokens, OnlineAsrProfileField.Tokens));
+            _detailContent.Add(b.BindFile("Tokens", b.Profile.tokens, OnlineAsrProfileField.Tokens, "txt", "tokens"));
         }
 
         private void BuildFeatureSection(OnlineAsrProfileFieldBinder b)
@@ -94,10 +95,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             AddSectionHeader("Recognizer");
             _detailContent.Add(b.BindText("Decoding method", b.Profile.decodingMethod, OnlineAsrProfileField.DecodingMethod));
             _detailContent.Add(b.BindInt("Max active paths", b.Profile.maxActivePaths, OnlineAsrProfileField.MaxActivePaths));
-            _detailContent.Add(b.BindText("Hotwords file", b.Profile.hotwordsFile, OnlineAsrProfileField.HotwordsFile));
+            _detailContent.Add(b.BindFile("Hotwords file", b.Profile.hotwordsFile, OnlineAsrProfileField.HotwordsFile, "txt", "hotwords"));
             _detailContent.Add(b.BindFloat("Hotwords score", b.Profile.hotwordsScore, OnlineAsrProfileField.HotwordsScore));
-            _detailContent.Add(b.BindText("Rule FSTs", b.Profile.ruleFsts, OnlineAsrProfileField.RuleFsts));
-            _detailContent.Add(b.BindText("Rule FARs", b.Profile.ruleFars, OnlineAsrProfileField.RuleFars));
+            _detailContent.Add(b.BindFile("Rule FSTs", b.Profile.ruleFsts, OnlineAsrProfileField.RuleFsts, "fst"));
+            _detailContent.Add(b.BindFile("Rule FARs", b.Profile.ruleFars, OnlineAsrProfileField.RuleFars, "far"));
             _detailContent.Add(b.BindFloat("Blank penalty", b.Profile.blankPenalty, OnlineAsrProfileField.BlankPenalty));
         }
 
@@ -117,7 +118,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         private void BuildCtcFstDecoderSection(OnlineAsrProfileFieldBinder b)
         {
             AddSectionHeader("CtcFstDecoder");
-            _detailContent.Add(b.BindText("Graph", b.Profile.ctcFstDecoderGraph, OnlineAsrProfileField.CtcFstDecoderGraph));
+            _detailContent.Add(b.BindFile("Graph", b.Profile.ctcFstDecoderGraph, OnlineAsrProfileField.CtcFstDecoderGraph, "fst"));
             _detailContent.Add(b.BindInt("Max active", b.Profile.ctcFstDecoderMaxActive, OnlineAsrProfileField.CtcFstDecoderMaxActive));
         }
 

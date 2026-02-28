@@ -1,3 +1,4 @@
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using UnityEngine.UIElements;
@@ -12,11 +13,13 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
     {
         internal readonly VadProfile Profile;
         private readonly VadProjectSettings _settings;
+        private readonly string _modelDir;
 
-        internal VadProfileFieldBinder(VadProfile profile, VadProjectSettings settings)
+        internal VadProfileFieldBinder(VadProfile profile, VadProjectSettings settings, string modelDir)
         {
             Profile = profile;
             _settings = settings;
+            _modelDir = modelDir;
         }
 
         internal TextField BindText(string label, string value, VadProfileField field)
@@ -25,6 +28,15 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             var handler = new TextHandler(Profile, _settings, field);
             textField.RegisterValueChangedCallback(handler.Handle);
             return textField;
+        }
+
+        internal ModelObjectField BindFile(string label, string value, VadProfileField field,
+            string extension = "onnx", string keyword = "")
+        {
+            var picker = new ModelObjectField(label, value, _modelDir, extension, keyword);
+            var handler = new TextHandler(Profile, _settings, field);
+            picker.RegisterFileChangedCallback(handler.SetValue);
+            return picker;
         }
 
         internal FloatField BindFloat(string label, float value, VadProfileField field)
@@ -54,11 +66,13 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
             internal TextHandler(VadProfile p, VadProjectSettings s, VadProfileField f)
             { _p = p; _s = s; _f = f; }
 
-            internal void Handle(ChangeEvent<string> evt)
+            internal void SetValue(string value)
             {
-                VadProfileFieldSetter.SetString(_p, _f, evt.newValue);
+                VadProfileFieldSetter.SetString(_p, _f, value);
                 _s.SaveSettings();
             }
+
+            internal void Handle(ChangeEvent<string> evt) => SetValue(evt.newValue);
         }
 
         private sealed class FloatHandler

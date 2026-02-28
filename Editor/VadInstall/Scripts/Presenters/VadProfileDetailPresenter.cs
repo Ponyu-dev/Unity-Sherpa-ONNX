@@ -41,7 +41,8 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
 
         protected override void BuildProfileSections(VadProfile profile)
         {
-            var binder = new VadProfileFieldBinder(profile, _settings);
+            string modelDir = GetModelDirFunc(profile.ProfileName);
+            var binder = new VadProfileFieldBinder(profile, _settings, modelDir);
 
             BuildVersionWarning(profile.modelType);
             BuildIdentitySection(

@@ -53,7 +53,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         protected override void BuildProfileSections(AsrProfile profile)
         {
-            var binder = new AsrProfileFieldBinder(profile, _settings);
+            string modelDir = GetModelDirFunc(profile.ProfileName);
+            var binder = new AsrProfileFieldBinder(profile, _settings, modelDir);
 
             BuildInt8SwitchButton(profile);
             BuildVersionWarning(profile.modelType);
@@ -79,7 +80,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             AddSectionHeader("Runtime");
             _detailContent.Add(b.BindInt("Threads", b.Profile.numThreads, AsrProfileField.NumThreads));
             _detailContent.Add(b.BindText("Provider", b.Profile.provider, AsrProfileField.Provider));
-            _detailContent.Add(b.BindText("Tokens", b.Profile.tokens, AsrProfileField.Tokens));
+            _detailContent.Add(b.BindFile("Tokens", b.Profile.tokens, AsrProfileField.Tokens, "txt", "tokens"));
         }
 
         private void BuildFeatureSection(AsrProfileFieldBinder b)
@@ -94,17 +95,17 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             AddSectionHeader("Recognizer");
             _detailContent.Add(b.BindText("Decoding method", b.Profile.decodingMethod, AsrProfileField.DecodingMethod));
             _detailContent.Add(b.BindInt("Max active paths", b.Profile.maxActivePaths, AsrProfileField.MaxActivePaths));
-            _detailContent.Add(b.BindText("Hotwords file", b.Profile.hotwordsFile, AsrProfileField.HotwordsFile));
+            _detailContent.Add(b.BindFile("Hotwords file", b.Profile.hotwordsFile, AsrProfileField.HotwordsFile, "txt", "hotwords"));
             _detailContent.Add(b.BindFloat("Hotwords score", b.Profile.hotwordsScore, AsrProfileField.HotwordsScore));
-            _detailContent.Add(b.BindText("Rule FSTs", b.Profile.ruleFsts, AsrProfileField.RuleFsts));
-            _detailContent.Add(b.BindText("Rule FARs", b.Profile.ruleFars, AsrProfileField.RuleFars));
+            _detailContent.Add(b.BindFile("Rule FSTs", b.Profile.ruleFsts, AsrProfileField.RuleFsts, "fst"));
+            _detailContent.Add(b.BindFile("Rule FARs", b.Profile.ruleFars, AsrProfileField.RuleFars, "far"));
             _detailContent.Add(b.BindFloat("Blank penalty", b.Profile.blankPenalty, AsrProfileField.BlankPenalty));
         }
 
         private void BuildLmSection(AsrProfileFieldBinder b)
         {
             AddSectionHeader("Language Model");
-            _detailContent.Add(b.BindText("LM model", b.Profile.lmModel, AsrProfileField.LmModel));
+            _detailContent.Add(b.BindFile("LM model", b.Profile.lmModel, AsrProfileField.LmModel, keyword: "lm"));
             _detailContent.Add(b.BindFloat("LM scale", b.Profile.lmScale, AsrProfileField.LmScale));
         }
 
