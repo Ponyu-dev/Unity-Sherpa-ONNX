@@ -228,18 +228,9 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     foreach (string path in dependentPaths)
                         pipeline.Run(path);
 
-                    if (!LibraryInstallStatus.HasAnyAndroidInstalled())
-                        AndroidJavaContentHandler.CleanOrphanedJavaFiles();
                 }
 
                 AssetDatabase.Refresh();
-
-                if (InstallPipelineFactory.IsAndroid(_libraryArch)
-                    && !LibraryInstallStatus.HasAnyAndroidInstalled())
-                {
-                    AndroidJavaContentHandler.CleanOrphanedJavaFiles();
-                    AssetDatabase.Refresh();
-                }
 
                 // Sync define with managed DLL presence
                 ScriptingDefineHelper.SyncDefineWithInstallState();
