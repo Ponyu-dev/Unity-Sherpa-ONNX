@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Build iOS managed DLL and publish it as a GitHub release.
+# Build all iOS artifacts and publish as a GitHub release.
 #
 # Usage:
-#   ./Tools/build_and_publish.sh /path/to/sherpa-onnx
+#   ./Tools~/ios/build_and_publish.sh /path/to/sherpa-onnx
 
 set -euo pipefail
 
@@ -14,8 +14,8 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-echo "=== Step 1: Build iOS DLL ==="
-"$SCRIPT_DIR/build_ios_dll.sh" "$1"
+echo "=== Step 1: Build iOS (DLL + native libs) ==="
+"$SCRIPT_DIR/build_ios.sh" "$1"
 
 echo "=== Step 2: Publish Release ==="
 "$SCRIPT_DIR/publish_release.sh" "$1"
