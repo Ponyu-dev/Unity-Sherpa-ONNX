@@ -13,15 +13,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         internal readonly AsrProfile Profile;
         private readonly AsrProjectSettings _settings;
 
-        internal AsrProfileFieldBinder(
-            AsrProfile profile, AsrProjectSettings settings)
+        internal AsrProfileFieldBinder(AsrProfile profile, AsrProjectSettings settings)
         {
             Profile = profile;
             _settings = settings;
         }
 
-        internal TextField BindText(
-            string label, string value, AsrProfileField field)
+        internal TextField BindText(string label, string value, AsrProfileField field)
         {
             var textField = new TextField(label) { value = value };
             var handler = new TextHandler(Profile, _settings, field);
@@ -29,8 +27,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             return textField;
         }
 
-        internal FloatField BindFloat(
-            string label, float value, AsrProfileField field)
+        internal FloatField BindFloat(string label, float value, AsrProfileField field)
         {
             var floatField = new FloatField(label) { value = value };
             var handler = new FloatHandler(Profile, _settings, field);
@@ -38,8 +35,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             return floatField;
         }
 
-        internal IntegerField BindInt(
-            string label, int value, AsrProfileField field)
+        internal IntegerField BindInt(string label, int value, AsrProfileField field)
         {
             var intField = new IntegerField(label) { value = value };
             var handler = new IntHandler(Profile, _settings, field);
@@ -55,8 +51,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             private readonly AsrProjectSettings _s;
             private readonly AsrProfileField _f;
 
-            internal TextHandler(
-                AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            internal TextHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<string> evt)
@@ -72,8 +67,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             private readonly AsrProjectSettings _s;
             private readonly AsrProfileField _f;
 
-            internal FloatHandler(
-                AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            internal FloatHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<float> evt)
@@ -89,8 +83,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             private readonly AsrProjectSettings _s;
             private readonly AsrProfileField _f;
 
-            internal IntHandler(
-                AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            internal IntHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<int> evt)

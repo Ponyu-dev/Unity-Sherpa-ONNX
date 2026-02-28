@@ -31,8 +31,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
         protected int _currentIndex = -1;
         protected bool _disposed;
 
-        protected ProfileDetailPresenterBase(
-            VisualElement detailContent, TSettings settings)
+        protected ProfileDetailPresenterBase(VisualElement detailContent, TSettings settings)
         {
             _detailContent = detailContent;
             _settings = settings;

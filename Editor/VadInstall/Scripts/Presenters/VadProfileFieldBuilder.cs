@@ -9,11 +9,9 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
     /// </summary>
     internal static class VadProfileFieldBuilder
     {
-        internal static void BuildModelFields(
-            VisualElement root, VadProfileFieldBinder b)
+        internal static void BuildModelFields(VisualElement root, VadProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.model,
-                VadProfileField.Model));
+            root.Add(b.BindText("Model", b.Profile.model, VadProfileField.Model));
         }
     }
 }

@@ -13,15 +13,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         internal readonly OnlineAsrProfile Profile;
         private readonly AsrProjectSettings _settings;
 
-        internal OnlineAsrProfileFieldBinder(
-            OnlineAsrProfile profile, AsrProjectSettings settings)
+        internal OnlineAsrProfileFieldBinder(OnlineAsrProfile profile, AsrProjectSettings settings)
         {
             Profile = profile;
             _settings = settings;
         }
 
-        internal TextField BindText(
-            string label, string value, OnlineAsrProfileField field)
+        internal TextField BindText(string label, string value, OnlineAsrProfileField field)
         {
             var textField = new TextField(label) { value = value };
             var handler = new TextHandler(Profile, _settings, field);
@@ -29,8 +27,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             return textField;
         }
 
-        internal FloatField BindFloat(
-            string label, float value, OnlineAsrProfileField field)
+        internal FloatField BindFloat(string label, float value, OnlineAsrProfileField field)
         {
             var floatField = new FloatField(label) { value = value };
             var handler = new FloatHandler(Profile, _settings, field);
@@ -38,8 +35,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             return floatField;
         }
 
-        internal IntegerField BindInt(
-            string label, int value, OnlineAsrProfileField field)
+        internal IntegerField BindInt(string label, int value, OnlineAsrProfileField field)
         {
             var intField = new IntegerField(label) { value = value };
             var handler = new IntHandler(Profile, _settings, field);
@@ -55,15 +51,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             private readonly AsrProjectSettings _s;
             private readonly OnlineAsrProfileField _f;
 
-            internal TextHandler(
-                OnlineAsrProfile p, AsrProjectSettings s,
-                OnlineAsrProfileField f)
+            internal TextHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<string> evt)
             {
-                OnlineAsrProfileFieldSetter.SetString(
-                    _p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetString(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }
@@ -74,15 +67,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             private readonly AsrProjectSettings _s;
             private readonly OnlineAsrProfileField _f;
 
-            internal FloatHandler(
-                OnlineAsrProfile p, AsrProjectSettings s,
-                OnlineAsrProfileField f)
+            internal FloatHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<float> evt)
             {
-                OnlineAsrProfileFieldSetter.SetFloat(
-                    _p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetFloat(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }
@@ -93,15 +83,12 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             private readonly AsrProjectSettings _s;
             private readonly OnlineAsrProfileField _f;
 
-            internal IntHandler(
-                OnlineAsrProfile p, AsrProjectSettings s,
-                OnlineAsrProfileField f)
+            internal IntHandler(OnlineAsrProfile p, AsrProjectSettings s, OnlineAsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<int> evt)
             {
-                OnlineAsrProfileFieldSetter.SetInt(
-                    _p, _f, evt.newValue);
+                OnlineAsrProfileFieldSetter.SetInt(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }

@@ -81,8 +81,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
         // ── Module Toggle ──
 
-        private void BindEnabledToggle(
-            VisualElement root, VadProjectSettings settings)
+        private void BindEnabledToggle(VisualElement root, VadProjectSettings settings)
         {
             _vadEnabledToggle = root.Q<Toggle>("vadEnabledToggle");
             if (_vadEnabledToggle == null) return;
@@ -121,16 +120,14 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
             label?.RegisterCallback<PointerUpEvent, string>(HandleLinkClicked, VadDocsUrl);
         }
 
-        private static void HandleLinkClicked(
-            PointerUpEvent evt, string url)
+        private static void HandleLinkClicked(PointerUpEvent evt, string url)
         {
             Application.OpenURL(url);
         }
 
         // ── Profiles ──
 
-        private void BuildProfilePresenters(
-            VisualElement root, VadProjectSettings settings)
+        private void BuildProfilePresenters(VisualElement root, VadProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
             _activeProfilePresenter = new ActiveProfilePresenter<VadProfile>(settings.data, settings, ModelPaths.GetVadModelDir);

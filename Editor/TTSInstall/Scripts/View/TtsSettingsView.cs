@@ -93,8 +93,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             _ttsEnabledToggle.RegisterValueChangedCallback(HandleTtsEnabledChanged);
         }
 
-        private static void HandleTtsEnabledChanged(
-            ChangeEvent<bool> evt)
+        private static void HandleTtsEnabledChanged(ChangeEvent<bool> evt)
         {
             var s = TtsProjectSettings.instance;
             s.ttsEnabled = evt.newValue;

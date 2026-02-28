@@ -36,9 +36,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private PackageInstallPipeline _pipeline;
         private bool _isBusy;
 
-        internal TtsImportPresenter(
-            TtsProjectSettings settings,
-            Action onImportCompleted)
+        internal TtsImportPresenter(TtsProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -186,8 +184,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new ModelContentHandler(
-                archiveName, ModelPaths.GetTtsModelDir);
+            var handler = new ModelContentHandler(archiveName, ModelPaths.GetTtsModelDir);
             _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
@@ -213,20 +210,14 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             TtsProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
 
             if (detectedType == TtsModelType.Matcha)
-            {
-                await _vocoderField.DownloadAsync(
-                    profile, handler.DestinationDirectory,
-                    HandlePipelineProgress, HandlePipelineStatus, ct);
-            }
+                await _vocoderField.DownloadAsync(profile, handler.DestinationDirectory, HandlePipelineProgress, HandlePipelineStatus, ct);
 
             _settings.data.profiles.Add(profile);
             _settings.SaveSettings();
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detectedType.HasValue
-                ? detectedType.Value.ToString()
-                : "Unknown";
+            string typeLabel = detectedType.HasValue ? detectedType.Value.ToString() : "Unknown";
 
             SetStatus($"Import complete: {archiveName} ({typeLabel})");
 

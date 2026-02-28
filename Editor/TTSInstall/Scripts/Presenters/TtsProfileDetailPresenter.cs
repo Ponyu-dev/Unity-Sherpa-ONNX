@@ -10,11 +10,9 @@ using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
 {
-    internal sealed class TtsProfileDetailPresenter
-        : ProfileDetailPresenterBase<TtsProfile, TtsProjectSettings>
+    internal sealed class TtsProfileDetailPresenter : ProfileDetailPresenterBase<TtsProfile, TtsProjectSettings>
     {
-        internal TtsProfileDetailPresenter(
-            VisualElement detailContent, TtsProjectSettings settings)
+        internal TtsProfileDetailPresenter(VisualElement detailContent, TtsProjectSettings settings)
             : base(detailContent, settings) { }
 
         protected override IReadOnlyList<TtsProfile> Profiles
