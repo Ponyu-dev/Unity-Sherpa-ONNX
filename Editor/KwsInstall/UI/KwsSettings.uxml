@@ -1,0 +1,41 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:VisualElement class="model-root">
+        <ui:VisualElement name="kws-header" class="model-header">
+            <ui:Label text="KWS Models" class="model-header-title"/>
+            <ui:HelpBox text="Download Keyword Spotting (KWS) model files. All available models use Zipformer Transducer architecture (encoder/decoder/joiner + tokens + keywords). Paste the archive URL below and click Import, or add a profile manually." message-type="Info"/>
+        </ui:VisualElement>
+        <ui:VisualElement class="model-links-row">
+            <ui:Label text="KWS documentation &amp; pretrained models" name="linkModels" class="model-link-label"/>
+        </ui:VisualElement>
+        <ui:Toggle name="kwsEnabledToggle" label="Include KWS in Build" value="true" style="margin: 8px 0;"/>
+        <ui:VisualElement name="activeProfileSection" class="model-active-profile-section"/>
+        <ui:VisualElement class="model-toolbar row">
+            <ui:Button name="addProfileButton" text="Add profile" class="btn btn-primary"/>
+            <ui:Button name="removeProfileButton" text="Remove selected" class="btn btn-secondary"/>
+            <ui:Button name="importFromUrlButton" text="Import from URL" class="btn btn-accent"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="importSection" class="model-import-section hidden">
+            <ui:VisualElement class="model-import-row">
+                <ui:TextField label="Model archive URL" name="importUrlField" class="model-import-url"/>
+                <ui:VisualElement class="model-import-buttons-row">
+                    <ui:Button text="Import" name="importButton" class="btn btn-primary"/>
+                    <ui:Button text="Cancel" name="importCancelButton" class="btn btn-secondary hidden"/>
+                </ui:VisualElement>
+                <ui:ProgressBar name="importProgressBar" class="model-import-progress hidden"/>
+                <ui:Label name="importStatusLabel" class="model-import-status hidden"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement class="model-main">
+            <ui:VisualElement class="model-list-panel">
+                <ui:Label text="Profiles" class="model-list-label"/>
+                <ui:ListView name="profilesListView" class="model-profiles-list"/>
+            </ui:VisualElement>
+            <ui:VisualElement class="model-detail-panel">
+                <ui:Label text="Profile details" class="model-detail-label"/>
+                <ui:ScrollView name="detailScrollView" class="model-detail-scroll">
+                    <ui:VisualElement name="detailContent" class="model-detail-content"/>
+                </ui:ScrollView>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

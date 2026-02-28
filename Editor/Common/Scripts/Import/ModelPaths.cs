@@ -14,6 +14,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
         internal const string TtsModelsDir = SherpaRoot + "/tts-models";
         internal const string AsrModelsDir = SherpaRoot + "/asr-models";
         internal const string VadModelsDir = SherpaRoot + "/vad-models";
+        internal const string KwsModelsDir = SherpaRoot + "/kws-models";
 
         internal static string GetTtsModelDir(string name)
         {
@@ -28,6 +29,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
         internal static string GetVadModelDir(string name)
         {
             return Path.Combine(VadModelsDir, name);
+        }
+
+        internal static string GetKwsModelDir(string name)
+        {
+            return Path.Combine(KwsModelsDir, name);
         }
     }
 }

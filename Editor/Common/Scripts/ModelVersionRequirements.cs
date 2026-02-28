@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
+using PonyuDev.SherpaOnnx.Kws.Data;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Vad.Data;
 
@@ -60,6 +61,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             { VadModelType.TenVad,    "1.12.6" },
         };
 
+        private static readonly Dictionary<KwsModelType, string> KwsVersions = new()
+        {
+            { KwsModelType.Transducer, "1.9.25" },
+        };
+
         // ── Public API ──
 
         internal static string GetMinVersion(TtsModelType type)
@@ -74,6 +80,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         internal static string GetMinVersion(VadModelType type)
             => Lookup(type, VadVersions);
 
+        internal static string GetMinVersion(KwsModelType type)
+            => Lookup(type, KwsVersions);
+
         internal static bool IsSupported(TtsModelType type, string installedVersion)
             => Check(type, TtsVersions, installedVersion);
 
@@ -86,6 +95,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         internal static bool IsSupported(VadModelType type, string installedVersion)
             => Check(type, VadVersions, installedVersion);
 
+        internal static bool IsSupported(KwsModelType type, string installedVersion)
+            => Check(type, KwsVersions, installedVersion);
+
         // ── Generic Enum dispatchers (used by base presenter) ──
 
         internal static string GetMinVersion(Enum type) => type switch
@@ -94,6 +106,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             AsrModelType t => GetMinVersion(t),
             OnlineAsrModelType t => GetMinVersion(t),
             VadModelType t => GetMinVersion(t),
+            KwsModelType t => GetMinVersion(t),
             _ => null
         };
 
@@ -103,6 +116,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             AsrModelType t => IsSupported(t, installedVersion),
             OnlineAsrModelType t => IsSupported(t, installedVersion),
             VadModelType t => IsSupported(t, installedVersion),
+            KwsModelType t => IsSupported(t, installedVersion),
             _ => false
         };
 

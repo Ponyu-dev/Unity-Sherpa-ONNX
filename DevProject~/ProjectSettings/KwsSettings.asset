@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &1
+MonoBehaviour:
+  m_ObjectHideFlags: 53
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7c28be752ca1444799288f63c3fc498b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: PonyuDev.SherpaOnnx.Editor::PonyuDev.SherpaOnnx.Editor.KwsInstall.Settings.KwsProjectSettings
+  kwsEnabled: 1
+  data:
+    activeProfileIndex: 0
+    profiles:
+    - profileName: sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20
+      modelType: 0
+      modelSource: 0
+      sourceUrl: https://github.com/k2-fsa/sherpa-onnx/releases/download/kws-models/sherpa-onnx-kws-zipformer-zh-en-3M-2025-12-20.tar.bz2
+      sampleRate: 16000
+      featureDim: 80
+      numThreads: 1
+      provider: cpu
+      allowInt8: 0
+      tokens: tokens.txt
+      encoder: encoder-epoch-13-avg-2-chunk-16-left-64.onnx
+      decoder: decoder-epoch-13-avg-2-chunk-16-left-64.onnx
+      joiner: joiner-epoch-13-avg-2-chunk-16-left-64.onnx
+      keywordsFile: 
+      customKeywords: "\u2581HE LL O \u2581WORLD\n\u2581HI \u2581GO O G LE\n\u2581HE
+        Y \u2581S I RI"
+      maxActivePaths: 4
+      numTrailingBlanks: 1
+      keywordsScore: 1
+      keywordsThreshold: 0.25
+      remoteBaseUrl: 

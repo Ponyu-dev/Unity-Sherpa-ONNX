@@ -1,5 +1,6 @@
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
+using PonyuDev.SherpaOnnx.Kws.Data;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Vad.Data;
 
@@ -64,6 +65,18 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
         internal static bool HasMissingFields(VadProfile p)
         {
             return Empty(p.model);
+        }
+
+        internal static bool HasMissingFields(KwsProfile p)
+        {
+            if (Empty(p.tokens)) return true;
+            if (Empty(p.keywordsFile) && Empty(p.customKeywords)) return true;
+
+            return p.modelType switch
+            {
+                KwsModelType.Transducer => Empty(p.encoder) || Empty(p.decoder) || Empty(p.joiner),
+                _ => false
+            };
         }
 
         private static bool Empty(string value) => string.IsNullOrEmpty(value);
