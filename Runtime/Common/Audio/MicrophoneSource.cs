@@ -68,8 +68,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
         }
 
         /// <summary>Requests permission and starts capture.</summary>
-        public async UniTask<bool> StartRecordingAsync(
-            CancellationToken ct = default)
+        public async UniTask<bool> StartRecordingAsync(CancellationToken ct = default)
         {
             if (_disposed)
                 return false;
@@ -77,12 +76,9 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (IsRecording)
                 return true;
 
-            if (_requestPermission
-                && !await MicrophonePermission.RequestAsync())
+            if (_requestPermission && !await MicrophonePermission.RequestAsync())
             {
-                SherpaOnnxLog.RuntimeWarning(
-                    "[SherpaOnnx] MicrophoneSource: " +
-                    "permission denied.");
+                SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] MicrophoneSource: permission denied.");
                 return false;
             }
 
@@ -108,8 +104,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
 
             _useNativeFallback = false;
             IsRecording = false;
-            SherpaOnnxLog.RuntimeLog(
-                "[SherpaOnnx] MicrophoneSource: stopped.");
+            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] MicrophoneSource: stopped.");
             RecordingStopped?.Invoke();
         }
 
@@ -129,10 +124,8 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (!IsRecording || _clip == null)
                 return null;
 
-            int currentPos =
-                Microphone.GetPosition(_resolvedDevice);
-            return ExtractSamples(
-                ref _pullLastPos, currentPos);
+            int currentPos = Microphone.GetPosition(_resolvedDevice);
+            return ExtractSamples(ref _pullLastPos, currentPos);
         }
 
         /// <summary>
@@ -147,8 +140,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (!IsRecording || _clip == null)
                 return null;
 
-            var buffer =
-                new float[_clip.samples * _clip.channels];
+            var buffer = new float[_clip.samples * _clip.channels];
             _clip.GetData(buffer, 0);
             return buffer;
         }
@@ -173,14 +165,11 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
 
         // ── Unity Microphone path ──
 
-        private async UniTask<bool> StartUnityAsync(
-            CancellationToken ct)
+        private async UniTask<bool> StartUnityAsync(CancellationToken ct)
         {
             if (Microphone.devices.Length == 0)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] MicrophoneSource: " +
-                    "no devices found.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] MicrophoneSource: no devices found.");
                 return false;
             }
 
@@ -190,22 +179,17 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
 
             iOSAudioSessionBridge.ConfigureForRecording();
 
-            _clip = Microphone.Start(
-                _resolvedDevice, true,
-                _clipLengthSec, _sampleRate);
+            _clip = Microphone.Start(_resolvedDevice, true, _clipLengthSec, _sampleRate);
 
             if (_clip == null)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] MicrophoneSource: " +
-                    "Microphone.Start returned null.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] MicrophoneSource: Microphone.Start returned null.");
                 return false;
             }
 
             StartSilentPlayback();
 
-            bool deviceReady =
-                await WaitForMicrophoneReadyAsync(ct);
+            bool deviceReady = await WaitForMicrophoneReadyAsync(ct);
             if (!deviceReady)
             {
                 StopSilentPlayback();
@@ -219,12 +203,10 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             }
 
             IsRecording = true;
-            _pushLastPos =
-                Microphone.GetPosition(_resolvedDevice);
+            _pushLastPos = Microphone.GetPosition(_resolvedDevice);
             _pullLastPos = _pushLastPos;
 
-            _pollCts = CancellationTokenSource
-                .CreateLinkedTokenSource(ct);
+            _pollCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             PollUnityLoopAsync(_pollCts.Token).Forget();
 
             SherpaOnnxLog.RuntimeLog(
@@ -256,17 +238,14 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                 if (!IsRecording || _clip == null)
                     break;
 
-                int currentPos = Microphone.GetPosition(
-                    _resolvedDevice);
-                float[] samples = ExtractSamples(
-                    ref _pushLastPos, currentPos);
+                int currentPos = Microphone.GetPosition(_resolvedDevice);
+                float[] samples = ExtractSamples(ref _pushLastPos, currentPos);
 
                 if (samples == null || samples.Length == 0)
                     continue;
 
                 float maxAbs = ComputeMaxAbs(samples);
-                LogDiagnostics(
-                    samples.Length, maxAbs, ref diagFrames);
+                LogDiagnostics(samples.Length, maxAbs, ref diagFrames);
 
                 if (maxAbs >= _settings.silenceThreshold)
                 {
@@ -306,16 +285,12 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (nativeOk)
             {
                 diagnosis += "; Fallback=NativeAudioRecord";
-                SherpaOnnxLog.RuntimeLog(
-                    "[SherpaOnnx] MicrophoneSource: " +
-                    "native AudioRecord fallback active.");
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] MicrophoneSource: native AudioRecord fallback active.");
             }
             else
             {
                 diagnosis += "; Fallback=FAILED";
-                string nativeDiag =
-                    _androidBridge?.DiagnoseSilence()
-                    ?? "bridge=null";
+                string nativeDiag = _androidBridge?.DiagnoseSilence() ?? "bridge=null";
                 diagnosis += "; " + nativeDiag;
                 SherpaOnnxLog.RuntimeError(
                     "[SherpaOnnx] MicrophoneSource: " +
@@ -361,8 +336,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             _androidBridge?.Stop();
         }
 
-        private async UniTaskVoid PollAndroidLoopAsync(
-            CancellationToken ct)
+        private async UniTaskVoid PollAndroidLoopAsync(CancellationToken ct)
         {
             int diagFrames = 0;
             int silentFrames = 0;
@@ -376,9 +350,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                 if (!IsRecording || _androidBridge == null)
                     break;
 
-                float[] samples =
-                    _androidBridge.DrainBuffer();
-
+                float[] samples = _androidBridge.DrainBuffer();
                 if (samples == null || samples.Length == 0)
                     continue;
 
@@ -439,14 +411,11 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (_clip == null)
                 return;
 
-            _silentGo = new GameObject(
-                "[SherpaOnnx] MicSilentPlayback");
-            _silentGo.hideFlags =
-                HideFlags.HideAndDontSave;
+            _silentGo = new GameObject("[SherpaOnnx] MicSilentPlayback");
+            _silentGo.hideFlags = HideFlags.HideAndDontSave;
             UnityEngine.Object.DontDestroyOnLoad(_silentGo);
 
-            _silentSource =
-                _silentGo.AddComponent<AudioSource>();
+            _silentSource = _silentGo.AddComponent<AudioSource>();
             _silentSource.clip = _clip;
             _silentSource.volume = 0f;
             _silentSource.loop = true;
@@ -461,11 +430,10 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                 _silentSource = null;
             }
 
-            if (_silentGo != null)
-            {
-                UnityEngine.Object.Destroy(_silentGo);
-                _silentGo = null;
-            }
+            if (_silentGo == null) return;
+            
+            UnityEngine.Object.Destroy(_silentGo);
+            _silentGo = null;
         }
 
         // ── Microphone readiness ──
@@ -486,8 +454,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                     _resolvedDevice) > 0)
                     return true;
 
-                await UniTask.Yield(
-                    PlayerLoopTiming.Update, ct);
+                await UniTask.Yield(PlayerLoopTiming.Update, ct);
                 elapsed += Time.unscaledDeltaTime;
             }
 
@@ -507,8 +474,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                 ? currentPos - lastPos
                 : totalSamples - lastPos + currentPos;
 
-            var samples =
-                new float[newSampleCount * _clip.channels];
+            var samples = new float[newSampleCount * _clip.channels];
 
             if (currentPos > lastPos)
             {
@@ -517,20 +483,15 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             else
             {
                 int tailCount = totalSamples - lastPos;
-                var tail =
-                    new float[tailCount * _clip.channels];
+                var tail = new float[tailCount * _clip.channels];
                 _clip.GetData(tail, lastPos);
 
-                var head =
-                    new float[currentPos * _clip.channels];
+                var head = new float[currentPos * _clip.channels];
                 if (currentPos > 0)
                     _clip.GetData(head, 0);
 
-                Array.Copy(
-                    tail, 0, samples, 0, tail.Length);
-                Array.Copy(
-                    head, 0, samples,
-                    tail.Length, head.Length);
+                Array.Copy(tail, 0, samples, 0, tail.Length);
+                Array.Copy(head, 0, samples, tail.Length, head.Length);
             }
 
             lastPos = currentPos;
