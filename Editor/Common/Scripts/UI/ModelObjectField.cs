@@ -21,16 +21,22 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.UI
         private readonly string _extension;
         private readonly string _keyword;
         private readonly bool _isFolder;
+        private readonly bool _isRequired;
         private Action<string> _onChanged;
 
+        private const string RequiredEmptyClass = "model-field--required-empty";
+        private const string RequiredEmptyTooltip = "This field is required";
+
         internal ModelObjectField(string label, string value, string modelDir,
-            string extension = "", string keyword = "", bool isFolder = false)
+            string extension = "", string keyword = "",
+            bool isFolder = false, bool isRequired = false)
         {
             _label = label;
             _modelDir = modelDir.Replace('\\', '/');
             _extension = extension ?? "";
             _keyword = keyword ?? "";
             _isFolder = isFolder;
+            _isRequired = isRequired;
 
             _field = new ObjectField(label);
             _field.objectType = typeof(Object);
@@ -46,6 +52,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.UI
             Add(_field);
 
             InterceptPickerButton();
+            UpdateRequiredState(value);
         }
 
         internal void RegisterFileChangedCallback(Action<string> callback)
@@ -99,6 +106,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.UI
 
             _field.SetValueWithoutNotify(obj);
             _onChanged?.Invoke(relativeName);
+            UpdateRequiredState(relativeName);
         }
 
         // ── ObjectField change handler ──
@@ -108,6 +116,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.UI
             if (evt.newValue == null)
             {
                 _onChanged?.Invoke("");
+                UpdateRequiredState("");
                 return;
             }
 
@@ -121,9 +130,26 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.UI
             }
 
             _onChanged?.Invoke(relativeName);
+            UpdateRequiredState(relativeName);
         }
 
         // ── Helpers ──
+
+        private void UpdateRequiredState(string value)
+        {
+            if (!_isRequired) return;
+
+            if (string.IsNullOrEmpty(value))
+            {
+                AddToClassList(RequiredEmptyClass);
+                tooltip = RequiredEmptyTooltip;
+            }
+            else
+            {
+                RemoveFromClassList(RequiredEmptyClass);
+                tooltip = "";
+            }
+        }
 
         private static string AbsoluteToAssetPath(string absolutePath)
         {

@@ -80,7 +80,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             AddSectionHeader("Runtime");
             _detailContent.Add(b.BindInt("Threads", b.Profile.numThreads, OnlineAsrProfileField.NumThreads));
             _detailContent.Add(b.BindText("Provider", b.Profile.provider, OnlineAsrProfileField.Provider));
-            _detailContent.Add(b.BindFile("Tokens", b.Profile.tokens, OnlineAsrProfileField.Tokens, "txt", "tokens"));
+            _detailContent.Add(b.BindFile("Tokens", b.Profile.tokens, OnlineAsrProfileField.Tokens, "txt", "tokens", isRequired: true));
         }
 
         private void BuildFeatureSection(OnlineAsrProfileFieldBinder b)

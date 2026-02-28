@@ -18,15 +18,18 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
         private readonly ISettingsData<TProfile> _data;
         private readonly ISaveableSettings _settings;
         private readonly Func<string, string> _getModelDir;
+        private readonly Func<TProfile, bool> _hasMissingFields;
         private PopupField<string> _dropdown;
 
         internal ActiveProfilePresenter(
             ISettingsData<TProfile> data, ISaveableSettings settings,
-            Func<string, string> getModelDir)
+            Func<string, string> getModelDir,
+            Func<TProfile, bool> hasMissingFields = null)
         {
             _data = data;
             _settings = settings;
             _getModelDir = getModelDir;
+            _hasMissingFields = hasMissingFields;
         }
 
         internal void Build(VisualElement parent)
@@ -116,7 +119,10 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
         private bool IsIndexMissing(int index)
         {
             if (index < 0 || index >= _data.Profiles.Count) return false;
-            return ModelFileService.IsProfileMissing(_data.Profiles[index].ProfileName, _getModelDir);
+            TProfile profile = _data.Profiles[index];
+            if (ModelFileService.IsProfileMissing(profile.ProfileName, _getModelDir))
+                return true;
+            return _hasMissingFields?.Invoke(profile) == true;
         }
 
         private void ResetIfMissing()

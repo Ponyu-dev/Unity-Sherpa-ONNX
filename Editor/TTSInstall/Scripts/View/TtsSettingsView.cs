@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
@@ -183,7 +184,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private void BuildProfilePresenters(VisualElement root, TtsProjectSettings settings)
         {
             var activeSection = root.Q<VisualElement>("activeProfileSection");
-            _activeProfilePresenter = new ActiveProfilePresenter<TtsProfile>(settings.data, settings, ModelPaths.GetTtsModelDir);
+            _activeProfilePresenter = new ActiveProfilePresenter<TtsProfile>(settings.data, settings, ModelPaths.GetTtsModelDir, ProfileFieldValidator.HasMissingFields);
             _activeProfilePresenter.Build(activeSection);
 
             _importSection = root.Q<VisualElement>("importSection");
@@ -198,7 +199,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             var removeButton = root.Q<Button>("removeProfileButton");
             var detailContent = root.Q<VisualElement>("detailContent");
 
-            _listPresenter = new ProfileListPresenter<TtsProfile>(settings.data, settings, ModelPaths.GetTtsModelDir, "model-list-item");
+            _listPresenter = new ProfileListPresenter<TtsProfile>(settings.data, settings, ModelPaths.GetTtsModelDir, "model-list-item", ProfileFieldValidator.HasMissingFields);
             _detailPresenter = new TtsProfileDetailPresenter(detailContent, settings);
             _detailPresenter.SetListPresenter(_listPresenter);
 

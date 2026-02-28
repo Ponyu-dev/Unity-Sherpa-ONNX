@@ -31,9 +31,10 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         }
 
         internal ModelObjectField BindFile(string label, string value, VadProfileField field,
-            string extension = "onnx", string keyword = "")
+            string extension = "onnx", string keyword = "", bool isRequired = false)
         {
-            var picker = new ModelObjectField(label, value, _modelDir, extension, keyword);
+            var picker = new ModelObjectField(label, value, _modelDir, extension, keyword,
+                isRequired: isRequired);
             var handler = new TextHandler(Profile, _settings, field);
             picker.RegisterFileChangedCallback(handler.SetValue);
             return picker;

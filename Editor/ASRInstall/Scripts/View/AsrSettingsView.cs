@@ -5,6 +5,7 @@ using PonyuDev.SherpaOnnx.Editor.AsrInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using UnityEditor;
@@ -151,7 +152,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private void BuildOfflinePresenters(AsrProjectSettings settings)
         {
             var activeSection = _offlineContainer.Q<VisualElement>("activeProfileSection");
-            _offlineActivePresenter = new ActiveProfilePresenter<AsrProfile>(settings.offlineData, settings, ModelPaths.GetAsrModelDir);
+            _offlineActivePresenter = new ActiveProfilePresenter<AsrProfile>(settings.offlineData, settings, ModelPaths.GetAsrModelDir, ProfileFieldValidator.HasMissingFields);
             _offlineActivePresenter.Build(activeSection);
 
             _offlineImportSection = _offlineContainer.Q<VisualElement>("importSection");
@@ -166,7 +167,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             var removeBtn = _offlineContainer.Q<Button>("removeProfileButton");
             var detail = _offlineContainer.Q<VisualElement>("detailContent");
 
-            _offlineListPresenter = new ProfileListPresenter<AsrProfile>(settings.offlineData, settings, ModelPaths.GetAsrModelDir, "model-list-item");
+            _offlineListPresenter = new ProfileListPresenter<AsrProfile>(settings.offlineData, settings, ModelPaths.GetAsrModelDir, "model-list-item", ProfileFieldValidator.HasMissingFields);
             _offlineDetailPresenter = new AsrProfileDetailPresenter(detail, settings);
             _offlineDetailPresenter.SetListPresenter(_offlineListPresenter);
 
@@ -192,7 +193,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private void BuildOnlinePresenters(AsrProjectSettings settings)
         {
             var activeSection = _onlineContainer.Q<VisualElement>("activeProfileSection");
-            _onlineActivePresenter = new ActiveProfilePresenter<OnlineAsrProfile>(settings.onlineData, settings, ModelPaths.GetAsrModelDir);
+            _onlineActivePresenter = new ActiveProfilePresenter<OnlineAsrProfile>(settings.onlineData, settings, ModelPaths.GetAsrModelDir, ProfileFieldValidator.HasMissingFields);
             _onlineActivePresenter.Build(activeSection);
 
             _onlineImportSection = _onlineContainer.Q<VisualElement>("importSection");
@@ -207,7 +208,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             var removeBtn = _onlineContainer.Q<Button>("removeProfileButton");
             var detail = _onlineContainer.Q<VisualElement>("detailContent");
 
-            _onlineListPresenter = new ProfileListPresenter<OnlineAsrProfile>(settings.onlineData, settings, ModelPaths.GetAsrModelDir, "model-list-item");
+            _onlineListPresenter = new ProfileListPresenter<OnlineAsrProfile>(settings.onlineData, settings, ModelPaths.GetAsrModelDir, "model-list-item", ProfileFieldValidator.HasMissingFields);
             _onlineDetailPresenter = new OnlineAsrProfileDetailPresenter(detail, settings);
             _onlineDetailPresenter.SetListPresenter(_onlineListPresenter);
 
