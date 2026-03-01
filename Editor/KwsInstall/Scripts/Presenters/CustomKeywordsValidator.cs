@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Globalization;
+using PonyuDev.SherpaOnnx.Common.Validation;
 
 namespace PonyuDev.SherpaOnnx.Editor.KwsInstall.Presenters
 {
@@ -10,6 +11,29 @@ namespace PonyuDev.SherpaOnnx.Editor.KwsInstall.Presenters
     /// </summary>
     internal static class CustomKeywordsValidator
     {
+        /// <summary>
+        /// Validates format and token vocabulary.
+        /// <paramref name="tokensFilePath"/> may be null or empty
+        /// to skip vocabulary validation.
+        /// </summary>
+        internal static List<string> Validate(string text, string tokensFilePath)
+        {
+            var warnings = Validate(text);
+
+            if (string.IsNullOrEmpty(tokensFilePath))
+                return warnings;
+
+            var vocabulary = KeywordTokenValidator.LoadVocabulary(tokensFilePath);
+            if (vocabulary.Count == 0)
+                return warnings;
+
+            warnings.AddRange(KeywordTokenValidator.ValidateKeywords(text, vocabulary));
+            return warnings;
+        }
+
+        /// <summary>
+        /// Validates format only (no vocabulary check).
+        /// </summary>
         internal static List<string> Validate(string text)
         {
             var warnings = new List<string>();

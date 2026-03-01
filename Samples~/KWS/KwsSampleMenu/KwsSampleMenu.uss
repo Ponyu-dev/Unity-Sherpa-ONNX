@@ -1,0 +1,5 @@
+/* ── KWS Sample Menu ── */
+
+.kws-menu-card {
+    margin-bottom: 16px;
+}

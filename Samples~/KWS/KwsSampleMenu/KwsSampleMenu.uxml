@@ -1,0 +1,10 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="KwsSampleMenu.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Label text="KWS Samples" class="sample-title"/>
+        <ui:Button name="btnDemo" text="Keyword Detection Demo"
+                   class="sample-generate-btn kws-menu-card"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>

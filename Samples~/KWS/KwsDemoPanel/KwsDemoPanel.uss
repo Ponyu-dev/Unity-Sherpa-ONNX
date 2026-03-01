@@ -1,0 +1,54 @@
+/* ── KWS Demo Panel ── */
+
+.kws-toggle-btn {
+    margin-bottom: 24px;
+}
+
+.kws-status-row {
+    flex-direction: row;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.kws-state-idle {
+    font-size: 28px;
+    color: rgb(160, 160, 160);
+}
+
+.kws-state-listening {
+    font-size: 28px;
+    color: rgb(80, 200, 80);
+    -unity-font-style: bold;
+}
+
+.kws-state-detected {
+    font-size: 28px;
+    color: rgb(255, 180, 40);
+    -unity-font-style: bold;
+}
+
+.kws-detection-count {
+    font-size: 26px;
+    color: rgb(180, 180, 180);
+}
+
+.kws-detection-log {
+    flex-grow: 1;
+    margin-bottom: 16px;
+    background-color: rgba(30, 30, 30, 0.5);
+    border-radius: 8px;
+    padding: 12px;
+    min-height: 300px;
+}
+
+.kws-detection-entry {
+    font-size: 26px;
+    margin-bottom: 8px;
+    color: rgb(220, 220, 220);
+}
+
+.kws-clear-btn {
+    height: 64px;
+    font-size: 28px;
+    margin-bottom: 16px;
+}

@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
 using PonyuDev.SherpaOnnx.Editor.KwsInstall.Import;
@@ -64,7 +66,7 @@ namespace PonyuDev.SherpaOnnx.Editor.KwsInstall.Presenters
                 profile.modelType,
                 binder.BindText("Source URL", profile.sourceUrl, KwsProfileField.SourceUrl));
             BuildRuntimeSection(binder);
-            BuildKeywordsSection(binder);
+            BuildKeywordsSection(binder, modelDir);
             BuildTransducerSection(profile, binder);
             BuildRemoteSection(profile,
                 binder.BindText("Base URL", profile.remoteBaseUrl, KwsProfileField.RemoteBaseUrl));
@@ -84,10 +86,11 @@ namespace PonyuDev.SherpaOnnx.Editor.KwsInstall.Presenters
             _detailContent.Add(b.BindText("Provider", b.Profile.provider, KwsProfileField.Provider));
         }
 
-        private void BuildKeywordsSection(KwsProfileFieldBinder b)
+        private void BuildKeywordsSection(KwsProfileFieldBinder b, string modelDir)
         {
             bool hasCustom = !string.IsNullOrEmpty(b.Profile.customKeywords);
             bool hasFile = !string.IsNullOrEmpty(b.Profile.keywordsFile);
+            string tokensPath = ResolveTokensPath(b.Profile, modelDir);
 
             AddSectionHeader("Keywords");
             _detailContent.Add(b.BindFile("Keywords file", b.Profile.keywordsFile, KwsProfileField.KeywordsFile,
@@ -100,17 +103,12 @@ namespace PonyuDev.SherpaOnnx.Editor.KwsInstall.Presenters
                     HelpBoxMessageType.Warning));
             }
 
-            _detailContent.Add(new HelpBox(
-                "Custom keywords are merged with the keywords file at runtime via keywords_buf.\n"
-                + "Each line: space-separated tokens + optional @TAG :boost #threshold.\n"
-                + "Example: ▁HE LL O ▁WORLD @HELLO_WORLD :1.5 #0.3\n"
-                + "Use sherpa-onnx-cli text2token to convert raw keywords to token format.",
-                HelpBoxMessageType.Info));
+            _detailContent.Add(new HelpBox(BuildKeywordsHelpText(tokensPath), HelpBoxMessageType.Info));
             _detailContent.Add(b.BindMultilineText("Custom keywords", b.Profile.customKeywords, KwsProfileField.CustomKeywords));
 
             if (hasCustom)
             {
-                List<string> warnings = CustomKeywordsValidator.Validate(b.Profile.customKeywords);
+                List<string> warnings = CustomKeywordsValidator.Validate(b.Profile.customKeywords, tokensPath);
                 foreach (string w in warnings)
                     _detailContent.Add(new HelpBox(w, HelpBoxMessageType.Warning));
             }
@@ -119,6 +117,46 @@ namespace PonyuDev.SherpaOnnx.Editor.KwsInstall.Presenters
             _detailContent.Add(b.BindFloat("Keywords threshold", b.Profile.keywordsThreshold, KwsProfileField.KeywordsThreshold));
             _detailContent.Add(b.BindInt("Max active paths", b.Profile.maxActivePaths, KwsProfileField.MaxActivePaths));
             _detailContent.Add(b.BindInt("Num trailing blanks", b.Profile.numTrailingBlanks, KwsProfileField.NumTrailingBlanks));
+        }
+
+        private static string ResolveTokensPath(KwsProfile profile, string modelDir)
+        {
+            if (string.IsNullOrEmpty(profile.tokens) || string.IsNullOrEmpty(modelDir))
+                return "";
+
+            return Path.Combine(modelDir, profile.tokens);
+        }
+
+        private static string BuildKeywordsHelpText(string tokensPath)
+        {
+            var vocabulary = KeywordTokenValidator.LoadVocabulary(tokensPath);
+            var tokenType = KeywordTokenValidator.DetectTokenType(vocabulary);
+
+            switch (tokenType)
+            {
+                case KeywordTokenType.Bpe:
+                    return "This model uses BPE tokenization.\n"
+                        + "Each line: space-separated BPE tokens + optional @TAG :boost #threshold.\n"
+                        + "Example: ▁HE LL O ▁WORLD @HELLO :1.5 #0.3\n"
+                        + "Use: sherpa-onnx text2token --tokens-type bpe --bpe-model bpe.model";
+
+                case KeywordTokenType.Ppinyin:
+                    return "This model uses ppinyin tokenization.\n"
+                        + "Each line: space-separated pinyin tokens + @TAG (required) + optional :boost #threshold.\n"
+                        + "Example: n ǐ h ǎo @你好 :1.5 #0.3\n"
+                        + "Use: sherpa-onnx text2token --tokens-type ppinyin";
+
+                case KeywordTokenType.PhonePpinyin:
+                    return "This model uses phone+ppinyin tokenization.\n"
+                        + "English: ARPAbet phonemes, Chinese: pinyin. @TAG is required.\n"
+                        + "EN example: HH AH0 L OW1 @HELLO :1.5 #0.3\n"
+                        + "ZH example: n ǐ h ǎo @你好 :1.5 #0.3\n"
+                        + "Use: sherpa-onnx text2token --tokens-type phone+ppinyin --lexicon en.phone";
+
+                default:
+                    return "Each line: space-separated tokens from tokens.txt + optional @TAG :boost #threshold.\n"
+                        + "Use sherpa-onnx text2token to convert text to the correct token format.";
+            }
         }
 
         private void BuildTransducerSection(KwsProfile profile, KwsProfileFieldBinder b)

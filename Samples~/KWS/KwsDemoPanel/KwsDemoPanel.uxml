@@ -1,0 +1,26 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="KwsDemoPanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="Keyword Detection Demo" class="sample-title"/>
+
+        <ui:Button name="toggleButton" text="Start Recording"
+                   class="sample-generate-btn kws-toggle-btn"/>
+
+        <ui:VisualElement class="kws-status-row">
+            <ui:Label name="keywordStateLabel" text="Idle"
+                      class="kws-state-idle"/>
+            <ui:Label name="detectionCountLabel" text="Detections: 0"
+                      class="kws-detection-count"/>
+        </ui:VisualElement>
+
+        <ui:ScrollView name="detectionScroll" class="kws-detection-log"/>
+
+        <ui:Button name="clearButton" text="Clear"
+                   class="kws-clear-btn"/>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="infoLabel" class="sample-info"/>
+    </ui:VisualElement>
+</ui:UXML>

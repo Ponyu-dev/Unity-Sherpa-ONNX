@@ -1,0 +1,17 @@
+{
+    "name": "PonyuDev.SherpaOnnx.Samples.Kws",
+    "rootNamespace": "PonyuDev.SherpaOnnx.Samples",
+    "references": [
+        "PonyuDev.SherpaOnnx",
+        "UniTask"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

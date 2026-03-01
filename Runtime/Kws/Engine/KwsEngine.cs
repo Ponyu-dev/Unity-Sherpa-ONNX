@@ -53,6 +53,13 @@ namespace PonyuDev.SherpaOnnx.Kws.Engine
             if (ModelFileValidator.BlockIfInt8Model(modelDir, "KWS", profile.allowInt8))
                 return;
 
+            // Validate keyword tokens against vocabulary
+            // before native constructor to prevent SEGFAULT.
+            string tokensPath = KwsModelPathResolver.Resolve(modelDir, profile.tokens);
+            string kwFilePath = KwsModelPathResolver.Resolve(modelDir, profile.keywordsFile);
+            if (KeywordTokenValidator.BlockIfInvalidTokens(tokensPath, kwFilePath, profile.customKeywords, "KWS"))
+                return;
+
             var config = KwsConfigBuilder.Build(profile, modelDir);
             var guard = NativeLocaleGuard.Begin();
 
