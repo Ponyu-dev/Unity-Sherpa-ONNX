@@ -15,6 +15,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         {
             FillCommonFields(profile, modelDir);
             FillByModelType(profile, modelDir, useInt8);
+
+            // If the archive ships only INT8 variants (e.g. Supertonic), the
+            // int8 toggle is hidden by the UI and the user has no way to opt
+            // in. Treat the import itself as implicit consent so the runtime
+            // guard does not block loading.
+            if (TtsInt8Switcher.IsUsingInt8(profile))
+                profile.allowInt8 = true;
         }
 
         // ── Common fields (shared across model types) ──
