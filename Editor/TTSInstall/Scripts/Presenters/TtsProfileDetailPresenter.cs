@@ -93,12 +93,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             AddSectionHeader(profile.modelType + " Settings");
             switch (profile.modelType)
             {
-                case TtsModelType.Vits:     ProfileFieldBuilder.BuildVits(_detailContent, b); break;
-                case TtsModelType.Matcha:   ProfileFieldBuilder.BuildMatcha(_detailContent, b, _settings, HandleRefreshProfile); break;
-                case TtsModelType.Kokoro:   ProfileFieldBuilder.BuildKokoro(_detailContent, b); break;
-                case TtsModelType.Kitten:   ProfileFieldBuilder.BuildKitten(_detailContent, b); break;
-                case TtsModelType.ZipVoice: ProfileFieldBuilder.BuildZipVoice(_detailContent, b); break;
-                case TtsModelType.Pocket:   ProfileFieldBuilder.BuildPocket(_detailContent, b); break;
+                case TtsModelType.Vits:       ProfileFieldBuilder.BuildVits(_detailContent, b); break;
+                case TtsModelType.Matcha:     ProfileFieldBuilder.BuildMatcha(_detailContent, b, _settings, HandleRefreshProfile); break;
+                case TtsModelType.Kokoro:     ProfileFieldBuilder.BuildKokoro(_detailContent, b); break;
+                case TtsModelType.Kitten:     ProfileFieldBuilder.BuildKitten(_detailContent, b); break;
+                case TtsModelType.ZipVoice:   ProfileFieldBuilder.BuildZipVoice(_detailContent, b); break;
+                case TtsModelType.Pocket:     ProfileFieldBuilder.BuildPocket(_detailContent, b); break;
+                case TtsModelType.Supertonic: ProfileFieldBuilder.BuildSupertonic(_detailContent, b); break;
             }
         }
 

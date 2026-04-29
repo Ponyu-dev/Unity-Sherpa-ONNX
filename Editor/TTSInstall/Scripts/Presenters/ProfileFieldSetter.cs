@@ -59,6 +59,14 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
                 case ProfileField.PocketVocabJson: p.pocketVocabJson = v; break;
                 case ProfileField.PocketTokenScoresJson: p.pocketTokenScoresJson = v; break;
 
+                case ProfileField.SupertonicDurationPredictor: p.supertonicDurationPredictor = v; break;
+                case ProfileField.SupertonicTextEncoder: p.supertonicTextEncoder = v; break;
+                case ProfileField.SupertonicVectorEstimator: p.supertonicVectorEstimator = v; break;
+                case ProfileField.SupertonicVocoder: p.supertonicVocoder = v; break;
+                case ProfileField.SupertonicTtsJson: p.supertonicTtsJson = v; break;
+                case ProfileField.SupertonicUnicodeIndexer: p.supertonicUnicodeIndexer = v; break;
+                case ProfileField.SupertonicVoiceStyle: p.supertonicVoiceStyle = v; break;
+
                 case ProfileField.RemoteBaseUrl: p.remoteBaseUrl = v; break;
             }
         }

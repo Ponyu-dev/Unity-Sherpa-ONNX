@@ -50,6 +50,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Pocket:
                     FillPocket(profile, dir, useInt8);
                     break;
+                case TtsModelType.Supertonic:
+                    FillSupertonic(profile, dir, useInt8);
+                    break;
             }
         }
 
@@ -117,6 +120,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.pocketTextConditioner = ModelFileScanner.FindFileByPattern(dir, "*text_conditioner*.onnx");
             profile.pocketVocabJson = ModelFileScanner.FindFileByPattern(dir, "*vocab*.json");
             profile.pocketTokenScoresJson = ModelFileScanner.FindFileByPattern(dir, "*token_scores*.json");
+        }
+
+        private static void FillSupertonic(TtsProfile profile, string dir,
+            bool useInt8)
+        {
+            profile.supertonicDurationPredictor = ModelFileScanner.FindEncoderOrDecoder(dir, "duration_predictor", useInt8);
+            profile.supertonicTextEncoder = ModelFileScanner.FindEncoderOrDecoder(dir, "text_encoder", useInt8);
+            profile.supertonicVectorEstimator = ModelFileScanner.FindEncoderOrDecoder(dir, "vector_estimator", useInt8);
+            profile.supertonicVocoder = ModelFileScanner.FindEncoderOrDecoder(dir, "vocoder", useInt8);
+            profile.supertonicTtsJson = ModelFileScanner.FindFileByPattern(dir, "tts*.json");
+            profile.supertonicUnicodeIndexer = ModelFileScanner.FindFileByPattern(dir, "unicode_indexer*.bin");
+            profile.supertonicVoiceStyle = ModelFileScanner.FindFileByPattern(dir, "voice*.bin");
         }
 
         // ── Rule files ──

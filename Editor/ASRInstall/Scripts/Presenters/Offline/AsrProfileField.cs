@@ -101,6 +101,25 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         FunAsrNanoLanguage,
         FunAsrNanoHotwords,
 
+        // Qwen3-ASR
+        Qwen3ConvFrontend,
+        Qwen3Encoder,
+        Qwen3Decoder,
+        Qwen3Tokenizer,
+        Qwen3MaxTotalLen,
+        Qwen3MaxNewTokens,
+        Qwen3Temperature,
+        Qwen3TopP,
+        Qwen3Seed,
+        Qwen3Hotwords,
+
+        // Cohere Transcribe
+        CohereEncoder,
+        CohereDecoder,
+        CohereLanguage,
+        CohereUsePunct,
+        CohereUseItn,
+
         // Remote
         RemoteBaseUrl
     }

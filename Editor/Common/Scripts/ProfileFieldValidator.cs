@@ -9,7 +9,10 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
     {
         internal static bool HasMissingFields(AsrProfile p)
         {
-            if (Empty(p.tokens)) return true;
+            // Qwen3-ASR ships its tokenizer as a directory and does not use
+            // the global Tokens file, so the common-tokens check is skipped.
+            if (p.modelType != AsrModelType.Qwen3Asr && Empty(p.tokens))
+                return true;
 
             return p.modelType switch
             {
@@ -28,6 +31,8 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
                 AsrModelType.Omnilingual  => Empty(p.omnilingualModel),
                 AsrModelType.MedAsr       => Empty(p.medAsrModel),
                 AsrModelType.FunAsrNano   => Empty(p.funAsrNanoEncoderAdaptor) || Empty(p.funAsrNanoLlm) || Empty(p.funAsrNanoEmbedding) || Empty(p.funAsrNanoTokenizer),
+                AsrModelType.Qwen3Asr         => Empty(p.qwen3ConvFrontend) || Empty(p.qwen3Encoder) || Empty(p.qwen3Decoder) || Empty(p.qwen3Tokenizer),
+                AsrModelType.CohereTranscribe => Empty(p.cohereEncoder) || Empty(p.cohereDecoder),
                 _ => false
             };
         }
@@ -57,6 +62,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
                 TtsModelType.Kitten  => Empty(p.kittenModel) || Empty(p.kittenVoices) || Empty(p.kittenTokens),
                 TtsModelType.ZipVoice => Empty(p.zipVoiceTokens) || Empty(p.zipVoiceEncoder) || Empty(p.zipVoiceDecoder) || Empty(p.zipVoiceVocoder),
                 TtsModelType.Pocket  => Empty(p.pocketLmFlow) || Empty(p.pocketLmMain) || Empty(p.pocketEncoder) || Empty(p.pocketDecoder) || Empty(p.pocketTextConditioner) || Empty(p.pocketVocabJson) || Empty(p.pocketTokenScoresJson),
+                TtsModelType.Supertonic => Empty(p.supertonicDurationPredictor) || Empty(p.supertonicTextEncoder) || Empty(p.supertonicVectorEstimator) || Empty(p.supertonicVocoder) || Empty(p.supertonicTtsJson) || Empty(p.supertonicUnicodeIndexer) || Empty(p.supertonicVoiceStyle),
                 _ => false
             };
         }

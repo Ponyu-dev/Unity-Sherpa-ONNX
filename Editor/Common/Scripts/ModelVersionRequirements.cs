@@ -22,8 +22,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             { TtsModelType.Matcha,   "1.10.16" },
             { TtsModelType.Kokoro,   "1.10.40" },
             { TtsModelType.Kitten,   "1.12.8"  },
-            { TtsModelType.ZipVoice, "1.12.11" },
-            { TtsModelType.Pocket,   "1.12.24" },
+            { TtsModelType.ZipVoice,   "1.12.11" },
+            { TtsModelType.Pocket,     "1.12.24" },
+            { TtsModelType.Supertonic, "1.12.29" },
         };
 
         private static readonly Dictionary<AsrModelType, string> AsrVersions = new()
@@ -42,7 +43,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             { AsrModelType.WenetCtc,     "1.12.12" },
             { AsrModelType.Omnilingual,  "1.12.16" },
             { AsrModelType.MedAsr,       "1.12.21" },
-            { AsrModelType.FunAsrNano,   "1.12.21" },
+            { AsrModelType.FunAsrNano,        "1.12.21" },
+            { AsrModelType.Qwen3Asr,          "1.12.34" },
+            { AsrModelType.CohereTranscribe,  "1.12.35" },
         };
 
         private static readonly Dictionary<OnlineAsrModelType, string> OnlineAsrVersions = new()

@@ -62,7 +62,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 binder.BindText("Profile name", profile.profileName, AsrProfileField.ProfileName),
                 profile.modelType,
                 binder.BindText("Source URL", profile.sourceUrl, AsrProfileField.SourceUrl));
-            BuildCommonSection(binder);
+            BuildCommonSection(profile, binder);
             BuildFeatureSection(binder);
             BuildRecognizerSection(binder);
             BuildLmSection(binder);
@@ -75,12 +75,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
 
         // ── ASR-specific sections ──
 
-        private void BuildCommonSection(AsrProfileFieldBinder b)
+        private void BuildCommonSection(AsrProfile profile, AsrProfileFieldBinder b)
         {
             AddSectionHeader("Runtime");
             _detailContent.Add(b.BindInt("Threads", b.Profile.numThreads, AsrProfileField.NumThreads));
             _detailContent.Add(b.BindText("Provider", b.Profile.provider, AsrProfileField.Provider));
-            _detailContent.Add(b.BindFile("Tokens", b.Profile.tokens, AsrProfileField.Tokens, "txt", "tokens", isRequired: true));
+
+            // Qwen3-ASR ships its tokenizer as a directory and ignores the
+            // global Tokens file, so it is not required for this type.
+            bool tokensRequired = profile.modelType != AsrModelType.Qwen3Asr;
+            _detailContent.Add(b.BindFile("Tokens", b.Profile.tokens, AsrProfileField.Tokens, "txt", "tokens", isRequired: tokensRequired));
         }
 
         private void BuildFeatureSection(AsrProfileFieldBinder b)
@@ -129,6 +133,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrModelType.Omnilingual:  AsrProfileFieldBuilder.BuildOmnilingual(_detailContent, b); break;
                 case AsrModelType.MedAsr:       AsrProfileFieldBuilder.BuildMedAsr(_detailContent, b); break;
                 case AsrModelType.FunAsrNano:   AsrProfileFieldBuilder.BuildFunAsrNano(_detailContent, b); break;
+                case AsrModelType.Qwen3Asr:         AsrProfileFieldBuilder.BuildQwen3Asr(_detailContent, b); break;
+                case AsrModelType.CohereTranscribe: AsrProfileFieldBuilder.BuildCohereTranscribe(_detailContent, b); break;
             }
         }
 

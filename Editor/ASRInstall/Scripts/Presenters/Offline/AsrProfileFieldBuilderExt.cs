@@ -51,5 +51,30 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             root.Add(b.BindText("Language", b.Profile.funAsrNanoLanguage, AsrProfileField.FunAsrNanoLanguage));
             root.Add(b.BindText("Hotwords", b.Profile.funAsrNanoHotwords, AsrProfileField.FunAsrNanoHotwords));
         }
+
+        internal static void BuildQwen3Asr(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindFile("Conv frontend", b.Profile.qwen3ConvFrontend, AsrProfileField.Qwen3ConvFrontend, keyword: "conv_frontend", isRequired: true));
+            root.Add(b.BindFile("Encoder", b.Profile.qwen3Encoder, AsrProfileField.Qwen3Encoder, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("Decoder", b.Profile.qwen3Decoder, AsrProfileField.Qwen3Decoder, keyword: "decoder", isRequired: true));
+            root.Add(b.BindFolder("Tokenizer dir", b.Profile.qwen3Tokenizer, AsrProfileField.Qwen3Tokenizer, keyword: "tokenizer", isRequired: true));
+            root.Add(b.BindInt("Max total len", b.Profile.qwen3MaxTotalLen, AsrProfileField.Qwen3MaxTotalLen));
+            root.Add(b.BindInt("Max new tokens", b.Profile.qwen3MaxNewTokens, AsrProfileField.Qwen3MaxNewTokens));
+            root.Add(b.BindFloat("Temperature", b.Profile.qwen3Temperature, AsrProfileField.Qwen3Temperature));
+            root.Add(b.BindFloat("Top P", b.Profile.qwen3TopP, AsrProfileField.Qwen3TopP));
+            root.Add(b.BindInt("Seed", b.Profile.qwen3Seed, AsrProfileField.Qwen3Seed));
+            root.Add(b.BindText("Hotwords", b.Profile.qwen3Hotwords, AsrProfileField.Qwen3Hotwords));
+        }
+
+        internal static void BuildCohereTranscribe(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindFile("Encoder", b.Profile.cohereEncoder, AsrProfileField.CohereEncoder, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("Decoder", b.Profile.cohereDecoder, AsrProfileField.CohereDecoder, keyword: "decoder", isRequired: true));
+            root.Add(b.BindText("Language", b.Profile.cohereLanguage, AsrProfileField.CohereLanguage));
+            root.Add(b.BindBool("Use punctuation", b.Profile.cohereUsePunct, AsrProfileField.CohereUsePunct));
+            root.Add(b.BindBool("Use ITN", b.Profile.cohereUseItn, AsrProfileField.CohereUseItn));
+        }
     }
 }

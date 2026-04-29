@@ -46,6 +46,11 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Pocket:
                     return IsInt8(profile.pocketLmFlow) || IsInt8(profile.pocketLmMain)
                         || IsInt8(profile.pocketEncoder) || IsInt8(profile.pocketDecoder);
+                case TtsModelType.Supertonic:
+                    return IsInt8(profile.supertonicDurationPredictor)
+                        || IsInt8(profile.supertonicTextEncoder)
+                        || IsInt8(profile.supertonicVectorEstimator)
+                        || IsInt8(profile.supertonicVocoder);
                 default: return false;
             }
         }
@@ -81,6 +86,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Pocket:
                     SwitchPocket(profile, dir, true);
                     break;
+                case TtsModelType.Supertonic:
+                    SwitchSupertonic(profile, dir, true);
+                    break;
             }
         }
 
@@ -115,6 +123,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 case TtsModelType.Pocket:
                     SwitchPocket(profile, dir, false);
                     break;
+                case TtsModelType.Supertonic:
+                    SwitchSupertonic(profile, dir, false);
+                    break;
             }
         }
 
@@ -132,6 +143,22 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 ModelFileScanner.FindEncoderOrDecoder(dir, "encoder", useInt8);
             profile.pocketDecoder =
                 ModelFileScanner.FindEncoderOrDecoder(dir, "decoder", useInt8);
+        }
+
+        /// <summary>
+        /// Switches each Supertonic .onnx field independently.
+        /// Each field gets int8 only if an int8 variant exists for that keyword.
+        /// </summary>
+        private static void SwitchSupertonic(TtsProfile profile, string dir, bool useInt8)
+        {
+            profile.supertonicDurationPredictor =
+                ModelFileScanner.FindEncoderOrDecoder(dir, "duration_predictor", useInt8);
+            profile.supertonicTextEncoder =
+                ModelFileScanner.FindEncoderOrDecoder(dir, "text_encoder", useInt8);
+            profile.supertonicVectorEstimator =
+                ModelFileScanner.FindEncoderOrDecoder(dir, "vector_estimator", useInt8);
+            profile.supertonicVocoder =
+                ModelFileScanner.FindEncoderOrDecoder(dir, "vocoder", useInt8);
         }
 
         /// <summary>
