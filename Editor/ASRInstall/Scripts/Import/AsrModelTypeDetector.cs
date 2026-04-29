@@ -51,6 +51,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             if (lower.Contains("fun-asr") || lower.Contains("funasrnano"))
                 return AsrModelType.FunAsrNano;
 
+            if (lower.Contains("qwen3"))
+                return AsrModelType.Qwen3Asr;
+
             if (lower.Contains("tdnn"))
                 return AsrModelType.Tdnn;
 

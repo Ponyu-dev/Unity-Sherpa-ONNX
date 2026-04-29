@@ -101,6 +101,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Config
                 case AsrModelType.FunAsrNano:
                     BuildFunAsrNano(ref config, profile, modelDir);
                     break;
+                case AsrModelType.Qwen3Asr:
+                    BuildQwen3Asr(ref config, profile, modelDir);
+                    break;
             }
 
             return config;
@@ -313,6 +316,30 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Config
                 $"[SherpaOnnx] FunAsrNano config: " +
                 $"LLM='{c.ModelConfig.FunAsrNano.LLM}', " +
                 $"Language='{c.ModelConfig.FunAsrNano.Language}'");
+        }
+
+        private static void BuildQwen3Asr(
+            ref OfflineRecognizerConfig c, AsrProfile p, string dir)
+        {
+            c.ModelConfig.Qwen3Asr.ConvFrontend = R(dir, p.qwen3ConvFrontend);
+            c.ModelConfig.Qwen3Asr.Encoder = R(dir, p.qwen3Encoder);
+            c.ModelConfig.Qwen3Asr.Decoder = R(dir, p.qwen3Decoder);
+            c.ModelConfig.Qwen3Asr.Tokenizer = R(dir, p.qwen3Tokenizer);
+            c.ModelConfig.Qwen3Asr.MaxTotalLen = p.qwen3MaxTotalLen;
+            c.ModelConfig.Qwen3Asr.MaxNewTokens = p.qwen3MaxNewTokens;
+            c.ModelConfig.Qwen3Asr.Temperature = p.qwen3Temperature;
+            c.ModelConfig.Qwen3Asr.TopP = p.qwen3TopP;
+            c.ModelConfig.Qwen3Asr.Seed = p.qwen3Seed;
+            c.ModelConfig.Qwen3Asr.Hotwords = p.qwen3Hotwords ?? "";
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Qwen3-ASR config: " +
+                $"ConvFrontend='{c.ModelConfig.Qwen3Asr.ConvFrontend}', " +
+                $"Encoder='{c.ModelConfig.Qwen3Asr.Encoder}', " +
+                $"Decoder='{c.ModelConfig.Qwen3Asr.Decoder}', " +
+                $"Tokenizer='{c.ModelConfig.Qwen3Asr.Tokenizer}', " +
+                $"MaxTotalLen={c.ModelConfig.Qwen3Asr.MaxTotalLen}, " +
+                $"MaxNewTokens={c.ModelConfig.Qwen3Asr.MaxNewTokens}");
         }
 
         // ── Shorthand ──

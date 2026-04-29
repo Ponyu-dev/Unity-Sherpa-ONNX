@@ -40,6 +40,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             return picker;
         }
 
+        internal ModelObjectField BindFolder(string label, string value, AsrProfileField field,
+            string keyword = "", bool isRequired = false)
+        {
+            var picker = new ModelObjectField(label, value, _modelDir, keyword: keyword,
+                isFolder: true, isRequired: isRequired);
+            var handler = new TextHandler(Profile, _settings, field);
+            picker.RegisterFileChangedCallback(handler.SetValue);
+            return picker;
+        }
+
         internal FloatField BindFloat(string label, float value, AsrProfileField field)
         {
             var floatField = new FloatField(label) { value = value };

@@ -44,6 +44,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             { AsrModelType.Omnilingual,  "1.12.16" },
             { AsrModelType.MedAsr,       "1.12.21" },
             { AsrModelType.FunAsrNano,   "1.12.21" },
+            { AsrModelType.Qwen3Asr,     "1.12.34" },
         };
 
         private static readonly Dictionary<OnlineAsrModelType, string> OnlineAsrVersions = new()

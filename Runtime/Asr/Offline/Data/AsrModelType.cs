@@ -20,6 +20,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         WenetCtc,
         Omnilingual,
         MedAsr,
-        FunAsrNano
+        FunAsrNano,
+        Qwen3Asr
     }
 }

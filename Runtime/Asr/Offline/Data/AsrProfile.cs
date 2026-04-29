@@ -160,6 +160,19 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         public bool funAsrNanoItn;
         public string funAsrNanoHotwords = "";
 
+        // ── Qwen3-ASR ──
+
+        public string qwen3ConvFrontend = "";
+        public string qwen3Encoder = "";
+        public string qwen3Decoder = "";
+        public string qwen3Tokenizer = "";
+        public int qwen3MaxTotalLen = 512;
+        public int qwen3MaxNewTokens = 128;
+        public float qwen3Temperature = 1e-6f;
+        public float qwen3TopP = 0.8f;
+        public int qwen3Seed = 42;
+        public string qwen3Hotwords = "";
+
         // ── Remote ──
 
         public string remoteBaseUrl = "";
