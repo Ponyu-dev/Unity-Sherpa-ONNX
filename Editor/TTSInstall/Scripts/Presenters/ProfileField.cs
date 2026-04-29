@@ -78,6 +78,15 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         PocketVocabJson,
         PocketTokenScoresJson,
 
+        // Supertonic
+        SupertonicDurationPredictor,
+        SupertonicTextEncoder,
+        SupertonicVectorEstimator,
+        SupertonicVocoder,
+        SupertonicTtsJson,
+        SupertonicUnicodeIndexer,
+        SupertonicVoiceStyle,
+
         // Remote
         RemoteBaseUrl
     }

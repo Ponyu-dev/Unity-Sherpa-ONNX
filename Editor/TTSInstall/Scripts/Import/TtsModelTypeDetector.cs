@@ -42,6 +42,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             if (lower.Contains("pocket"))
                 return TtsModelType.Pocket;
 
+            if (lower.Contains("supertonic"))
+                return TtsModelType.Supertonic;
+
             return null;
         }
     }

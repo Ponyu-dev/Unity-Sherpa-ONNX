@@ -92,5 +92,17 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
             root.Add(b.BindFile("vocab.json", b.Profile.pocketVocabJson, ProfileField.PocketVocabJson, "json", "vocab", isRequired: true));
             root.Add(b.BindFile("token_scores.json", b.Profile.pocketTokenScoresJson, ProfileField.PocketTokenScoresJson, "json", "token_scores", isRequired: true));
         }
+
+        internal static void BuildSupertonic(
+            VisualElement root, ProfileFieldBinder b)
+        {
+            root.Add(b.BindFile("Duration predictor", b.Profile.supertonicDurationPredictor, ProfileField.SupertonicDurationPredictor, keyword: "duration_predictor", isRequired: true));
+            root.Add(b.BindFile("Text encoder", b.Profile.supertonicTextEncoder, ProfileField.SupertonicTextEncoder, keyword: "text_encoder", isRequired: true));
+            root.Add(b.BindFile("Vector estimator", b.Profile.supertonicVectorEstimator, ProfileField.SupertonicVectorEstimator, keyword: "vector_estimator", isRequired: true));
+            root.Add(b.BindFile("Vocoder", b.Profile.supertonicVocoder, ProfileField.SupertonicVocoder, keyword: "vocoder", isRequired: true));
+            root.Add(b.BindFile("tts.json", b.Profile.supertonicTtsJson, ProfileField.SupertonicTtsJson, "json", "tts", isRequired: true));
+            root.Add(b.BindFile("unicode_indexer.bin", b.Profile.supertonicUnicodeIndexer, ProfileField.SupertonicUnicodeIndexer, "bin", "unicode_indexer", isRequired: true));
+            root.Add(b.BindFile("voice.bin", b.Profile.supertonicVoiceStyle, ProfileField.SupertonicVoiceStyle, "bin", "voice", isRequired: true));
+        }
     }
 }

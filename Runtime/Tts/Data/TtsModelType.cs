@@ -10,6 +10,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         Kokoro,
         Kitten,
         ZipVoice,
-        Pocket
+        Pocket,
+        Supertonic
     }
 }

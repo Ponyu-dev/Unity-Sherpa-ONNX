@@ -122,6 +122,16 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         public string pocketVocabJson = "";
         public string pocketTokenScoresJson = "";
 
+        // ── Supertonic ──
+
+        public string supertonicDurationPredictor = "";
+        public string supertonicTextEncoder = "";
+        public string supertonicVectorEstimator = "";
+        public string supertonicVocoder = "";
+        public string supertonicTtsJson = "";
+        public string supertonicUnicodeIndexer = "";
+        public string supertonicVoiceStyle = "";
+
         // ── Remote ──
 
         public string remoteBaseUrl = "";
