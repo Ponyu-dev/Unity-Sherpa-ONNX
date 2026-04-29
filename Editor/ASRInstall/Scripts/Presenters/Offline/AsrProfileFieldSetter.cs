@@ -83,6 +83,11 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrProfileField.Qwen3Tokenizer: p.qwen3Tokenizer = v; break;
                 case AsrProfileField.Qwen3Hotwords: p.qwen3Hotwords = v; break;
 
+                // Cohere Transcribe
+                case AsrProfileField.CohereEncoder: p.cohereEncoder = v; break;
+                case AsrProfileField.CohereDecoder: p.cohereDecoder = v; break;
+                case AsrProfileField.CohereLanguage: p.cohereLanguage = v; break;
+
                 // Remote
                 case AsrProfileField.RemoteBaseUrl: p.remoteBaseUrl = v; break;
             }
@@ -118,6 +123,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrProfileField.Qwen3MaxTotalLen: p.qwen3MaxTotalLen = v; break;
                 case AsrProfileField.Qwen3MaxNewTokens: p.qwen3MaxNewTokens = v; break;
                 case AsrProfileField.Qwen3Seed: p.qwen3Seed = v; break;
+            }
+        }
+
+        internal static void SetBool(
+            AsrProfile p, AsrProfileField f, bool v)
+        {
+            switch (f)
+            {
+                case AsrProfileField.CohereUsePunct: p.cohereUsePunct = v; break;
+                case AsrProfileField.CohereUseItn: p.cohereUseItn = v; break;
             }
         }
     }

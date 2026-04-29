@@ -55,6 +55,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 case AsrModelType.Canary: FillCanary(profile, dir, useInt8); break;
                 case AsrModelType.FunAsrNano: FillFunAsrNano(profile, dir, useInt8); break;
                 case AsrModelType.Qwen3Asr: FillQwen3Asr(profile, dir, useInt8); break;
+                case AsrModelType.CohereTranscribe: FillCohereTranscribe(profile, dir, useInt8); break;
             }
         }
 
@@ -115,6 +116,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
             // Qwen3-ASR uses 128-dim mel features (not 80).
             p.featureDim = 128;
+        }
+
+        private static void FillCohereTranscribe(
+            AsrProfile p, string dir, bool useInt8)
+        {
+            p.cohereEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.cohereDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
         }
 
         private static void FillSingleModel(

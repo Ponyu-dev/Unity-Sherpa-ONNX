@@ -66,6 +66,14 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             return intField;
         }
 
+        internal Toggle BindBool(string label, bool value, AsrProfileField field)
+        {
+            var toggle = new Toggle(label) { value = value };
+            var handler = new BoolHandler(Profile, _settings, field);
+            toggle.RegisterValueChangedCallback(handler.Handle);
+            return toggle;
+        }
+
         // ── Handlers ──
 
         private sealed class TextHandler
@@ -114,6 +122,22 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             internal void Handle(ChangeEvent<int> evt)
             {
                 AsrProfileFieldSetter.SetInt(_p, _f, evt.newValue);
+                _s.SaveSettings();
+            }
+        }
+
+        private sealed class BoolHandler
+        {
+            private readonly AsrProfile _p;
+            private readonly AsrProjectSettings _s;
+            private readonly AsrProfileField _f;
+
+            internal BoolHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            { _p = p; _s = s; _f = f; }
+
+            internal void Handle(ChangeEvent<bool> evt)
+            {
+                AsrProfileFieldSetter.SetBool(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }

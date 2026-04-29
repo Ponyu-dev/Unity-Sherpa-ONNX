@@ -31,7 +31,8 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
                 AsrModelType.Omnilingual  => Empty(p.omnilingualModel),
                 AsrModelType.MedAsr       => Empty(p.medAsrModel),
                 AsrModelType.FunAsrNano   => Empty(p.funAsrNanoEncoderAdaptor) || Empty(p.funAsrNanoLlm) || Empty(p.funAsrNanoEmbedding) || Empty(p.funAsrNanoTokenizer),
-                AsrModelType.Qwen3Asr     => Empty(p.qwen3ConvFrontend) || Empty(p.qwen3Encoder) || Empty(p.qwen3Decoder) || Empty(p.qwen3Tokenizer),
+                AsrModelType.Qwen3Asr         => Empty(p.qwen3ConvFrontend) || Empty(p.qwen3Encoder) || Empty(p.qwen3Decoder) || Empty(p.qwen3Tokenizer),
+                AsrModelType.CohereTranscribe => Empty(p.cohereEncoder) || Empty(p.cohereDecoder),
                 _ => false
             };
         }

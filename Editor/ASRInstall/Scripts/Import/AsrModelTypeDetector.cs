@@ -54,6 +54,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             if (lower.Contains("qwen3"))
                 return AsrModelType.Qwen3Asr;
 
+            if (lower.Contains("cohere"))
+                return AsrModelType.CohereTranscribe;
+
             if (lower.Contains("tdnn"))
                 return AsrModelType.Tdnn;
 

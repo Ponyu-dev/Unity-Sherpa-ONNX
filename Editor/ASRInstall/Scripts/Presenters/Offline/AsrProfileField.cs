@@ -113,6 +113,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         Qwen3Seed,
         Qwen3Hotwords,
 
+        // Cohere Transcribe
+        CohereEncoder,
+        CohereDecoder,
+        CohereLanguage,
+        CohereUsePunct,
+        CohereUseItn,
+
         // Remote
         RemoteBaseUrl
     }

@@ -173,6 +173,14 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         public int qwen3Seed = 42;
         public string qwen3Hotwords = "";
 
+        // ── Cohere Transcribe ──
+
+        public string cohereEncoder = "";
+        public string cohereDecoder = "";
+        public string cohereLanguage = "";
+        public bool cohereUsePunct = true;
+        public bool cohereUseItn = true;
+
         // ── Remote ──
 
         public string remoteBaseUrl = "";

@@ -66,5 +66,15 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             root.Add(b.BindInt("Seed", b.Profile.qwen3Seed, AsrProfileField.Qwen3Seed));
             root.Add(b.BindText("Hotwords", b.Profile.qwen3Hotwords, AsrProfileField.Qwen3Hotwords));
         }
+
+        internal static void BuildCohereTranscribe(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindFile("Encoder", b.Profile.cohereEncoder, AsrProfileField.CohereEncoder, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("Decoder", b.Profile.cohereDecoder, AsrProfileField.CohereDecoder, keyword: "decoder", isRequired: true));
+            root.Add(b.BindText("Language", b.Profile.cohereLanguage, AsrProfileField.CohereLanguage));
+            root.Add(b.BindBool("Use punctuation", b.Profile.cohereUsePunct, AsrProfileField.CohereUsePunct));
+            root.Add(b.BindBool("Use ITN", b.Profile.cohereUseItn, AsrProfileField.CohereUseItn));
+        }
     }
 }

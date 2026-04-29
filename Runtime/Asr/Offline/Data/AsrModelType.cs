@@ -21,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         Omnilingual,
         MedAsr,
         FunAsrNano,
-        Qwen3Asr
+        Qwen3Asr,
+        CohereTranscribe
     }
 }

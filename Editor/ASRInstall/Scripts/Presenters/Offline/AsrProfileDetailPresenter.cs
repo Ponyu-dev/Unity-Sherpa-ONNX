@@ -133,7 +133,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrModelType.Omnilingual:  AsrProfileFieldBuilder.BuildOmnilingual(_detailContent, b); break;
                 case AsrModelType.MedAsr:       AsrProfileFieldBuilder.BuildMedAsr(_detailContent, b); break;
                 case AsrModelType.FunAsrNano:   AsrProfileFieldBuilder.BuildFunAsrNano(_detailContent, b); break;
-                case AsrModelType.Qwen3Asr:     AsrProfileFieldBuilder.BuildQwen3Asr(_detailContent, b); break;
+                case AsrModelType.Qwen3Asr:         AsrProfileFieldBuilder.BuildQwen3Asr(_detailContent, b); break;
+                case AsrModelType.CohereTranscribe: AsrProfileFieldBuilder.BuildCohereTranscribe(_detailContent, b); break;
             }
         }
 

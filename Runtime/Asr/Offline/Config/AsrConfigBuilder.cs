@@ -104,6 +104,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Config
                 case AsrModelType.Qwen3Asr:
                     BuildQwen3Asr(ref config, profile, modelDir);
                     break;
+                case AsrModelType.CohereTranscribe:
+                    BuildCohereTranscribe(ref config, profile, modelDir);
+                    break;
             }
 
             return config;
@@ -340,6 +343,24 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Config
                 $"Tokenizer='{c.ModelConfig.Qwen3Asr.Tokenizer}', " +
                 $"MaxTotalLen={c.ModelConfig.Qwen3Asr.MaxTotalLen}, " +
                 $"MaxNewTokens={c.ModelConfig.Qwen3Asr.MaxNewTokens}");
+        }
+
+        private static void BuildCohereTranscribe(
+            ref OfflineRecognizerConfig c, AsrProfile p, string dir)
+        {
+            c.ModelConfig.CohereTranscribe.Encoder = R(dir, p.cohereEncoder);
+            c.ModelConfig.CohereTranscribe.Decoder = R(dir, p.cohereDecoder);
+            c.ModelConfig.CohereTranscribe.Language = p.cohereLanguage ?? "";
+            c.ModelConfig.CohereTranscribe.UsePunct = p.cohereUsePunct ? 1 : 0;
+            c.ModelConfig.CohereTranscribe.UseItn = p.cohereUseItn ? 1 : 0;
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Cohere Transcribe config: " +
+                $"Encoder='{c.ModelConfig.CohereTranscribe.Encoder}', " +
+                $"Decoder='{c.ModelConfig.CohereTranscribe.Decoder}', " +
+                $"Language='{c.ModelConfig.CohereTranscribe.Language}', " +
+                $"UsePunct={c.ModelConfig.CohereTranscribe.UsePunct}, " +
+                $"UseItn={c.ModelConfig.CohereTranscribe.UseItn}");
         }
 
         // ── Shorthand ──
