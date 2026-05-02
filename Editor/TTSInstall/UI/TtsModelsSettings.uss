@@ -16,6 +16,7 @@
     border-bottom-color: rgba(255, 255, 255, 0.08);
     padding-bottom: 6px;
     margin-bottom: 6px;
+    flex-shrink: 0;
 }
 
 .tts-cache-description {

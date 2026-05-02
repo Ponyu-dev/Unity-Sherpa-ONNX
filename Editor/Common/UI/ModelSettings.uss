@@ -5,6 +5,10 @@
 
 /* ── Root layout ── */
 
+.model-scroll {
+    flex-grow: 1;
+}
+
 .model-root {
     flex-grow: 1;
     flex-direction: column;
@@ -21,6 +25,11 @@
 
 .model-header {
     flex-direction: column;
+    flex-shrink: 0;
+}
+
+.model-root > Toggle {
+    flex-shrink: 0;
 }
 
 .model-header-title {
@@ -34,6 +43,7 @@
 .model-toolbar {
     flex-direction: row;
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .model-toolbar > Button {
@@ -109,6 +119,7 @@
 
 .model-active-profile-section {
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 /* ── Import section ── */
@@ -120,6 +131,7 @@
     border-color: rgba(128, 128, 128, 0.4);
     border-radius: 4px;
     background-color: rgba(0, 0, 0, 0.08);
+    flex-shrink: 0;
 }
 
 .model-import-row {
@@ -186,6 +198,7 @@
 .model-foldout {
     margin-top: 6px;
     margin-bottom: 2px;
+    flex-shrink: 0;
 }
 
 /* ── Section headers & labels ── */
@@ -224,6 +237,7 @@
     flex-direction: row;
     margin-top: 4px;
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .model-link-label {

@@ -8,6 +8,7 @@
 .asr-tab-bar {
     flex-direction: row;
     margin-bottom: 8px;
+    flex-shrink: 0;
 }
 
 .asr-tab {
