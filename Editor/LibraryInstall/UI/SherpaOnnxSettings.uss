@@ -1,5 +1,8 @@
-.sherpa-root {
+.sherpa-scroll {
     flex-grow: 1;
+}
+
+.sherpa-root {
     flex-direction: column;
     padding: 8px 10px;
 }

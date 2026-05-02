@@ -9,6 +9,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 {
     internal sealed class SherpaOnnxSettingsView : IDisposable
     {
+        private const string ContentRootName = "sherpaRoot";
         private const string VersionFieldName = "versionField";
         private const string StrictToggleName = "strictValidationToggle";
         private const string MacToggleName = "macPostprocessToggle";
@@ -19,6 +20,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private readonly string _templateUxmlPath;
 
         private VisualElement _root;
+        private VisualElement _contentRoot;
         private TextField _versionField;
         private Toggle _strictToggle;
         private Toggle _macToggle;
@@ -62,6 +64,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             hostRoot.Clear();
             hostRoot.Add(mainAsset.CloneTree());
 
+            _contentRoot = hostRoot.Q<VisualElement>(ContentRootName) ?? hostRoot;
             _versionField = hostRoot.Q<TextField>(VersionFieldName);
             _strictToggle = hostRoot.Q<Toggle>(StrictToggleName);
             _macToggle = hostRoot.Q<Toggle>(MacToggleName);
@@ -98,6 +101,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _debugRuntimeToggle = null;
             _updateAllButton = null;
 
+            _contentRoot = null;
             _root = null;
         }
 
@@ -115,7 +119,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
             else
             {
-                _root?.Add(_updateAllButton);
+                _contentRoot?.Add(_updateAllButton);
             }
         }
 
@@ -126,7 +130,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 LibraryPlatforms.ManagedLibrary, GetVersion);
             presenter.Build(rowRoot);
             _presenters.Add(presenter);
-            _root.Add(rowRoot);
+            _contentRoot.Add(rowRoot);
         }
 
         private void BuildPlatformRows()
@@ -152,7 +156,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     foldout.Add(rowRoot);
                 }
 
-                _root.Add(foldout);
+                _contentRoot.Add(foldout);
             }
         }
 
