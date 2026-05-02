@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
 using UnityEditor;
 using UnityEngine.UIElements;
@@ -29,6 +30,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private Button _updateAllButton;
 
         private VisualTreeAsset _templateAsset;
+        private readonly ThemePalette _themePalette = new();
         private readonly List<PlatformRowPresenter> _presenters = new(64);
         private readonly List<CacheSectionUi> _cacheSections = new(2);
 
@@ -62,6 +64,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
 
             hostRoot.Clear();
+            _themePalette.Apply(hostRoot);
             hostRoot.Add(mainAsset.CloneTree());
 
             _contentRoot = hostRoot.Q<VisualElement>(ContentRootName) ?? hostRoot;
@@ -92,6 +95,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             for (int i = 0; i < _cacheSections.Count; i++)
                 _cacheSections[i].Dispose();
             _cacheSections.Clear();
+
+            _themePalette.Clear();
 
             _templateAsset = null;
             _versionField = null;

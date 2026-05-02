@@ -2,6 +2,7 @@ using System;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
@@ -29,6 +30,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
         private VadImportPresenter _importPresenter;
         private Button _importFromUrlButton;
         private VisualElement _importSection;
+        private readonly ThemePalette _themePalette = new();
 
         internal VadSettingsView(string uxmlPath)
         {
@@ -44,6 +46,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
                 return;
             }
 
+            _themePalette.Apply(hostRoot);
             uxmlAsset.CloneTree(hostRoot);
             LoadStyleSheets(hostRoot);
 
@@ -56,6 +59,8 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
         public void Dispose()
         {
+            _themePalette.Clear();
+
             _vadEnabledToggle?.UnregisterValueChangedCallback(HandleVadEnabledChanged);
             _vadEnabledToggle = null;
 

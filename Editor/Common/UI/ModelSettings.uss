@@ -241,12 +241,12 @@
 }
 
 .model-link-label {
-    color: rgba(115, 166, 255, 1);
+    color: var(--link-color);
     -unity-font-style: normal;
 }
 
 .model-link-label:hover {
-    color: rgba(153, 204, 255, 1);
+    color: var(--link-hover-color);
 }
 
 /* ── Buttons ── */
@@ -256,15 +256,15 @@
 }
 
 .btn-primary {
-    background-color: #2f5f3f;
+    background-color: var(--btn-primary-bg);
 }
 
 .btn-secondary {
-    background-color: #3a3030;
+    background-color: var(--btn-secondary-bg);
 }
 
 .btn-accent {
-    background-color: #2f4a5f;
+    background-color: var(--btn-accent-bg);
 }
 
 /* ── Utility ── */

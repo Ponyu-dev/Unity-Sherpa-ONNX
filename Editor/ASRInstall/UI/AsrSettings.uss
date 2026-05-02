@@ -21,7 +21,7 @@
 
 .asr-tab-active {
     -unity-font-style: bold;
-    background-color: rgba(47, 95, 63, 0.6);
+    background-color: var(--tab-active-bg);
     border-bottom-width: 2px;
     border-bottom-color: rgba(115, 166, 255, 0.8);
 }

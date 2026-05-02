@@ -2,6 +2,7 @@ using System;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
@@ -30,6 +31,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
         private TtsImportPresenter _importPresenter;
         private Button _importFromUrlButton;
         private VisualElement _importSection;
+        private readonly ThemePalette _themePalette = new();
 
         internal TtsSettingsView(string uxmlPath)
         {
@@ -45,6 +47,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
                 return;
             }
 
+            _themePalette.Apply(hostRoot);
             uxmlAsset.CloneTree(hostRoot);
 
             LoadStyleSheets(hostRoot);
@@ -59,6 +62,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         public void Dispose()
         {
+            _themePalette.Clear();
+
             _ttsEnabledToggle?.UnregisterValueChangedCallback(HandleTtsEnabledChanged);
             _ttsEnabledToggle = null;
 

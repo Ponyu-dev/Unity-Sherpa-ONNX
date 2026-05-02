@@ -66,15 +66,15 @@
 }
 
 .status-label--notinstalled {
-    color: rgb(208, 128, 128);
+    color: var(--status-notinstalled);
 }
 
 .status-label--installed {
-    color: rgb(128, 208, 128);
+    color: var(--status-installed);
 }
 
 .status-label--update {
-    color: rgb(220, 200, 100);
+    color: var(--status-update);
 }
 
 .btn {
@@ -82,25 +82,25 @@
 }
 
 .btn-primary {
-    background-color: rgb(47, 95, 63);
+    background-color: var(--btn-primary-bg);
 }
 
 .btn-secondary {
-    background-color: rgb(58, 48, 48);
+    background-color: var(--btn-secondary-bg);
 }
 
 .btn-warning {
-    background-color: rgb(140, 120, 40);
+    background-color: var(--btn-warning-bg);
 }
 
 .btn-toggle {
     min-width: 40px;
     margin-left: 4px;
-    background-color: rgb(140, 120, 40);
+    background-color: var(--btn-warning-bg);
 }
 
 .btn-toggle--active {
-    background-color: rgb(47, 95, 63);
+    background-color: var(--btn-primary-bg);
 }
 
 .platform-foldout {
@@ -143,7 +143,7 @@
     margin-top: 10px;
     padding: 6px 8px;
     border-width: 1px;
-    border-color: rgb(48, 48, 48);
+    border-color: var(--section-border);
     border-radius: 4px;
-    background-color: rgba(0, 0, 0, 0.08);
+    background-color: var(--section-bg);
 }
