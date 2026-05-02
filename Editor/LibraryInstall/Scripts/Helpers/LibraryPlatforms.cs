@@ -9,7 +9,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             {
                 Name = "Managed .dll",
                 Url = "https://www.nuget.org/api/v2/package/org.k2fsa.sherpa.onnx/{0}",
-                RootPath = ""
+                RootPath = "",
+                SourceUrl = "https://www.nuget.org/packages/org.k2fsa.sherpa.onnx",
             };
         
         public static readonly List<LibraryPlatform> Platforms = new()
@@ -17,6 +18,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             new LibraryPlatform
             {
                 PlatformName = "Windows",
+                SourceUrl = "https://www.nuget.org/packages?q=org.k2fsa.sherpa.onnx.runtime.win",
                 Arches = new List<LibraryArch>()
                 {
                     new()
@@ -46,6 +48,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             new LibraryPlatform
             {
                 PlatformName = "Mac OS",
+                SourceUrl = "https://www.nuget.org/packages?q=org.k2fsa.sherpa.onnx.runtime.osx",
                 Arches = new List<LibraryArch>()
                 {
                     new()
@@ -68,6 +71,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             new LibraryPlatform
             {
                 PlatformName = "Linux",
+                SourceUrl = "https://www.nuget.org/packages?q=org.k2fsa.sherpa.onnx.runtime.linux",
                 Arches = new List<LibraryArch>()
                 {
                     new()
@@ -90,6 +94,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             new LibraryPlatform
             {
                 PlatformName = "Android",
+                SourceUrl = "https://github.com/k2-fsa/sherpa-onnx/releases",
                 Arches = new List<LibraryArch>()
                 {
                     new()
@@ -130,6 +135,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
             new LibraryPlatform
             {
                 PlatformName = "iOS",
+                SourceUrl = "https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases",
                 Arches = new List<LibraryArch>()
                 {
                     new()
@@ -148,6 +154,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
     internal class LibraryPlatform
     {
         public string PlatformName;
+        public string SourceUrl;
         public List<LibraryArch> Arches = new();
     }
     
@@ -165,5 +172,6 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         public string RootPath;
         public bool IsManagedDllRoot;
         public PlatformType Platform = PlatformType.Desktop;
+        public string SourceUrl;
     }
 }

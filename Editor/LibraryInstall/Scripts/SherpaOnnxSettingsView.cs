@@ -1,14 +1,17 @@
 using System;
 using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
 {
     internal sealed class SherpaOnnxSettingsView : IDisposable
     {
+        private const string ContentRootName = "sherpaRoot";
         private const string VersionFieldName = "versionField";
         private const string StrictToggleName = "strictValidationToggle";
         private const string MacToggleName = "macPostprocessToggle";
@@ -19,6 +22,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private readonly string _templateUxmlPath;
 
         private VisualElement _root;
+        private VisualElement _contentRoot;
         private TextField _versionField;
         private Toggle _strictToggle;
         private Toggle _macToggle;
@@ -27,6 +31,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
         private Button _updateAllButton;
 
         private VisualTreeAsset _templateAsset;
+        private readonly ThemePalette _themePalette = new();
         private readonly List<PlatformRowPresenter> _presenters = new(64);
         private readonly List<CacheSectionUi> _cacheSections = new(2);
 
@@ -60,8 +65,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
 
             hostRoot.Clear();
+            _themePalette.Apply(hostRoot);
             hostRoot.Add(mainAsset.CloneTree());
 
+            _contentRoot = hostRoot.Q<VisualElement>(ContentRootName) ?? hostRoot;
             _versionField = hostRoot.Q<TextField>(VersionFieldName);
             _strictToggle = hostRoot.Q<Toggle>(StrictToggleName);
             _macToggle = hostRoot.Q<Toggle>(MacToggleName);
@@ -90,6 +97,8 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                 _cacheSections[i].Dispose();
             _cacheSections.Clear();
 
+            _themePalette.Clear();
+
             _templateAsset = null;
             _versionField = null;
             _strictToggle = null;
@@ -98,6 +107,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             _debugRuntimeToggle = null;
             _updateAllButton = null;
 
+            _contentRoot = null;
             _root = null;
         }
 
@@ -115,7 +125,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             }
             else
             {
-                _root?.Add(_updateAllButton);
+                _contentRoot?.Add(_updateAllButton);
             }
         }
 
@@ -125,8 +135,12 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             var presenter = new PlatformRowPresenter(
                 LibraryPlatforms.ManagedLibrary, GetVersion);
             presenter.Build(rowRoot);
+
+            AttachSourceLink(rowRoot,
+                ResolveArchSourceUrl(LibraryPlatforms.ManagedLibrary, platform: null));
+
             _presenters.Add(presenter);
-            _root.Add(rowRoot);
+            _contentRoot.Add(rowRoot);
         }
 
         private void BuildPlatformRows()
@@ -148,12 +162,60 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     var presenter = new PlatformRowPresenter(arch, GetVersion);
                     presenter.Build(rowRoot);
 
+                    AttachSourceLink(rowRoot, ResolveArchSourceUrl(arch, platform));
+
                     _presenters.Add(presenter);
                     foldout.Add(rowRoot);
                 }
 
-                _root.Add(foldout);
+                _contentRoot.Add(foldout);
             }
+        }
+
+        private static void AttachSourceLink(VisualElement rowRoot, string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return;
+
+            var label = rowRoot.Q<Label>("platformType");
+            if (label == null)
+                return;
+
+            label.AddToClassList("platform-label--link");
+            label.tooltip = url;
+            label.RegisterCallback<PointerUpEvent, string>(OpenUrl, url);
+        }
+
+        /// <summary>
+        /// Returns the browser-facing URL for an arch:
+        /// arch.SourceUrl when set explicitly, otherwise platform.SourceUrl,
+        /// otherwise derived from the NuGet download URL for desktop arches.
+        /// </summary>
+        private static string ResolveArchSourceUrl(LibraryArch arch, LibraryPlatform platform)
+        {
+            if (!string.IsNullOrEmpty(arch.SourceUrl))
+                return arch.SourceUrl;
+
+            if (arch.Platform == PlatformType.Desktop)
+            {
+                const string apiPrefix = "https://www.nuget.org/api/v2/package/";
+                if (!string.IsNullOrEmpty(arch.Url) && arch.Url.StartsWith(apiPrefix))
+                {
+                    int slash = arch.Url.IndexOf('/', apiPrefix.Length);
+                    if (slash > apiPrefix.Length)
+                    {
+                        string pkg = arch.Url.Substring(apiPrefix.Length, slash - apiPrefix.Length);
+                        return "https://www.nuget.org/packages/" + pkg;
+                    }
+                }
+            }
+
+            return platform?.SourceUrl;
+        }
+
+        private static void OpenUrl(PointerUpEvent evt, string url)
+        {
+            Application.OpenURL(url);
         }
 
         private void BindSettingsToUi()

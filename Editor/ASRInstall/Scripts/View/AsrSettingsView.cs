@@ -8,6 +8,7 @@ using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.Common.Presenters;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -41,6 +42,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private OnlineAsrImportPresenter _onlineImportPresenter;
         private Button _onlineImportFromUrlButton;
         private VisualElement _onlineImportSection;
+        private readonly ThemePalette _themePalette = new();
 
         internal AsrSettingsView(string uxmlPath)
         {
@@ -56,6 +58,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
                 return;
             }
 
+            _themePalette.Apply(hostRoot);
             uxmlAsset.CloneTree(hostRoot);
             LoadStyleSheets(hostRoot);
 
@@ -70,6 +73,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
 
         public void Dispose()
         {
+            _themePalette.Clear();
+
             DisposeOffline();
             DisposeOnline();
             _asrEnabledToggle?.UnregisterValueChangedCallback(HandleAsrEnabledChanged);
