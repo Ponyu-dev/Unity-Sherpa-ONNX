@@ -107,6 +107,14 @@
     margin-top: 6px;
 }
 
+.platform-label--link {
+    color: var(--link-color);
+}
+
+.platform-label--link:hover {
+    color: var(--link-hover-color);
+}
+
 .platform-row-wrap {
     flex-direction: column;
     margin-top: 2px;

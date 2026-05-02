@@ -4,6 +4,7 @@ using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers;
 using UnityEditor;
+using UnityEngine;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
@@ -134,6 +135,10 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
             var presenter = new PlatformRowPresenter(
                 LibraryPlatforms.ManagedLibrary, GetVersion);
             presenter.Build(rowRoot);
+
+            AttachSourceLink(rowRoot,
+                ResolveArchSourceUrl(LibraryPlatforms.ManagedLibrary, platform: null));
+
             _presenters.Add(presenter);
             _contentRoot.Add(rowRoot);
         }
@@ -157,12 +162,60 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
                     var presenter = new PlatformRowPresenter(arch, GetVersion);
                     presenter.Build(rowRoot);
 
+                    AttachSourceLink(rowRoot, ResolveArchSourceUrl(arch, platform));
+
                     _presenters.Add(presenter);
                     foldout.Add(rowRoot);
                 }
 
                 _contentRoot.Add(foldout);
             }
+        }
+
+        private static void AttachSourceLink(VisualElement rowRoot, string url)
+        {
+            if (string.IsNullOrEmpty(url))
+                return;
+
+            var label = rowRoot.Q<Label>("platformType");
+            if (label == null)
+                return;
+
+            label.AddToClassList("platform-label--link");
+            label.tooltip = url;
+            label.RegisterCallback<PointerUpEvent, string>(OpenUrl, url);
+        }
+
+        /// <summary>
+        /// Returns the browser-facing URL for an arch:
+        /// arch.SourceUrl when set explicitly, otherwise platform.SourceUrl,
+        /// otherwise derived from the NuGet download URL for desktop arches.
+        /// </summary>
+        private static string ResolveArchSourceUrl(LibraryArch arch, LibraryPlatform platform)
+        {
+            if (!string.IsNullOrEmpty(arch.SourceUrl))
+                return arch.SourceUrl;
+
+            if (arch.Platform == PlatformType.Desktop)
+            {
+                const string apiPrefix = "https://www.nuget.org/api/v2/package/";
+                if (!string.IsNullOrEmpty(arch.Url) && arch.Url.StartsWith(apiPrefix))
+                {
+                    int slash = arch.Url.IndexOf('/', apiPrefix.Length);
+                    if (slash > apiPrefix.Length)
+                    {
+                        string pkg = arch.Url.Substring(apiPrefix.Length, slash - apiPrefix.Length);
+                        return "https://www.nuget.org/packages/" + pkg;
+                    }
+                }
+            }
+
+            return platform?.SourceUrl;
+        }
+
+        private static void OpenUrl(PointerUpEvent evt, string url)
+        {
+            Application.OpenURL(url);
         }
 
         private void BindSettingsToUi()
