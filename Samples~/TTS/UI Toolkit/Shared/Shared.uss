@@ -60,3 +60,34 @@
     font-size: 22px;
     color: rgb(140, 140, 140);
 }
+
+/* ── Unity form-field internal styling ──
+ * Unity's TextField / FloatField / IntegerField have an internal
+ * structure (label + input) that doesn't inherit font-size from the
+ * outer wrapper. Without these rules, all form fields render at
+ * Unity's tiny default (~12px), regardless of the .sample-* class.
+ */
+
+.unity-base-field__label,
+.unity-text-field__label,
+.unity-integer-field__label,
+.unity-float-field__label {
+    font-size: 26px;
+    min-width: 200px;
+    -unity-text-align: middle-left;
+}
+
+.unity-base-text-field__input,
+.unity-text-field__input,
+.unity-integer-field__input,
+.unity-float-field__input {
+    font-size: 28px;
+    min-height: 64px;
+    padding: 8px 12px;
+}
+
+/* Multiline TextField needs explicit min-height on the input itself,
+ * not just the wrapper. */
+.sample-text-field .unity-text-field__input {
+    min-height: 140px;
+}

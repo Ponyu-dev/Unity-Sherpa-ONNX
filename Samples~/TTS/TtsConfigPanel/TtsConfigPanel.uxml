@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="../Shared/Shared.uss"/>
+    <Style src="../UI%20Toolkit/Shared/Shared.uss"/>
     <Style src="TtsConfigPanel.uss"/>
     <ui:VisualElement class="sample-root">
         <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
