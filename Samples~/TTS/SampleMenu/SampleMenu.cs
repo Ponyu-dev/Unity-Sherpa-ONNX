@@ -16,12 +16,14 @@ namespace PonyuDev.SherpaOnnx.Samples
         public const string IdConfig = "config";
         public const string IdCache = "cache";
         public const string IdControls = "controls";
+        public const string IdStreaming = "streaming";
 
         private Button _btnSimple;
         private Button _btnProgress;
         private Button _btnConfig;
         private Button _btnCache;
         private Button _btnControls;
+        private Button _btnStreaming;
         private Label _infoLabel;
         private Action<string> _onNavigate;
 
@@ -49,6 +51,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _btnConfig = root.Q<Button>("btnConfig");
             _btnCache = root.Q<Button>("btnCache");
             _btnControls = root.Q<Button>("btnControls");
+            _btnStreaming = root.Q<Button>("btnStreaming");
             _infoLabel = root.Q<Label>("infoLabel");
 
             if (_btnSimple != null)
@@ -61,6 +64,8 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnCache.clicked += HandleCache;
             if (_btnControls != null)
                 _btnControls.clicked += HandleControls;
+            if (_btnStreaming != null)
+                _btnStreaming.clicked += HandleStreaming;
 
             UpdateInfo(service);
         }
@@ -77,12 +82,15 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnCache.clicked -= HandleCache;
             if (_btnControls != null)
                 _btnControls.clicked -= HandleControls;
+            if (_btnStreaming != null)
+                _btnStreaming.clicked -= HandleStreaming;
 
             _btnSimple = null;
             _btnProgress = null;
             _btnConfig = null;
             _btnCache = null;
             _btnControls = null;
+            _btnStreaming = null;
             _infoLabel = null;
             _onNavigate = null;
         }
@@ -92,6 +100,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private void HandleConfig() => _onNavigate?.Invoke(IdConfig);
         private void HandleCache() => _onNavigate?.Invoke(IdCache);
         private void HandleControls() => _onNavigate?.Invoke(IdControls);
+        private void HandleStreaming() => _onNavigate?.Invoke(IdStreaming);
 
         private void UpdateInfo(ITtsService service)
         {
