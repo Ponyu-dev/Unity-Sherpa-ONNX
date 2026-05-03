@@ -59,6 +59,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         public bool IsReady => _inner.IsReady;
         public TtsProfile ActiveProfile => _inner.ActiveProfile;
         public TtsSettingsData Settings => _inner.Settings;
+        public int SampleRate => _inner.SampleRate;
 
         public int EnginePoolSize
         {
