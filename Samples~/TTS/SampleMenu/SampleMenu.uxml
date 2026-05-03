@@ -1,5 +1,5 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
-    <Style src="../Shared/Shared.uss"/>
+    <Style src="../UI%20Toolkit/Shared/Shared.uss"/>
     <Style src="SampleMenu.uss"/>
     <ui:VisualElement class="sample-root">
         <ui:Label text="Sherpa-ONNX Samples" class="sample-title"/>
@@ -27,6 +27,12 @@
         <ui:Button name="btnCache" class="menu-card">
             <ui:Label text="Cache Control" class="menu-card-title"/>
             <ui:Label text="Toggle result/clip/source caches at runtime, generate and observe stats live."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnControls" class="menu-card">
+            <ui:Label text="Runtime Controls" class="menu-card-title"/>
+            <ui:Label text="Handle-based playback: cancel a generation, stop with fade-out, StopAll across parallel handles."
                       class="menu-card-desc"/>
         </ui:Button>
 

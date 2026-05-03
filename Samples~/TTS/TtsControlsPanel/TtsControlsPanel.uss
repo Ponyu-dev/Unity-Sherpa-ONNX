@@ -1,0 +1,35 @@
+/* ── TtsControlsPanel-specific styles ── */
+
+.controls-row {
+    flex-direction: row;
+    margin-bottom: 0;
+}
+
+.controls-btn {
+    flex-grow: 1;
+    margin-right: 12px;
+}
+
+.controls-btn:last-child {
+    margin-right: 0;
+}
+
+.controls-btn-secondary {
+    background-color: rgba(120, 60, 60, 0.6);
+}
+
+.controls-active {
+    flex-grow: 1;
+    -unity-text-align: middle-right;
+    font-size: 26px;
+    color: rgb(180, 180, 180);
+    padding-right: 12px;
+}
+
+.controls-history {
+    margin-top: 16px;
+    font-size: 20px;
+    color: rgb(140, 140, 140);
+    white-space: normal;
+    -unity-font-style: normal;
+}

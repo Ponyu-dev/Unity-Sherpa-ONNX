@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Tts.Cache;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 using UnityEngine;
@@ -88,6 +91,72 @@ namespace PonyuDev.SherpaOnnx.Tts
             set => _defaultPlaybackMode = value;
         }
 
+        // ── Handle-based playback ──
+
+        private readonly List<TtsPlaybackHandle> _activeHandles = new();
+
+        /// <summary>
+        /// Generates speech and starts playback, returning a handle for
+        /// stop / fade / completion observation. Uses pooled AudioSource
+        /// when cache is available, otherwise the fallback source.
+        /// <para/>
+        /// The handle is auto-tracked by this orchestrator and disposed
+        /// in <c>OnDestroy</c>; <see cref="StopAll"/> can fade them out
+        /// at any time.
+        /// </summary>
+        public async Task<TtsPlaybackHandle> GenerateAndPlayWithHandleAsync(
+            string text, CancellationToken ct = default)
+        {
+            var svc = Service;
+            var cache = CacheControl;
+
+            TtsPlaybackHandle handle = cache != null
+                ? await svc.GenerateAndPlayWithHandleAsync(text, cache, ct)
+                : await svc.GenerateAndPlayWithHandleAsync(text, GetOrCreateSource(), ct);
+
+            if (handle != null)
+                Track(handle);
+
+            return handle;
+        }
+
+        /// <summary>
+        /// Stops all currently-playing handles. If <paramref name="fadeSeconds"/>
+        /// is &gt; 0, fades each one out over that duration in parallel.
+        /// </summary>
+        public async UniTask StopAll(float fadeSeconds = 0f)
+        {
+            // Snapshot to avoid mutation during iteration (handle.Stopped
+            // event removes itself from _activeHandles).
+            var snapshot = _activeHandles.ToArray();
+            if (snapshot.Length == 0)
+                return;
+
+            var tasks = new UniTask[snapshot.Length];
+            for (int i = 0; i < snapshot.Length; i++)
+                tasks[i] = snapshot[i].StopAsync(fadeSeconds);
+
+            await UniTask.WhenAll(tasks);
+        }
+
+        /// <summary>Number of currently tracked playback handles.</summary>
+        public int ActivePlaybackCount => _activeHandles.Count;
+
+        private void Track(TtsPlaybackHandle handle)
+        {
+            _activeHandles.Add(handle);
+
+            void OnEnd()
+            {
+                handle.Completed -= OnEnd;
+                handle.Stopped -= OnEnd;
+                _activeHandles.Remove(handle);
+            }
+
+            handle.Completed += OnEnd;
+            handle.Stopped += OnEnd;
+        }
+
         // ── Lifecycle ──
 
         private async void Awake()
@@ -110,6 +179,13 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         private void OnDestroy()
         {
+            // Dispose any in-flight playbacks first so their cleanup
+            // (clip destroy / pool return) runs before we dispose the
+            // service (which cancels the service-level CTS).
+            for (int i = _activeHandles.Count - 1; i >= 0; i--)
+                _activeHandles[i]?.Dispose();
+            _activeHandles.Clear();
+
             if (_cachedService != null)
             {
                 _cachedService.Dispose();

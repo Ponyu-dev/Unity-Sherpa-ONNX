@@ -21,6 +21,13 @@ namespace PonyuDev.SherpaOnnx.Tests
                 : null;
         }
 
+        // The three locale-verifying tests below call libc's setlocale via
+        // [DllImport("c")] which only resolves on Linux / macOS / Android.
+        // On Windows the C runtime is msvcrt/ucrtbase, not "c", so the import
+        // throws DllNotFoundException. Skip on Windows — `NativeLocaleGuard`
+        // itself swallows that exception and becomes a safe no-op there,
+        // which is the correct behavior (Windows doesn't need the guard).
+#if !UNITY_EDITOR_WIN
         [Test]
         public void Begin_SetsLocaleToC()
         {
@@ -65,6 +72,7 @@ namespace PonyuDev.SherpaOnnx.Tests
 
             Assert.AreEqual(original, GetNumericLocale());
         }
+#endif
 
         [Test]
         public void Begin_ReturnsDisposable()

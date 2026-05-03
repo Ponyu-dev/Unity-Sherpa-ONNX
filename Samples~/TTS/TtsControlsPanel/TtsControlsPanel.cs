@@ -1,0 +1,403 @@
+using System;
+using System.Collections.Generic;
+using System.Threading;
+using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Tts;
+using PonyuDev.SherpaOnnx.Tts.Engine;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+namespace PonyuDev.SherpaOnnx.Samples
+{
+    /// <summary>
+    /// Runtime Controls sample — demonstrates the handle-based playback API
+    /// (<see cref="TtsPlaybackHandle"/>) with cancellation, fade-out stop,
+    /// and parallel-handle StopAll. Use this scene to regression-test the
+    /// runtime-controls branch of the TTS module.
+    /// </summary>
+    public sealed class TtsControlsPanel : ISamplePanel
+    {
+        private ITtsService _service;
+        private AudioSource _audio;
+        private AudioSource _audioSecondary; // for parallel-handle demo
+        private Action _onBack;
+
+        private TextField _textField;
+        private IntegerField _fadeMsField;
+        private Button _btnGenerate;
+        private Button _btnCancelGen;
+        private Button _btnStopLast;
+        private Button _btnStopAll;
+        private Button _btnStopLastInstant;
+        private Button _btnStopAllInstant;
+        private Button _btnGenerateTwo;
+        private Button _btnBack;
+        private Label _statusLabel;
+        private Label _activeLabel;
+        private Label _historyLabel;
+
+        private readonly List<TtsPlaybackHandle> _handles = new();
+        private CancellationTokenSource _activeCts;
+        private bool _isGenerating;
+        private readonly List<string> _history = new();
+        private const int HistoryMaxLines = 10;
+
+        // ── ISamplePanel ──
+
+        public void Bind(
+            VisualElement root,
+            ITtsService service,
+            AudioSource audio,
+            Action onBack)
+        {
+            _service = service;
+            _audio = audio;
+            _onBack = onBack;
+
+            // Spin up a sibling AudioSource so the parallel-handle demo
+            // doesn't interrupt the first handle's playback.
+            _audioSecondary = audio.gameObject.AddComponent<AudioSource>();
+            _audioSecondary.playOnAwake = false;
+
+            _textField = root.Q<TextField>("textField");
+            _fadeMsField = root.Q<IntegerField>("fadeMsField");
+            _btnGenerate = root.Q<Button>("btnGenerate");
+            _btnCancelGen = root.Q<Button>("btnCancelGen");
+            _btnStopLast = root.Q<Button>("btnStopLast");
+            _btnStopAll = root.Q<Button>("btnStopAll");
+            _btnStopLastInstant = root.Q<Button>("btnStopLastInstant");
+            _btnStopAllInstant = root.Q<Button>("btnStopAllInstant");
+            _btnGenerateTwo = root.Q<Button>("btnGenerateTwo");
+            _btnBack = root.Q<Button>("backButton");
+            _statusLabel = root.Q<Label>("statusLabel");
+            _activeLabel = root.Q<Label>("activeLabel");
+            _historyLabel = root.Q<Label>("historyLabel");
+
+            if (_btnGenerate != null) _btnGenerate.clicked += HandleGenerate;
+            if (_btnCancelGen != null) _btnCancelGen.clicked += HandleCancelGeneration;
+            if (_btnStopLast != null) _btnStopLast.clicked += HandleStopLastWithFade;
+            if (_btnStopAll != null) _btnStopAll.clicked += HandleStopAllWithFade;
+            if (_btnStopLastInstant != null) _btnStopLastInstant.clicked += HandleStopLastInstant;
+            if (_btnStopAllInstant != null) _btnStopAllInstant.clicked += HandleStopAllInstant;
+            if (_btnGenerateTwo != null) _btnGenerateTwo.clicked += HandleGenerateTwoParallel;
+            if (_btnBack != null) _btnBack.clicked += HandleBack;
+
+            UpdateButtons();
+            UpdateActiveLabel();
+            SetStatus(_service != null && _service.IsReady ? "Ready." : "Engine not loaded.");
+        }
+
+        public void Unbind()
+        {
+            // Hard-stop everything still in flight before tearing down.
+            CancelGeneration();
+            for (int i = _handles.Count - 1; i >= 0; i--)
+                _handles[i]?.Dispose();
+            _handles.Clear();
+
+            if (_audioSecondary != null)
+            {
+                UnityEngine.Object.Destroy(_audioSecondary);
+                _audioSecondary = null;
+            }
+
+            if (_btnGenerate != null) _btnGenerate.clicked -= HandleGenerate;
+            if (_btnCancelGen != null) _btnCancelGen.clicked -= HandleCancelGeneration;
+            if (_btnStopLast != null) _btnStopLast.clicked -= HandleStopLastWithFade;
+            if (_btnStopAll != null) _btnStopAll.clicked -= HandleStopAllWithFade;
+            if (_btnStopLastInstant != null) _btnStopLastInstant.clicked -= HandleStopLastInstant;
+            if (_btnStopAllInstant != null) _btnStopAllInstant.clicked -= HandleStopAllInstant;
+            if (_btnGenerateTwo != null) _btnGenerateTwo.clicked -= HandleGenerateTwoParallel;
+            if (_btnBack != null) _btnBack.clicked -= HandleBack;
+
+            _textField = null;
+            _fadeMsField = null;
+            _btnGenerate = null;
+            _btnCancelGen = null;
+            _btnStopLast = null;
+            _btnStopAll = null;
+            _btnStopLastInstant = null;
+            _btnStopAllInstant = null;
+            _btnGenerateTwo = null;
+            _btnBack = null;
+            _statusLabel = null;
+            _activeLabel = null;
+            _historyLabel = null;
+            _service = null;
+            _audio = null;
+            _onBack = null;
+        }
+
+        // ── Handlers ──
+
+        private async void HandleGenerate()
+        {
+            if (!CheckReady() || _isGenerating)
+                return;
+
+            string text = GetText();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                SetStatus("Enter text first.");
+                return;
+            }
+
+            await GenerateAndTrackAsync(text, _audio, "A");
+        }
+
+        private async void HandleGenerateTwoParallel()
+        {
+            if (!CheckReady() || _isGenerating)
+                return;
+
+            string text = GetText();
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                SetStatus("Enter text first.");
+                return;
+            }
+
+            // Two parallel generations on separate AudioSources so both clips
+            // can play simultaneously and StopAll can fade them in parallel.
+            var t1 = GenerateAndTrackAsync(text, _audio, "A");
+            var t2 = GenerateAndTrackAsync(text, _audioSecondary, "B");
+            await UniTask.WhenAll(t1, t2);
+        }
+
+        private void HandleCancelGeneration()
+        {
+            if (_activeCts == null)
+            {
+                SetStatus("No active generation to cancel.");
+                return;
+            }
+
+            try
+            {
+                _activeCts.Cancel();
+                AppendHistory("Cancel requested on active generation.");
+            }
+            catch (Exception ex)
+            {
+                AppendHistory($"Cancel failed: {ex.Message}");
+            }
+        }
+
+        private async void HandleStopLastWithFade()
+        {
+            if (_handles.Count == 0)
+            {
+                SetStatus("No active playback to stop.");
+                return;
+            }
+
+            var handle = _handles[_handles.Count - 1];
+            float fadeSec = GetFadeSeconds();
+            AppendHistory(
+                $"Stop last with fade={fadeSec:F2}s (handles before: {_handles.Count}).");
+            await handle.StopAsync(fadeSec);
+            UpdateActiveLabel();
+        }
+
+        private async void HandleStopAllWithFade()
+        {
+            if (_handles.Count == 0)
+            {
+                SetStatus("No active playback to stop.");
+                return;
+            }
+
+            float fadeSec = GetFadeSeconds();
+            AppendHistory(
+                $"StopAll with fade={fadeSec:F2}s (handles before: {_handles.Count}).");
+
+            var snapshot = _handles.ToArray();
+            var tasks = new UniTask[snapshot.Length];
+            for (int i = 0; i < snapshot.Length; i++)
+                tasks[i] = snapshot[i].StopAsync(fadeSec);
+
+            await UniTask.WhenAll(tasks);
+            UpdateActiveLabel();
+        }
+
+        private void HandleStopLastInstant()
+        {
+            if (_handles.Count == 0)
+            {
+                SetStatus("No active playback to stop.");
+                return;
+            }
+
+            var handle = _handles[_handles.Count - 1];
+            AppendHistory(
+                $"Stop last (instant) (handles before: {_handles.Count}).");
+            handle.Stop();
+            UpdateActiveLabel();
+        }
+
+        private void HandleStopAllInstant()
+        {
+            if (_handles.Count == 0)
+            {
+                SetStatus("No active playback to stop.");
+                return;
+            }
+
+            AppendHistory(
+                $"StopAll (instant) (handles before: {_handles.Count}).");
+
+            // Snapshot to avoid mutation while iterating (handle.Stopped
+            // event removes itself from _handles).
+            var snapshot = _handles.ToArray();
+            for (int i = 0; i < snapshot.Length; i++)
+                snapshot[i].Stop();
+
+            UpdateActiveLabel();
+        }
+
+        private void HandleBack() => _onBack?.Invoke();
+
+        // ── Core generation flow ──
+
+        private async UniTask GenerateAndTrackAsync(string text, AudioSource source, string label)
+        {
+            // Reuse a single CTS for the active generation phase. If a
+            // previous gen is still running, the new one shares it.
+            _activeCts ??= new CancellationTokenSource();
+            var ctsLocal = _activeCts;
+
+            _isGenerating = true;
+            UpdateButtons();
+            SetStatus($"Generating '{label}'…");
+
+            TtsPlaybackHandle handle = null;
+            try
+            {
+                handle = await _service.GenerateAndPlayWithHandleAsync(
+                    text, source, ctsLocal.Token);
+
+                if (handle == null)
+                {
+                    SetStatus($"Handle '{label}' was null (gen failed).");
+                    AppendHistory($"Handle '{label}': gen returned null.");
+                    return;
+                }
+
+                Track(handle, label);
+                SetStatus($"Playing '{label}'.");
+                AppendHistory(
+                    $"Handle '{label}' started ({handle.Result.DurationSeconds:F2}s).");
+            }
+            catch (OperationCanceledException)
+            {
+                SetStatus($"Generation '{label}' cancelled.");
+                AppendHistory($"Handle '{label}': OperationCanceledException.");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error: {ex.Message}");
+                AppendHistory($"Handle '{label}': {ex.GetType().Name}: {ex.Message}");
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] TtsControlsPanel error: {ex}");
+            }
+            finally
+            {
+                _isGenerating = false;
+                ResetCtsIfDone();
+                UpdateButtons();
+            }
+        }
+
+        private void Track(TtsPlaybackHandle handle, string label)
+        {
+            _handles.Add(handle);
+            UpdateActiveLabel();
+
+            // Local function captures handle + label. Subscribes once,
+            // unsubscribes itself before removing from the list.
+            void OnEnd(string reason)
+            {
+                handle.Completed -= OnCompleted;
+                handle.Stopped -= OnStopped;
+                _handles.Remove(handle);
+                AppendHistory($"Handle '{label}' {reason}. (active: {_handles.Count})");
+                UpdateActiveLabel();
+            }
+
+            void OnCompleted() => OnEnd("Completed naturally");
+            void OnStopped() => OnEnd("Stopped explicitly");
+
+            handle.Completed += OnCompleted;
+            handle.Stopped += OnStopped;
+        }
+
+        private void CancelGeneration()
+        {
+            try { _activeCts?.Cancel(); } catch { /* ignore */ }
+            _activeCts?.Dispose();
+            _activeCts = null;
+        }
+
+        private void ResetCtsIfDone()
+        {
+            // If no other gens are pending using this CTS (only the just-finished
+            // one), drop it so the next Generate gets a fresh source.
+            if (_isGenerating)
+                return;
+
+            _activeCts?.Dispose();
+            _activeCts = null;
+        }
+
+        // ── UI helpers ──
+
+        private bool CheckReady()
+        {
+            if (_service != null && _service.IsReady)
+                return true;
+
+            SetStatus("Engine not loaded.");
+            return false;
+        }
+
+        private string GetText() => _textField?.value ?? "";
+
+        private float GetFadeSeconds()
+        {
+            int ms = _fadeMsField?.value ?? 500;
+            if (ms < 0) ms = 0;
+            return ms / 1000f;
+        }
+
+        private void UpdateButtons()
+        {
+            _btnGenerate?.SetEnabled(!_isGenerating);
+            _btnGenerateTwo?.SetEnabled(!_isGenerating);
+            _btnCancelGen?.SetEnabled(_isGenerating);
+        }
+
+        private void UpdateActiveLabel()
+        {
+            if (_activeLabel != null)
+                _activeLabel.text = $"Active handles: {_handles.Count}";
+        }
+
+        private void SetStatus(string text)
+        {
+            if (_statusLabel != null)
+                _statusLabel.text = text;
+        }
+
+        private void AppendHistory(string line)
+        {
+            string ts = DateTime.Now.ToString("HH:mm:ss.fff");
+            _history.Add($"[{ts}] {line}");
+            if (_history.Count > HistoryMaxLines)
+                _history.RemoveAt(0);
+
+            if (_historyLabel != null)
+                _historyLabel.text = string.Join("\n", _history);
+        }
+    }
+}

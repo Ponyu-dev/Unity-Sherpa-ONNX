@@ -38,7 +38,10 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
 
         public override string ToString()
         {
-            return $"[{SpeakerId}|{Speed:F3}] {Text}";
+            // Invariant culture: avoid comma decimal separator on locales like
+            // ru-RU / de-DE so debug logs and tests are stable across machines.
+            return FormattableString.Invariant(
+                $"[{SpeakerId}|{Speed:F3}] {Text}");
         }
     }
 }

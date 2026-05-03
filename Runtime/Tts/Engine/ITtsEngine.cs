@@ -1,4 +1,6 @@
 using System;
+using System.Threading;
+using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Tts.Data;
 
 namespace PonyuDev.SherpaOnnx.Tts.Engine
@@ -38,10 +40,27 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
         TtsResult Generate(string text, float speed, int speakerId);
 
         /// <summary>
+        /// Async generation with cancellation support. Native call is wrapped
+        /// in a callback that returns 0 when <paramref name="ct"/> is triggered,
+        /// the only way sherpa-onnx can be aborted mid-synthesis.
+        /// Throws <see cref="OperationCanceledException"/> on cancellation.
+        /// </summary>
+        Task<TtsResult> GenerateAsync(
+            string text, float speed, int speakerId, CancellationToken ct);
+
+        /// <summary>
         /// Generates speech, invoking the callback for each audio chunk.
         /// </summary>
         TtsResult GenerateWithCallback(
             string text, float speed, int speakerId, TtsCallback callback);
+
+        /// <summary>
+        /// Async variant of <see cref="GenerateWithCallback"/> with cancellation.
+        /// User callback is invoked alongside the cancellation check.
+        /// </summary>
+        Task<TtsResult> GenerateWithCallbackAsync(
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct);
 
         /// <summary>
         /// Generates speech, invoking the callback with progress for each chunk.
@@ -50,10 +69,24 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             string text, float speed, int speakerId, TtsCallbackProgress callback);
 
         /// <summary>
+        /// Async variant of <see cref="GenerateWithCallbackProgress"/> with cancellation.
+        /// </summary>
+        Task<TtsResult> GenerateWithCallbackProgressAsync(
+            string text, float speed, int speakerId, TtsCallbackProgress callback,
+            CancellationToken ct);
+
+        /// <summary>
         /// Generates speech using an advanced generation config with progress callback.
         /// </summary>
         TtsResult GenerateWithConfig(
             string text, TtsGenerationConfig config, TtsCallbackProgress callback);
+
+        /// <summary>
+        /// Async variant of <see cref="GenerateWithConfig"/> with cancellation.
+        /// </summary>
+        Task<TtsResult> GenerateWithConfigAsync(
+            string text, TtsGenerationConfig config, TtsCallbackProgress callback,
+            CancellationToken ct);
 
         void Unload();
     }

@@ -35,14 +35,30 @@ namespace PonyuDev.SherpaOnnx.Tts
         void SwitchProfile(int index);
         void SwitchProfile(string profileName);
 
-        // ── Simple generation ──
+        // ── Simple generation (sync — no cancellation) ──
 
         TtsResult Generate(string text);
         TtsResult Generate(string text, float speed, int speakerId);
-        Task<TtsResult> GenerateAsync(string text);
-        Task<TtsResult> GenerateAsync(string text, float speed, int speakerId);
 
-        // ── Callback generation ──
+        // ── Async generation (cancellable) ──
+
+        /// <summary>
+        /// Generates speech on a background thread.
+        /// Throws <see cref="System.OperationCanceledException"/> if
+        /// <paramref name="ct"/> is triggered before completion.
+        /// </summary>
+        Task<TtsResult> GenerateAsync(
+            string text, CancellationToken ct = default);
+
+        /// <summary>
+        /// Generates speech with explicit speed/speakerId on a background thread.
+        /// Throws <see cref="System.OperationCanceledException"/> if cancelled.
+        /// </summary>
+        Task<TtsResult> GenerateAsync(
+            string text, float speed, int speakerId,
+            CancellationToken ct = default);
+
+        // ── Callback generation (sync) ──
 
         /// <summary>
         /// Generates speech, invoking the callback for each audio chunk.
@@ -65,26 +81,29 @@ namespace PonyuDev.SherpaOnnx.Tts
             string text, TtsGenerationConfig config,
             TtsCallbackProgress callback);
 
-        // ── Async callback generation ──
+        // ── Async callback generation (cancellable) ──
 
         /// <summary>
         /// <see cref="GenerateWithCallback"/> on a background thread.
         /// </summary>
         Task<TtsResult> GenerateWithCallbackAsync(
-            string text, float speed, int speakerId, TtsCallback callback);
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct = default);
 
         /// <summary>
         /// <see cref="GenerateWithCallbackProgress"/> on a background thread.
         /// </summary>
         Task<TtsResult> GenerateWithCallbackProgressAsync(
             string text, float speed, int speakerId,
-            TtsCallbackProgress callback);
+            TtsCallbackProgress callback,
+            CancellationToken ct = default);
 
         /// <summary>
         /// <see cref="GenerateWithConfig"/> on a background thread.
         /// </summary>
         Task<TtsResult> GenerateWithConfigAsync(
             string text, TtsGenerationConfig config,
-            TtsCallbackProgress callback);
+            TtsCallbackProgress callback,
+            CancellationToken ct = default);
     }
 }

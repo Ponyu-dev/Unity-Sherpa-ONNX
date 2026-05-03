@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
@@ -97,7 +98,151 @@ namespace PonyuDev.SherpaOnnx.Tts
             return result;
         }
 
+        // ── Handle-based playback (cancellable, stoppable, fadeable) ──
+
+        /// <summary>
+        /// Generates speech and starts playback on <paramref name="source"/>,
+        /// returning a <see cref="TtsPlaybackHandle"/> that lets the caller
+        /// stop, fade out, or observe completion.
+        /// <para/>
+        /// Always uses Exclusive playback (sets <c>source.clip</c> + Play),
+        /// because handle-based control over an overlapping voice is not
+        /// well-defined. Use the <c>TtsResult</c>-returning overload with
+        /// <see cref="TtsPlaybackMode.Overlap"/> if you want PlayOneShot.
+        /// <para/>
+        /// Returns null if the service is not ready or generation fails.
+        /// Throws <see cref="OperationCanceledException"/> if cancelled
+        /// before playback starts.
+        /// </summary>
+        public static async Task<TtsPlaybackHandle> GenerateAndPlayWithHandleAsync(
+            this ITtsService tts,
+            string text,
+            AudioSource source,
+            CancellationToken ct = default)
+        {
+            if (!ValidateArgs(tts, text, source))
+                return null;
+
+            var result = await tts.GenerateAsync(text, ct);
+            if (result == null || !result.IsValid)
+                return null;
+
+            return BuildHandle(result, source);
+        }
+
+        /// <summary>
+        /// Generates speech and starts playback on a pooled AudioSource from
+        /// the cache, returning a <see cref="TtsPlaybackHandle"/>. Clip and
+        /// source are returned to the pool when playback ends or is stopped.
+        /// </summary>
+        public static async Task<TtsPlaybackHandle> GenerateAndPlayWithHandleAsync(
+            this ITtsService tts,
+            string text,
+            ITtsCacheControl cache,
+            CancellationToken ct = default)
+        {
+            if (!ValidateArgs(tts, text, cache))
+                return null;
+
+            var result = await tts.GenerateAsync(text, ct);
+            if (result == null || !result.IsValid)
+                return null;
+
+            var clip = cache.RentClip(result);
+            var source = cache.RentSource();
+
+            // If pool is exhausted, return clip and bail; caller can retry.
+            if (source == null)
+            {
+                if (clip != null) cache.ReturnClip(clip);
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] GenerateAndPlayWithHandleAsync: " +
+                    "no AudioSource available in pool.");
+                return null;
+            }
+
+            // If clip pool is disabled or full, fall back to a one-off clip
+            // and destroy it on cleanup. Source still goes back to pool.
+            bool clipFromPool = clip != null;
+            if (!clipFromPool)
+                clip = result.ToAudioClip();
+
+            source.clip = clip;
+            source.Play();
+
+            Action cleanup = () => ReturnPooledOrDestroy(cache, source, clip, clipFromPool);
+
+            return new TtsPlaybackHandle(result, source, clip, cleanup);
+        }
+
         // ── Private helpers ──
+
+        /// <summary>
+        /// Wraps a generated <see cref="TtsResult"/> into a handle for
+        /// non-pooled playback. Clip is destroyed by the handle's cleanup.
+        /// </summary>
+        private static TtsPlaybackHandle BuildHandle(TtsResult result, AudioSource source)
+        {
+            var clip = result.ToAudioClip();
+            source.clip = clip;
+            source.Play();
+
+            Action cleanup = () => DestroyClip(clip);
+
+            return new TtsPlaybackHandle(result, source, clip, cleanup);
+        }
+
+        /// <summary>
+        /// Cleanup: destroys a one-off AudioClip if still alive.
+        /// Used as the cleanup action for non-pooled handles.
+        /// </summary>
+        private static void DestroyClip(AudioClip clip)
+        {
+            if (clip != null)
+                UnityEngine.Object.Destroy(clip);
+        }
+
+        /// <summary>
+        /// Cleanup: returns a pooled AudioSource and either returns the clip
+        /// to its pool or destroys it (depending on whether the clip itself
+        /// came from the pool). Used as the cleanup action for pooled handles.
+        /// </summary>
+        private static void ReturnPooledOrDestroy(
+            ITtsCacheControl cache,
+            AudioSource source,
+            AudioClip clip,
+            bool clipFromPool)
+        {
+            cache.ReturnSource(source);
+            if (clipFromPool)
+                cache.ReturnClip(clip);
+            else if (clip != null)
+                UnityEngine.Object.Destroy(clip);
+        }
+
+        private static bool ValidateArgs(
+            ITtsService tts, string text, ITtsCacheControl cache)
+        {
+            if (tts == null || !tts.IsReady)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] GenerateAndPlayWithHandle: service not ready.");
+                return false;
+            }
+
+            if (string.IsNullOrEmpty(text))
+                return false;
+
+            if (cache == null)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] GenerateAndPlayWithHandle: cache is null.");
+                return false;
+            }
+
+            return true;
+        }
+
 
         private static void PlayResult(
             TtsResult result, AudioSource source, TtsPlaybackMode mode)

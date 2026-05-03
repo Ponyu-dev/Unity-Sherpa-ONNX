@@ -24,6 +24,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         [SerializeField] private VisualTreeAsset _progressAsset;
         [SerializeField] private VisualTreeAsset _configAsset;
         [SerializeField] private VisualTreeAsset _cacheAsset;
+        [SerializeField] private VisualTreeAsset _controlsAsset;
 
         private UIDocument _document;
         private AudioSource _audioSource;
@@ -47,6 +48,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _panels[SampleMenu.IdProgress] = new TtsProgressPanel();
             _panels[SampleMenu.IdConfig] = new TtsConfigPanel();
             _panels[SampleMenu.IdCache] = new TtsCachePanel();
+            _panels[SampleMenu.IdControls] = new TtsControlsPanel();
 
             await InitializeServiceAsync();
         }
@@ -188,6 +190,7 @@ namespace PonyuDev.SherpaOnnx.Samples
                 SampleMenu.IdProgress => _progressAsset,
                 SampleMenu.IdConfig => _configAsset,
                 SampleMenu.IdCache => _cacheAsset,
+                SampleMenu.IdControls => _controlsAsset,
                 _ => null,
             };
         }

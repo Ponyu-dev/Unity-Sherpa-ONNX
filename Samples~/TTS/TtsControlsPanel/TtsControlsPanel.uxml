@@ -1,0 +1,45 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../UI%20Toolkit/Shared/Shared.uss"/>
+    <Style src="TtsControlsPanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="Runtime Controls" class="sample-title"/>
+
+        <ui:TextField name="textField" label="Text" multiline="true"
+                      value="This is a moderately long sentence so generation takes long enough to test cancellation, and playback long enough to test fade-out stop."
+                      class="sample-text-field"/>
+
+        <ui:VisualElement class="sample-params-row">
+            <ui:IntegerField name="fadeMsField" label="Fade (ms)" value="500"
+                             class="sample-param"/>
+            <ui:Label name="activeLabel" text="Active handles: 0" class="controls-active"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="controls-row">
+            <ui:Button name="btnGenerate" text="Generate (cancellable)"
+                       class="sample-generate-btn controls-btn"/>
+            <ui:Button name="btnCancelGen" text="Cancel Generation"
+                       class="sample-generate-btn controls-btn controls-btn-secondary"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="controls-row">
+            <ui:Button name="btnStopLastInstant" text="Stop Last"
+                       class="sample-generate-btn controls-btn"/>
+            <ui:Button name="btnStopAllInstant" text="Stop All"
+                       class="sample-generate-btn controls-btn"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="controls-row">
+            <ui:Button name="btnStopLast" text="Stop Last (Fade)"
+                       class="sample-generate-btn controls-btn"/>
+            <ui:Button name="btnStopAll" text="Stop All (Fade)"
+                       class="sample-generate-btn controls-btn"/>
+        </ui:VisualElement>
+
+        <ui:Button name="btnGenerateTwo" text="Generate Two Parallel"
+                   class="sample-generate-btn"/>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+        <ui:Label name="historyLabel" class="controls-history"/>
+    </ui:VisualElement>
+</ui:UXML>

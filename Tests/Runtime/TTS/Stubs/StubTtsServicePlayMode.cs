@@ -46,11 +46,13 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         public TtsResult Generate(string text, float speed, int speakerId)
             => ResultFactory(text);
 
-        public Task<TtsResult> GenerateAsync(string text)
+        public Task<TtsResult> GenerateAsync(
+            string text, CancellationToken ct = default)
             => Task.FromResult(ResultFactory(text));
 
         public Task<TtsResult> GenerateAsync(
-            string text, float speed, int speakerId)
+            string text, float speed, int speakerId,
+            CancellationToken ct = default)
             => Task.FromResult(ResultFactory(text));
 
         public TtsResult GenerateWithCallback(
@@ -66,15 +68,18 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
             => ResultFactory(text);
 
         public Task<TtsResult> GenerateWithCallbackAsync(
-            string text, float speed, int speakerId, TtsCallback cb)
+            string text, float speed, int speakerId, TtsCallback cb,
+            CancellationToken ct = default)
             => Task.FromResult(ResultFactory(text));
 
         public Task<TtsResult> GenerateWithCallbackProgressAsync(
-            string text, float speed, int speakerId, TtsCallbackProgress cb)
+            string text, float speed, int speakerId, TtsCallbackProgress cb,
+            CancellationToken ct = default)
             => Task.FromResult(ResultFactory(text));
 
         public Task<TtsResult> GenerateWithConfigAsync(
-            string text, TtsGenerationConfig config, TtsCallbackProgress cb)
+            string text, TtsGenerationConfig config, TtsCallbackProgress cb,
+            CancellationToken ct = default)
             => Task.FromResult(ResultFactory(text));
 
         public void Dispose() { }
