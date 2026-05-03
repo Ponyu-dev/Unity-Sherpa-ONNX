@@ -1,0 +1,37 @@
+/* ── TtsStreamingPanel-specific styles ── */
+
+.streaming-hint {
+    margin-bottom: 24px;
+    white-space: normal;
+    -unity-text-align: upper-left;
+}
+
+.streaming-row {
+    flex-direction: row;
+    margin-bottom: 0;
+}
+
+.streaming-btn {
+    flex-grow: 1;
+    margin-right: 12px;
+}
+
+.streaming-btn:last-child {
+    margin-right: 0;
+}
+
+.streaming-btn-stop {
+    background-color: rgba(120, 60, 60, 0.6);
+}
+
+.streaming-result-label {
+    margin-top: 8px;
+    font-size: 24px;
+    color: rgb(140, 200, 255);
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.streaming-result-blocking {
+    color: rgb(255, 180, 140);
+}

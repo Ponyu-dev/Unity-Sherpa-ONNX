@@ -383,6 +383,7 @@ MonoBehaviour:
   _configAsset: {fileID: 9197481963319205126, guid: 468e740e0bddf42f0aa7062cc11da304, type: 3}
   _cacheAsset: {fileID: 9197481963319205126, guid: 2793cdc82ca334e95b540f3b7f4c1891, type: 3}
   _controlsAsset: {fileID: 9197481963319205126, guid: 4818c961994bcf740ae267c5ef52c373, type: 3}
+  _streamingAsset: {fileID: 9197481963319205126, guid: add9d196b6736f940be99c6c68de2cea, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

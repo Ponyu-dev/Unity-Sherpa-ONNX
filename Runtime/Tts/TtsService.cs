@@ -41,6 +41,9 @@ namespace PonyuDev.SherpaOnnx.Tts
         /// <summary>All loaded profiles (available after Initialize).</summary>
         public TtsSettingsData Settings => _settings;
 
+        /// <summary>Sample rate of the loaded engine in Hz, or 0 if not loaded.</summary>
+        public int SampleRate => _engine?.SampleRate ?? 0;
+
         /// <summary>Number of concurrent native engine instances.</summary>
         public int EnginePoolSize
         {

@@ -18,6 +18,13 @@ namespace PonyuDev.SherpaOnnx.Tts
         TtsProfile ActiveProfile { get; }
         TtsSettingsData Settings { get; }
 
+        /// <summary>
+        /// Sample rate of the currently loaded engine in Hz (e.g. 22050).
+        /// Returns 0 if the engine is not loaded. Required for streaming
+        /// playback to size the AudioClip buffer before generation starts.
+        /// </summary>
+        int SampleRate { get; }
+
         /// <summary>Number of concurrent native engine instances.</summary>
         int EnginePoolSize { get; set; }
 

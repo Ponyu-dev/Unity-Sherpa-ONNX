@@ -175,6 +175,82 @@ namespace PonyuDev.SherpaOnnx.Tts
             return new TtsPlaybackHandle(result, source, clip, cleanup);
         }
 
+        // ── Streaming playback (cancellable, low-latency) ──
+
+        /// <summary>
+        /// Streams generated audio into a stream-mode AudioClip on
+        /// <paramref name="source"/>. Returns a <see cref="TtsPlaybackHandle"/>
+        /// as soon as the first chunk arrives — first audio plays in
+        /// roughly the latency of one sherpa-onnx callback (~few hundred ms),
+        /// instead of waiting for the full generation to complete.
+        /// <para/>
+        /// <see cref="TtsPlaybackHandle.Stop"/> cancels the underlying
+        /// generation and stops playback in one call.
+        /// <para/>
+        /// Returns null if the service is not ready or the engine sample
+        /// rate is unknown.
+        /// </summary>
+        public static async UniTask<TtsPlaybackHandle> SpeakStreamingAsync(
+            this ITtsService tts,
+            string text,
+            AudioSource source,
+            CancellationToken ct = default)
+        {
+            if (!ValidateArgs(tts, text, source))
+                return null;
+
+            int sampleRate = tts.SampleRate;
+            if (sampleRate <= 0)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] SpeakStreamingAsync: engine sample rate is 0 " +
+                    "(engine not loaded). Falling back to GenerateAndPlayWithHandleAsync.");
+                return await tts.GenerateAndPlayWithHandleAsync(text, source, ct);
+            }
+
+            return await BuildStreamingHandle(tts, text, source, sampleRate, ct);
+        }
+
+        /// <summary>
+        /// Streaming variant of <see cref="GenerateAndPlayWithHandleAsync"/>
+        /// that uses a pooled AudioSource from the cache. Source is returned
+        /// to the pool when the handle stops or completes.
+        /// </summary>
+        public static async UniTask<TtsPlaybackHandle> SpeakStreamingAsync(
+            this ITtsService tts,
+            string text,
+            ITtsCacheControl cache,
+            CancellationToken ct = default)
+        {
+            if (!ValidateArgs(tts, text, cache))
+                return null;
+
+            int sampleRate = tts.SampleRate;
+            if (sampleRate <= 0)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] SpeakStreamingAsync: engine sample rate is 0.");
+                return null;
+            }
+
+            var source = cache.RentSource();
+            if (source == null)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] SpeakStreamingAsync: no AudioSource in pool.");
+                return null;
+            }
+
+            var handle = await BuildStreamingHandle(
+                tts, text, source, sampleRate, ct,
+                onCleanup: () => cache.ReturnSource(source));
+
+            if (handle == null)
+                cache.ReturnSource(source);
+
+            return handle;
+        }
+
         // ── Private helpers ──
 
         /// <summary>
@@ -190,6 +266,122 @@ namespace PonyuDev.SherpaOnnx.Tts
             Action cleanup = () => DestroyClip(clip);
 
             return new TtsPlaybackHandle(result, source, clip, cleanup);
+        }
+
+        /// <summary>
+        /// Builds a streaming handle: creates a stream-mode AudioClip,
+        /// starts generation in the background, and returns once the first
+        /// chunk has been queued so playback can begin without leading
+        /// silence.
+        /// </summary>
+        /// <param name="onCleanup">
+        /// Optional extra cleanup (e.g. return pooled source). Runs after
+        /// the standard stream + CTS cleanup.
+        /// </param>
+        private static async UniTask<TtsPlaybackHandle> BuildStreamingHandle(
+            ITtsService tts,
+            string text,
+            AudioSource source,
+            int sampleRate,
+            CancellationToken ct,
+            Action onCleanup = null)
+        {
+            // 1-second internal buffer is plenty for sherpa-onnx chunk sizes.
+            var stream = new StreamingTtsClip(sampleRate, sampleRate);
+
+            // Internal CTS so handle.Stop() can also abort the underlying
+            // generation, not just stop the audio.
+            var genCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+
+            var profile = tts.ActiveProfile;
+            float speed = profile?.speed ?? 1f;
+            int speakerId = profile?.speakerId ?? 0;
+
+            var genTask = tts.GenerateWithCallbackAsync(
+                text, speed, speakerId, MakeStreamPump(stream), genCts.Token);
+
+            // Fire-and-forget completion observer marks the stream done
+            // once gen finishes (either normally or with an error/cancel).
+            ObserveGeneration(genTask, stream).Forget();
+
+            // Wait for the first chunk before we start playing — avoids
+            // a leading silent gap.
+            try
+            {
+                await UniTask.WaitUntil(
+                    () => stream.HasFirstChunk || stream.IsGenerationComplete,
+                    cancellationToken: genCts.Token);
+            }
+            catch (OperationCanceledException)
+            {
+                stream.Dispose();
+                genCts.Dispose();
+                return null;
+            }
+
+            if (!stream.HasFirstChunk)
+            {
+                // Generation finished with zero output — abort.
+                stream.Dispose();
+                genCts.Dispose();
+                return null;
+            }
+
+            // Stream-mode clips need source.loop = true: by default a
+            // non-looping AudioSource STOPS itself after playing through the
+            // clip's lengthSamples (our 1-second buffer), even though the
+            // PCMReaderCallback would keep delivering data. With loop=true,
+            // Unity keeps calling the callback until WE explicitly stop —
+            // which happens via the handle's monitor when IsDrained flips.
+            // Save the previous value so cleanup can restore it for pool reuse.
+            bool previousLoop = source.loop;
+            source.clip = stream.Clip;
+            source.loop = true;
+            source.Play();
+
+            Action cleanup = () =>
+            {
+                try { genCts.Cancel(); } catch { /* swallow */ }
+                genCts.Dispose();
+                stream.Dispose();
+                if (source != null)
+                    source.loop = previousLoop;
+                onCleanup?.Invoke();
+            };
+
+            return new TtsPlaybackHandle(
+                result: null,
+                source: source,
+                clip: stream.Clip,
+                cleanup: cleanup,
+                isCompleteCheck: () => stream.IsDrained);
+        }
+
+        /// <summary>
+        /// Builds the per-call chunk pump callback that pipes sherpa-onnx
+        /// audio chunks into the stream's queue. Returns 1 to keep generation
+        /// going (cancellation is handled at the gen-task level via CTS).
+        /// </summary>
+        private static TtsCallback MakeStreamPump(StreamingTtsClip stream)
+        {
+            return (samples, n) =>
+            {
+                stream.AppendChunk(samples);
+                return 1;
+            };
+        }
+
+        /// <summary>
+        /// Awaits the generation task and marks the stream complete once
+        /// it returns. Cancellation and errors both flip the flag — the
+        /// monitor loop then drains the queue and stops the source.
+        /// </summary>
+        private static async UniTaskVoid ObserveGeneration(
+            Task<TtsResult> genTask, StreamingTtsClip stream)
+        {
+            try { await genTask; }
+            catch { /* swallow — finally still flips the completion flag */ }
+            finally { stream.Complete(); }
         }
 
         /// <summary>

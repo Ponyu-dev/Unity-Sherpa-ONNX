@@ -43,29 +43,38 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
         private readonly Action _cleanup;
         private readonly float _originalVolume;
         private readonly CancellationTokenSource _cts = new();
+        private readonly Func<bool> _isCompleteCheck;
         private bool _disposed;
 
         /// <summary>
         /// Created internally by extension methods; consumers receive
         /// pre-built handles from <c>GenerateAndPlayWithHandle</c>.
         /// </summary>
-        /// <param name="result">Generated audio.</param>
+        /// <param name="result">Generated audio (may be null for streaming).</param>
         /// <param name="source">AudioSource to monitor.</param>
         /// <param name="clip">Clip set on the source (assumed already playing).</param>
         /// <param name="cleanup">
         /// Invoked exactly once when playback ends or is stopped. Caller
         /// decides what to do (destroy clip, return to pool, etc.).
         /// </param>
+        /// <param name="isCompleteCheck">
+        /// Optional. When supplied, the monitor loop also exits when this
+        /// returns <c>true</c>. Required for streaming clips since
+        /// <c>AudioClip.Create(stream: true)</c> never reports
+        /// <c>isPlaying = false</c> on its own.
+        /// </param>
         internal TtsPlaybackHandle(
             TtsResult result,
             AudioSource source,
             AudioClip clip,
-            Action cleanup)
+            Action cleanup,
+            Func<bool> isCompleteCheck = null)
         {
             Result = result;
             Source = source;
             Clip = clip;
             _cleanup = cleanup;
+            _isCompleteCheck = isCompleteCheck;
             _originalVolume = source != null ? source.volume : 1f;
 
             MonitorAsync(_cts.Token).Forget();
@@ -157,19 +166,26 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 while (!ct.IsCancellationRequested
                        && Source != null
                        && Source.clip == Clip
-                       && Source.isPlaying)
+                       && Source.isPlaying
+                       && !(_isCompleteCheck?.Invoke() ?? false))
                 {
                     await UniTask.Yield(PlayerLoopTiming.Update, ct);
                 }
 
                 // Loop exited without cancellation → playback finished naturally
-                // (or source destroyed externally / clip swapped).
+                // (or source destroyed externally / clip swapped / streaming
+                // clip drained per isCompleteCheck).
                 if (!ct.IsCancellationRequested && !IsStopped)
                 {
                     IsStopped = true;
 
                     if (Source != null && Source.clip == Clip)
+                    {
+                        // Stream clips never stop on their own — explicit Stop
+                        // is required. Safe to call on non-stream clips too.
+                        Source.Stop();
                         Source.clip = null;
+                    }
                     if (Source != null)
                         Source.volume = _originalVolume;
 

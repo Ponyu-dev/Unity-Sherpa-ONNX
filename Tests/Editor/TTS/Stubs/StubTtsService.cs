@@ -30,6 +30,8 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
 
         public TtsSettingsData Settings { get; set; } = new TtsSettingsData();
 
+        public int SampleRate { get; set; } = 22050;
+
         public int EnginePoolSize { get; set; } = 1;
 
         public void Initialize() { }

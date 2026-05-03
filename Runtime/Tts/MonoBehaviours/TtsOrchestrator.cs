@@ -121,6 +121,29 @@ namespace PonyuDev.SherpaOnnx.Tts
         }
 
         /// <summary>
+        /// Streaming variant of <see cref="GenerateAndPlayWithHandleAsync"/>.
+        /// First audio plays as soon as the first sherpa-onnx chunk is
+        /// produced — typically a few hundred milliseconds, regardless of
+        /// total text length. Use for long phrases where waiting for the
+        /// full generation feels sluggish.
+        /// </summary>
+        public async UniTask<TtsPlaybackHandle> SpeakStreamingAsync(
+            string text, CancellationToken ct = default)
+        {
+            var svc = Service;
+            var cache = CacheControl;
+
+            TtsPlaybackHandle handle = cache != null
+                ? await svc.SpeakStreamingAsync(text, cache, ct)
+                : await svc.SpeakStreamingAsync(text, GetOrCreateSource(), ct);
+
+            if (handle != null)
+                Track(handle);
+
+            return handle;
+        }
+
+        /// <summary>
         /// Stops all currently-playing handles. If <paramref name="fadeSeconds"/>
         /// is &gt; 0, fades each one out over that duration in parallel.
         /// </summary>

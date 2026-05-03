@@ -87,7 +87,18 @@
 }
 
 /* Multiline TextField needs explicit min-height on the input itself,
- * not just the wrapper. */
-.sample-text-field .unity-text-field__input {
+ * not just the wrapper. Also force word-wrap — Unity's default for
+ * the inner text element is no-wrap, so long lines run off-screen. */
+.sample-text-field .unity-text-field__input,
+.sample-text-field .unity-text-element {
     min-height: 140px;
+    white-space: normal;
+}
+
+/* Multi-line .sample-info / .sample-status / .sample-title used as
+ * paragraphs need explicit wrap, since UI Toolkit's default Label
+ * white-space is "nowrap". */
+.sample-info,
+.sample-status {
+    white-space: normal;
 }
