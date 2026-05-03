@@ -15,6 +15,11 @@ ITtsService (interface)
     |       +-- TtsEngine (native OfflineTts pool)
     |
     +-- CachedTtsService (decorator: LRU cache + AudioClip/AudioSource pools)
+
+Playback (POCO):
+    TtsPlaybackHandle — Stop / StopAsync(fade) / Completed / Stopped
+    StreamingTtsClip  — ring-buffered AudioClip wrapper for streaming
+    SentenceSplitter  — text → sentences for queued playback
 ```
 
 | Approach | When to use |
@@ -23,6 +28,9 @@ ITtsService (interface)
 | `TtsService` + VContainer | Production with VContainer DI |
 | `TtsService` + Zenject | Production with Zenject DI |
 | `TtsService` manual | Custom lifecycle management |
+
+For control over playback (cancel, stop, fade, queue, streaming), see
+[Playback Control & Cancellation](#playback-control--cancellation) below.
 
 ---
 
@@ -281,7 +289,161 @@ Debug.Log($"Available clips: {_cache.AudioClipAvailableCount}");
 
 ---
 
+## Playback Control & Cancellation
+
+The package provides four progressively more flexible APIs for playing TTS audio.
+Pick the simplest one that fits the use case:
+
+| API | When to use | Returns |
+|-----|-------------|---------|
+| `GenerateAndPlay` / `GenerateAndPlayAsync` | Fire-and-forget short phrase | `TtsResult` |
+| `GenerateAndPlayWithHandleAsync` | Need stop / fade / completion events | `TtsPlaybackHandle` |
+| `SpeakStreamingAsync` | Long single sentence — start playing while still synthesizing | `TtsPlaybackHandle` |
+| `Speak` | Long paragraphs — sentence-level pre-gen + queue | `UniTask` |
+
+All `*Async` methods accept a `CancellationToken` and throw
+`OperationCanceledException` when triggered. The service-level CTS is also
+cancelled in `Dispose()`, so any in-flight gen aborts cleanly when the service
+goes away.
+
+### Cancellation
+
+```csharp
+var cts = new CancellationTokenSource();
+
+try
+{
+    var result = await _tts.GenerateAsync("Long text...", cts.Token);
+    // ...
+}
+catch (OperationCanceledException)
+{
+    Debug.Log("Generation cancelled.");
+}
+
+// Elsewhere — typically a Stop button or scene unload:
+cts.Cancel(); // aborts the in-flight gen within ~1 callback tick
+```
+
+Sherpa-onnx's native call returns 0 from its callback on cancellation — the only
+native-correct way to abort mid-synthesis. The wrapper does this transparently;
+you just pass the token.
+
+### Playback handles
+
+`GenerateAndPlayWithHandleAsync` returns a `TtsPlaybackHandle` that lets you
+stop, fade, or observe completion:
+
+```csharp
+var handle = await _orchestrator.GenerateAndPlayWithHandleAsync("Hello world!");
+if (handle == null) return; // engine not ready or gen failed
+
+handle.Completed += () => Debug.Log("Played to the end.");
+handle.Stopped   += () => Debug.Log("Stopped explicitly.");
+
+if (handle.IsPlaying) { /* mid-playback */ }
+```
+
+#### Instant stop
+
+```csharp
+handle.Stop(); // cuts audio immediately, runs cleanup
+```
+
+#### Fade-out stop
+
+```csharp
+await handle.StopAsync(fadeSeconds: 0.5f);
+// Exponential 500 ms fade-out (sounds natural for voice), then full stop.
+// Uses unscaled time so it works on Time.timeScale = 0.
+```
+
+### StopAll across handles
+
+`TtsOrchestrator` tracks every handle it produces. To stop everything at once
+(e.g. on game-state change, dialogue interrupt, or scene unload):
+
+```csharp
+await _orchestrator.StopAll(fadeSeconds: 0.3f);
+// Fades every active handle in parallel, then stops them.
+```
+
+`ActivePlaybackCount` exposes the current count (useful for inspector / UI).
+
+### Playback mode (Overlap vs Exclusive)
+
+For non-pooled `GenerateAndPlay(text, source)`, the optional `mode` parameter
+controls how multiple sequential calls behave on the same `AudioSource`:
+
+```csharp
+// Overlap (default, backwards-compatible) — uses PlayOneShot.
+// Multiple calls can play simultaneously on the same source.
+_tts.GenerateAndPlay("Bing!", _audioSource);
+_tts.GenerateAndPlay("Bong!", _audioSource); // plays on top of "Bing!"
+
+// Exclusive — new clip interrupts the previous one.
+_tts.GenerateAndPlay("Bing!", _audioSource, TtsPlaybackMode.Exclusive);
+_tts.GenerateAndPlay("Bong!", _audioSource, TtsPlaybackMode.Exclusive);
+// "Bing!" gets cut off when "Bong!" starts.
+```
+
+`TtsOrchestrator` exposes this as `DefaultPlaybackMode` — both as a SerializeField
+on the component and as a runtime property. Pooled paths always behave like
+Exclusive because each playback rents its own dedicated source.
+
+### Streaming playback (low first-audio latency)
+
+For long single sentences, `SpeakStreamingAsync` returns a handle as soon as
+sherpa-onnx emits the first chunk — playback starts before generation completes:
+
+```csharp
+var handle = await _orchestrator.SpeakStreamingAsync(
+    "This is a long sentence and the audio starts playing while the rest is still being synthesized.",
+    ct);
+```
+
+The win is most visible when the underlying model emits per-chunk callbacks
+during synthesis. For models that emit one big callback at the end of each
+sentence (typical for VITS-Piper), the latency improvement is small for a
+single sentence — use `Speak` instead for paragraphs.
+
+### Sentence queue (long paragraphs)
+
+For multi-sentence text, `Speak` splits at punctuation (Latin `.!?` and CJK
+`。！？`) and queues per-sentence generation+playback. While sentence N plays,
+sentence N+1 is generated in the background — virtually no gap between them:
+
+```csharp
+await _orchestrator.Speak(
+    "First sentence. Second sentence. Third sentence.",
+    ct,
+    lookAhead: 1);
+```
+
+`lookAhead` (default 1) is the size of the sliding pre-gen window. Bump it to
+2-4 for heavier models (Matcha, Kokoro, voice cloning) or slower hardware
+(Android), where gen time approaches playback time and `lookAhead = 1` would
+leave audible gaps between sentences. For real parallelism, the engine pool
+should match: `EnginePoolSize >= lookAhead`.
+
+`SentenceSplitter.Split(text)` is exposed publicly for users who want to drive
+their own queue.
+
+### Disposal during playback
+
+`TtsService.Dispose()` cancels its internal CTS, so any in-flight generation
+returns `OperationCanceledException` cleanly — no SEGV, no orphan native call.
+`TtsOrchestrator.OnDestroy()` disposes all tracked handles first, then the
+service. Clip / source cleanup runs through each handle's cleanup callback,
+so pooled paths return resources to the pool and non-pooled paths destroy the
+clip.
+
+---
+
 ## VContainer Integration
+
+<details>
+<summary>Click to expand — installer, async startup, decorator wiring, presenter usage</summary>
 
 ### Installer
 
@@ -389,9 +551,14 @@ public class DialoguePresenter
 }
 ```
 
+</details>
+
 ---
 
 ## Zenject Integration
+
+<details>
+<summary>Click to expand — installer, async startup, decorator wiring, [Inject] usage</summary>
 
 ### Installer
 
@@ -480,6 +647,8 @@ public class NpcSpeaker : MonoBehaviour
 }
 ```
 
+</details>
+
 ---
 
 ## Android Notes
@@ -520,6 +689,10 @@ No action required from the user.
 
 ### ITtsService
 
+All `*Async` methods accept an optional `CancellationToken ct = default` and
+throw `OperationCanceledException` on cancel. The token is omitted from rows
+below for brevity.
+
 | Category | Method | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
@@ -530,17 +703,18 @@ No action required from the user.
 | **Properties** | `IsReady` | `true` when engine is loaded |
 | | `ActiveProfile` | Current `TtsProfile` |
 | | `Settings` | All loaded `TtsSettingsData` |
+| | `SampleRate` | Loaded engine's sample rate in Hz, `0` if not loaded |
 | | `EnginePoolSize` | Get/set concurrent native instances |
 | **Generation** | `Generate(text)` | Sync, uses active profile speed/speakerId |
 | | `Generate(text, speed, speakerId)` | Sync with explicit parameters |
-| | `GenerateAsync(text)` | Background thread generation |
-| | `GenerateAsync(text, speed, speakerId)` | Background thread with parameters |
+| | `GenerateAsync(text, ct)` | Background thread generation |
+| | `GenerateAsync(text, speed, speakerId, ct)` | Background thread with parameters |
 | **Callbacks** | `GenerateWithCallback(...)` | Chunk callback (streaming) |
 | | `GenerateWithCallbackProgress(...)` | Chunk callback with progress float |
 | | `GenerateWithConfig(...)` | Advanced config (reference audio, numSteps) |
-| **Async callbacks** | `GenerateWithCallbackAsync(...)` | Background thread + chunk callback |
-| | `GenerateWithCallbackProgressAsync(...)` | Background thread + progress |
-| | `GenerateWithConfigAsync(...)` | Background thread + advanced config |
+| **Async callbacks** | `GenerateWithCallbackAsync(..., ct)` | Background thread + chunk callback |
+| | `GenerateWithCallbackProgressAsync(..., ct)` | Background thread + progress |
+| | `GenerateWithConfigAsync(..., ct)` | Background thread + advanced config |
 
 ### TtsResult
 
@@ -554,12 +728,45 @@ No action required from the user.
 | `ToAudioClip(name)` | `AudioClip` | Create Unity AudioClip (main thread only) |
 | `Clone()` | `TtsResult` | Deep copy of samples |
 
-### TtsOrchestrator — GenerateAndPlay
+### TtsPlaybackHandle
 
-| Method | Description |
-|--------|-------------|
-| `GenerateAndPlay(text)` | Generate + play. Uses pooled objects when cache is configured, otherwise creates AudioSource on the same GameObject. |
-| `GenerateAndPlayAsync(text)` | Same but generation runs on background thread |
+Returned by handle-based playback APIs (`GenerateAndPlayWithHandleAsync`,
+`SpeakStreamingAsync`). POCO — no MonoBehaviour requirement.
+
+| Member | Type | Description |
+|--------|------|-------------|
+| `Result` | `TtsResult` | Generated audio. `null` for streaming clips (audio fills in over time). |
+| `Source` | `AudioSource` | The source playing the clip |
+| `Clip` | `AudioClip` | The clip set on the source |
+| `IsPlaying` | `bool` | True while audio is actively playing |
+| `IsStopped` | `bool` | True after `Stop` / `StopAsync` runs or playback ends naturally |
+| `Completed` | `event Action` | Fires once on natural end of playback |
+| `Stopped` | `event Action` | Fires once on explicit `Stop` / `StopAsync` / `Dispose` |
+| `Stop()` | — | Immediate stop + cleanup. Idempotent. |
+| `StopAsync(fadeSeconds)` | `UniTask` | Exponential fade-out using unscaled time, then full stop |
+| `Dispose()` | — | Equivalent to `Stop()` |
+
+### TtsPlaybackMode
+
+Enum for non-pooled `GenerateAndPlay(text, source)`:
+
+| Value | Behavior |
+|-------|----------|
+| `Overlap` (default) | Uses `AudioSource.PlayOneShot`. Multiple TTS clips can play simultaneously on the same source. Backwards-compatible. |
+| `Exclusive` | Sets `AudioSource.clip` and calls `Play`. New clip interrupts the previous one on the same source. Recommended for chat-bot / dialogue UX. |
+
+### TtsOrchestrator — playback methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `GenerateAndPlay(text)` | `TtsResult` | Fire-and-forget. Uses pooled objects when cache configured. |
+| `GenerateAndPlayAsync(text)` | `Task<TtsResult>` | Same but background-thread generation. |
+| `GenerateAndPlayWithHandleAsync(text, ct)` | `Task<TtsPlaybackHandle>` | Returns a handle for stop / fade / events. Auto-tracked for `StopAll`. |
+| `SpeakStreamingAsync(text, ct)` | `UniTask<TtsPlaybackHandle>` | First audio plays as soon as the first sherpa-onnx chunk arrives. |
+| `Speak(text, ct, lookAhead)` | `UniTask` | Splits text into sentences and queues per-sentence playback with sliding pre-gen window. |
+| `StopAll(fadeSeconds)` | `UniTask` | Stops every active handle. Fades them in parallel if `fadeSeconds > 0`. |
+| `ActivePlaybackCount` | `int` | Number of currently-tracked handles. |
+| `DefaultPlaybackMode` | `TtsPlaybackMode` | Mode used by the non-pooled `GenerateAndPlay` fallback. SerializeField + runtime property. |
 
 ### ITtsService — GenerateAndPlay Extensions
 
@@ -567,13 +774,27 @@ Extension methods for DI scenarios where `ITtsService` is injected directly.
 
 | Method | Description |
 |--------|-------------|
-| `GenerateAndPlay(text, audioSource)` | Generate + play via given AudioSource (new AudioClip each time) |
-| `GenerateAndPlayAsync(text, audioSource)` | Same but generation runs on background thread |
-| `GenerateAndPlay(text, cache, owner)` | Generate + play using pooled AudioClip and AudioSource. Auto-returns to pool when done. |
-| `GenerateAndPlayAsync(text, cache, owner)` | Same but generation runs on background thread |
+| `GenerateAndPlay(text, audioSource, mode = Overlap)` | Generate + play via given AudioSource. New AudioClip each call, auto-disposed after playback. |
+| `GenerateAndPlayAsync(text, audioSource, mode = Overlap)` | Same but generation on background thread. |
+| `GenerateAndPlay(text, cache, owner)` | Pooled AudioClip + AudioSource. Auto-returns to pool. |
+| `GenerateAndPlayAsync(text, cache, owner)` | Pooled, background-thread generation. |
+| `GenerateAndPlayWithHandleAsync(text, audioSource, ct)` | Returns `TtsPlaybackHandle`. Always Exclusive mode (handles need a single voice). |
+| `GenerateAndPlayWithHandleAsync(text, cache, ct)` | Same on a pooled source. Source returns to pool on stop/complete. |
+| `SpeakStreamingAsync(text, audioSource, ct)` | Streaming variant — first audio plays as soon as first chunk arrives. |
+| `SpeakStreamingAsync(text, cache, ct)` | Streaming on a pooled source. |
+| `Speak(text, audioSource, ct, onHandleStarted, lookAhead)` | Sentence-queue playback. `onHandleStarted` fires per-sentence (used by orchestrator for `Track`). |
 
 The `cache` parameter is `ITtsCacheControl` (from DI or `TtsOrchestrator.CacheControl`).
-The `owner` parameter is any `MonoBehaviour` used to run the return-to-pool coroutine.
+The `owner` parameter is any `MonoBehaviour` used to run the return-to-pool coroutine
+(only the legacy non-handle variants need it).
+
+### SentenceSplitter
+
+Static utility used internally by `Speak` and exposed publicly.
+
+| Method | Description |
+|--------|-------------|
+| `Split(text)` | Returns trimmed, non-empty sentences. Recognises Latin (`. ! ?`) and CJK (`。 ！ ？`) terminators. |
 
 ### ITtsCacheControl
 
@@ -613,3 +834,6 @@ Available via `TtsOrchestrator.CacheControl` or by casting `CachedTtsService`.
 | `Generate()` returns null | Check logs for engine errors; verify model files exist |
 | Cache not working | Ensure `cache` section exists in `tts-settings.json` |
 | `ToAudioClip()` throws | Must be called on the main thread, not from `Task.Run` |
+| `OperationCanceledException` after cancel | Expected behavior — wrap async calls in `try/catch (OperationCanceledException)` and treat as a clean exit. Service-level CTS is also cancelled in `Dispose()`, so disposing during in-flight gen produces this exception too. |
+| Streaming sample plays only first word | You hit a model that doesn't emit per-chunk callbacks (typical for VITS-Piper on a single sentence). Use `Speak` instead — it splits the text in C# and queues per-sentence playback. |
+| Audible gaps between sentences in `Speak` | Generation is slower than playback. Increase `lookAhead` to 2-4 and ensure `EnginePoolSize >= lookAhead` so multiple sentences pre-generate in parallel. |
