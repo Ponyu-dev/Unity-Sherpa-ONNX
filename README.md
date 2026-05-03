@@ -149,6 +149,7 @@ Offline speech synthesis with pooling and caching. Supports 6 model architecture
 - 🚀 **Flexible deployment** — Local (StreamingAssets), Remote (runtime download), or LocalZip (compressed at build time)
 - 🎛️ **Matcha vocoder selector** — choose and download vocoders independently
 - ♻️ **Cache pooling** — configurable pools for audio buffers, AudioClips, and AudioSources
+- 🛑 **Runtime control** — cancellation, handle-based stop / fade-out, parallel-handle StopAll, sentence-queue and streaming playback for long texts
 
 ### 📖 Documentation
 
