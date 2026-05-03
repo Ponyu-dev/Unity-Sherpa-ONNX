@@ -70,14 +70,16 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
             return ResultFactory(text);
         }
 
-        public Task<TtsResult> GenerateAsync(string text)
+        public Task<TtsResult> GenerateAsync(
+            string text, CancellationToken ct = default)
         {
             GenerateAsyncCallCount++;
             return Task.FromResult(ResultFactory(text));
         }
 
         public Task<TtsResult> GenerateAsync(
-            string text, float speed, int speakerId)
+            string text, float speed, int speakerId,
+            CancellationToken ct = default)
         {
             GenerateAsyncCallCount++;
             return Task.FromResult(ResultFactory(text));
@@ -106,21 +108,24 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         }
 
         public Task<TtsResult> GenerateWithCallbackAsync(
-            string text, float speed, int speakerId, TtsCallback callback)
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct = default)
         {
             return Task.FromResult(ResultFactory(text));
         }
 
         public Task<TtsResult> GenerateWithCallbackProgressAsync(
             string text, float speed, int speakerId,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             return Task.FromResult(ResultFactory(text));
         }
 
         public Task<TtsResult> GenerateWithConfigAsync(
             string text, TtsGenerationConfig config,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             return Task.FromResult(ResultFactory(text));
         }

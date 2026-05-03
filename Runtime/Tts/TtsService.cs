@@ -24,6 +24,14 @@ namespace PonyuDev.SherpaOnnx.Tts
         private ITtsEngine _engine;
         private TtsProfile _activeProfile;
 
+        /// <summary>
+        /// Service-level cancellation source. Cancelled in <see cref="Dispose"/>
+        /// so any in-flight async generation aborts cleanly when the service
+        /// goes away. Linked into every async method via
+        /// <see cref="CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, CancellationToken)"/>.
+        /// </summary>
+        private CancellationTokenSource _serviceCts = new();
+
         /// <summary>True when the engine is loaded and ready to generate.</summary>
         public bool IsReady => _engine?.IsLoaded ?? false;
 
@@ -209,49 +217,73 @@ namespace PonyuDev.SherpaOnnx.Tts
         }
 
         /// <summary>
-        /// Generates speech on a background thread.
+        /// Generates speech on a background thread, cancellable via
+        /// <paramref name="ct"/>. Throws <see cref="OperationCanceledException"/>
+        /// if cancelled (or if the service is disposed mid-flight).
         /// Returns null if the service is not ready.
         /// </summary>
-        public Task<TtsResult> GenerateAsync(string text)
+        public async Task<TtsResult> GenerateAsync(
+            string text, CancellationToken ct = default)
         {
             if (!CheckReady())
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
             var engine = _engine;
             var profile = _activeProfile;
             if (engine == null || profile == null)
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
-            float speed = profile.speed;
-            int speakerId = profile.speakerId;
-            return Task.Run(() => engine.Generate(text, speed, speakerId));
+            using var linked = LinkCt(ct);
+            return await engine.GenerateAsync(
+                text, profile.speed, profile.speakerId, linked.Token);
         }
 
         /// <summary>
-        /// Generates speech on a background thread with explicit parameters.
+        /// Generates speech on a background thread with explicit parameters,
+        /// cancellable via <paramref name="ct"/>.
         /// Returns null if the service is not ready.
         /// </summary>
-        public Task<TtsResult> GenerateAsync(
-            string text, float speed, int speakerId)
+        public async Task<TtsResult> GenerateAsync(
+            string text, float speed, int speakerId,
+            CancellationToken ct = default)
         {
             if (!CheckReady())
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
             var engine = _engine;
             if (engine == null)
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
-            return Task.Run(() => engine.Generate(text, speed, speakerId));
+            using var linked = LinkCt(ct);
+            return await engine.GenerateAsync(text, speed, speakerId, linked.Token);
         }
 
         // ── Cleanup ──
 
         public void Dispose()
         {
+            // Cancel any in-flight async generations so their callbacks
+            // return 0 and the native call exits before we dispose the engine.
+            try { _serviceCts?.Cancel(); } catch { /* swallow */ }
+
             _engine?.Dispose();
             _engine = null;
             _activeProfile = null;
             _settings = null;
+
+            _serviceCts?.Dispose();
+            _serviceCts = null;
+        }
+
+        /// <summary>
+        /// Builds a linked CTS from the caller's token and the service-level
+        /// token. Either source cancelling aborts the operation. Always
+        /// dispose with <c>using</c> on the call site.
+        /// </summary>
+        internal CancellationTokenSource LinkCt(CancellationToken ct)
+        {
+            var serviceToken = _serviceCts?.Token ?? CancellationToken.None;
+            return CancellationTokenSource.CreateLinkedTokenSource(ct, serviceToken);
         }
 
         // ── Private ──
