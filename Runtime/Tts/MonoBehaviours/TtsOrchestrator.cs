@@ -144,6 +144,43 @@ namespace PonyuDev.SherpaOnnx.Tts
         }
 
         /// <summary>
+        /// Speaks a long text by splitting it into sentences and queuing
+        /// generation+playback per sentence. A sliding window of
+        /// <paramref name="lookAhead"/> sentence-generations runs ahead of
+        /// playback for seamless transitions.
+        /// <para/>
+        /// Compared to <see cref="GenerateAndPlayWithHandleAsync"/>: first
+        /// audio plays after sentence 1's gen instead of after the full text's
+        /// gen — a major latency win for paragraphs. Compared to
+        /// <see cref="SpeakStreamingAsync"/>: works the same regardless of
+        /// whether the underlying model emits per-chunk callbacks, because we
+        /// control sentence boundaries in C#.
+        /// <para/>
+        /// <paramref name="lookAhead"/> = 1 (default) is enough for fast
+        /// models / fast hardware. Bump to 2-4 for heavier models or slower
+        /// hardware (and set <c>EnginePoolSize</c> to match for real
+        /// parallelism).
+        /// <para/>
+        /// Per-sentence handles are auto-tracked, so <see cref="StopAll"/>
+        /// affects the in-flight sentence too. Cancelling <paramref name="ct"/>
+        /// also stops cleanly.
+        /// </summary>
+        public UniTask Speak(
+            string text,
+            CancellationToken ct = default,
+            int lookAhead = 1)
+        {
+            var svc = Service;
+            if (svc == null || !svc.IsReady)
+                return UniTask.CompletedTask;
+
+            return svc.Speak(
+                text, GetOrCreateSource(), ct,
+                onHandleStarted: Track,
+                lookAhead: lookAhead);
+        }
+
+        /// <summary>
         /// Stops all currently-playing handles. If <paramref name="fadeSeconds"/>
         /// is &gt; 0, fades each one out over that duration in parallel.
         /// </summary>
