@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -251,6 +252,92 @@ namespace PonyuDev.SherpaOnnx.Tts
             return handle;
         }
 
+        // ── Sentence-queue speak ──
+
+        /// <summary>
+        /// Splits <paramref name="text"/> into sentences and plays them
+        /// sequentially on <paramref name="source"/>. A sliding window of
+        /// <paramref name="lookAhead"/> sentence-generations runs ahead of
+        /// playback, so transitions are near-seamless.
+        /// <para/>
+        /// First-audio latency is the time to generate just sentence 1 — much
+        /// less than waiting for the whole text. Works on any model regardless
+        /// of whether the model itself emits per-chunk callbacks (unlike
+        /// <see cref="SpeakStreamingAsync"/>, which depends on model-level
+        /// chunking).
+        /// <para/>
+        /// <paramref name="lookAhead"/> sets how many sentences are pre-generated
+        /// in parallel with playback. Default 1 is enough when generation is
+        /// noticeably faster than playback (typical on desktop). Bump to 2-4
+        /// for heavier models (Matcha, Kokoro, voice-cloning) or slower
+        /// hardware (Android), where gen time approaches playback time —
+        /// otherwise sentence transitions get audible gaps. Real parallelism
+        /// also requires <c>EnginePoolSize &gt;= lookAhead</c>; with pool
+        /// size 1 the extra pre-gens just queue serially and don't help.
+        /// <para/>
+        /// <paramref name="onHandleStarted"/> fires once per sentence right
+        /// before its handle starts polling for completion. Use it to track
+        /// handles externally (e.g. <c>TtsOrchestrator.Track</c> for StopAll
+        /// integration) or to measure first-audio latency.
+        /// </summary>
+        public static async UniTask Speak(
+            this ITtsService tts,
+            string text,
+            AudioSource source,
+            CancellationToken ct = default,
+            Action<TtsPlaybackHandle> onHandleStarted = null,
+            int lookAhead = 1)
+        {
+            if (tts == null || !tts.IsReady || source == null)
+                return;
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+            if (lookAhead < 1) lookAhead = 1;
+
+            var sentences = new List<string>();
+            foreach (var s in SentenceSplitter.Split(text))
+                sentences.Add(s);
+            if (sentences.Count == 0)
+                return;
+
+            // Sliding window of pre-gen tasks. Refilled one-at-a-time as
+            // each playback consumes a slot — keeps the window full but
+            // never pre-gens past the end of the text.
+            var pending = new Queue<Task<TtsResult>>();
+            int nextToEnqueue = 0;
+            int prefill = Math.Min(lookAhead, sentences.Count);
+            while (nextToEnqueue < prefill)
+            {
+                pending.Enqueue(tts.GenerateAsync(sentences[nextToEnqueue], ct));
+                nextToEnqueue++;
+            }
+
+            for (int i = 0; i < sentences.Count; i++)
+            {
+                var currentGen = pending.Dequeue();
+
+                // Refill the window: enqueue the next pre-gen if any
+                // sentences remain unqueued.
+                if (nextToEnqueue < sentences.Count)
+                {
+                    pending.Enqueue(tts.GenerateAsync(sentences[nextToEnqueue], ct));
+                    nextToEnqueue++;
+                }
+
+                TtsResult result;
+                try { result = await currentGen; }
+                catch (OperationCanceledException) { return; }
+
+                if (result != null && result.IsValid)
+                {
+                    bool finished = await PlayResultAndWaitAsync(
+                        result, source, ct, onHandleStarted);
+                    if (!finished)
+                        return; // cancelled or stopped externally
+                }
+            }
+        }
+
         // ── Private helpers ──
 
         /// <summary>
@@ -392,6 +479,51 @@ namespace PonyuDev.SherpaOnnx.Tts
         {
             if (clip != null)
                 UnityEngine.Object.Destroy(clip);
+        }
+
+        /// <summary>
+        /// Plays a single TtsResult on the given source via a fresh
+        /// TtsPlaybackHandle, waits for completion or cancellation.
+        /// Returns true on natural completion, false if cancelled or stopped
+        /// externally (used by <see cref="Speak"/> to abort the queue early).
+        /// </summary>
+        private static async UniTask<bool> PlayResultAndWaitAsync(
+            TtsResult result,
+            AudioSource source,
+            CancellationToken ct,
+            Action<TtsPlaybackHandle> onHandleStarted)
+        {
+            var clip = result.ToAudioClip();
+            source.clip = clip;
+            source.Play();
+
+            bool externallyStopped = false;
+            void OnStopped() => externallyStopped = true;
+
+            var handle = new TtsPlaybackHandle(
+                result, source, clip,
+                cleanup: () => DestroyClip(clip));
+            handle.Stopped += OnStopped;
+
+            // Hand the handle to the caller (e.g. orchestrator's Track) so
+            // StopAll / external observers can act on it before we await.
+            onHandleStarted?.Invoke(handle);
+
+            try
+            {
+                await UniTask.WaitUntil(
+                    () => handle.IsStopped, cancellationToken: ct);
+                return !externallyStopped;
+            }
+            catch (OperationCanceledException)
+            {
+                handle.Dispose();
+                return false;
+            }
+            finally
+            {
+                handle.Stopped -= OnStopped;
+            }
         }
 
         /// <summary>
