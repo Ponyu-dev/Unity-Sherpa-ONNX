@@ -35,3 +35,22 @@
 .streaming-result-blocking {
     color: rgb(255, 180, 140);
 }
+
+.streaming-result-queue {
+    color: rgb(170, 230, 160);
+}
+
+.streaming-slider {
+    flex-grow: 1;
+    margin-bottom: 16px;
+}
+
+.streaming-slider .unity-base-slider__label,
+.streaming-slider .unity-slider-int__label {
+    font-size: 26px;
+    min-width: 280px;
+}
+
+.streaming-slider .unity-base-slider {
+    min-height: 60px;
+}

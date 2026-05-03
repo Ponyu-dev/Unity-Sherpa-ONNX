@@ -24,13 +24,16 @@ namespace PonyuDev.SherpaOnnx.Samples
         private Action _onBack;
 
         private TextField _textField;
+        private SliderInt _lookAheadSlider;
         private Button _btnSpeakStreaming;
         private Button _btnSpeakBlocking;
+        private Button _btnSpeakQueue;
         private Button _btnStop;
         private Button _btnBack;
         private Label _statusLabel;
         private Label _streamingResult;
         private Label _blockingResult;
+        private Label _queueResult;
 
         private TtsPlaybackHandle _handle;
         private CancellationTokenSource _cts;
@@ -47,16 +50,20 @@ namespace PonyuDev.SherpaOnnx.Samples
             _onBack = onBack;
 
             _textField = root.Q<TextField>("textField");
+            _lookAheadSlider = root.Q<SliderInt>("lookAheadSlider");
             _btnSpeakStreaming = root.Q<Button>("btnSpeakStreaming");
             _btnSpeakBlocking = root.Q<Button>("btnSpeakBlocking");
+            _btnSpeakQueue = root.Q<Button>("btnSpeakQueue");
             _btnStop = root.Q<Button>("btnStop");
             _btnBack = root.Q<Button>("backButton");
             _statusLabel = root.Q<Label>("statusLabel");
             _streamingResult = root.Q<Label>("streamingResult");
             _blockingResult = root.Q<Label>("blockingResult");
+            _queueResult = root.Q<Label>("queueResult");
 
             if (_btnSpeakStreaming != null) _btnSpeakStreaming.clicked += HandleSpeakStreaming;
             if (_btnSpeakBlocking != null) _btnSpeakBlocking.clicked += HandleSpeakBlocking;
+            if (_btnSpeakQueue != null) _btnSpeakQueue.clicked += HandleSpeakQueue;
             if (_btnStop != null) _btnStop.clicked += HandleStop;
             if (_btnBack != null) _btnBack.clicked += HandleBack;
 
@@ -64,6 +71,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             SetStatus(_service != null && _service.IsReady ? "Ready." : "Engine not loaded.");
             SetStreamingResult("");
             SetBlockingResult("");
+            SetQueueResult("");
         }
 
         public void Unbind()
@@ -72,17 +80,21 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             if (_btnSpeakStreaming != null) _btnSpeakStreaming.clicked -= HandleSpeakStreaming;
             if (_btnSpeakBlocking != null) _btnSpeakBlocking.clicked -= HandleSpeakBlocking;
+            if (_btnSpeakQueue != null) _btnSpeakQueue.clicked -= HandleSpeakQueue;
             if (_btnStop != null) _btnStop.clicked -= HandleStop;
             if (_btnBack != null) _btnBack.clicked -= HandleBack;
 
             _textField = null;
+            _lookAheadSlider = null;
             _btnSpeakStreaming = null;
             _btnSpeakBlocking = null;
+            _btnSpeakQueue = null;
             _btnStop = null;
             _btnBack = null;
             _statusLabel = null;
             _streamingResult = null;
             _blockingResult = null;
+            _queueResult = null;
             _service = null;
             _audio = null;
             _onBack = null;
@@ -197,6 +209,71 @@ namespace PonyuDev.SherpaOnnx.Samples
             }
         }
 
+        private async void HandleSpeakQueue()
+        {
+            if (_isWorking || _service == null || !_service.IsReady)
+                return;
+
+            string text = _textField?.value ?? "";
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                SetStatus("Enter text first.");
+                return;
+            }
+
+            int lookAhead = _lookAheadSlider?.value ?? 1;
+            if (lookAhead < 1) lookAhead = 1;
+
+            CancelAndStop();
+            BeginWork($"Queue (lookAhead={lookAhead}): generating sentence 1…");
+
+            _cts = new CancellationTokenSource();
+            var stopwatch = Stopwatch.StartNew();
+            bool firstReported = false;
+
+            try
+            {
+                await _service.Speak(
+                    text, _audio, _cts.Token,
+                    onHandleStarted: handle =>
+                    {
+                        if (firstReported)
+                            return;
+                        firstReported = true;
+                        stopwatch.Stop();
+                        SetQueueResult(
+                            $"Queue (lookAhead={lookAhead}) → first audio in " +
+                            $"{stopwatch.ElapsedMilliseconds} ms" +
+                            CacheTag(stopwatch.ElapsedMilliseconds));
+                        SetStatus("Queued playback…");
+                    },
+                    lookAhead: lookAhead);
+
+                if (!firstReported)
+                {
+                    SetStatus("Queue produced no audio.");
+                }
+                else
+                {
+                    SetStatus("Done.");
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                SetStatus("Queue cancelled.");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error: {ex.Message}");
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] TtsStreamingPanel queue error: {ex}");
+            }
+            finally
+            {
+                EndWork();
+            }
+        }
+
         private void HandleStop()
         {
             if (_handle == null && _cts == null)
@@ -264,6 +341,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             bool ready = _service != null && _service.IsReady;
             _btnSpeakStreaming?.SetEnabled(ready && !_isWorking);
             _btnSpeakBlocking?.SetEnabled(ready && !_isWorking);
+            _btnSpeakQueue?.SetEnabled(ready && !_isWorking);
             _btnStop?.SetEnabled(_handle != null || _isWorking);
         }
 
@@ -283,6 +361,12 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             if (_blockingResult != null)
                 _blockingResult.text = text;
+        }
+
+        private void SetQueueResult(string text)
+        {
+            if (_queueResult != null)
+                _queueResult.text = text;
         }
 
         /// <summary>
