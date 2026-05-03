@@ -1,5 +1,7 @@
+using System;
 using System.Collections;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Tts.Cache;
 using PonyuDev.SherpaOnnx.Tts.Engine;
@@ -17,35 +19,39 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         /// <summary>
         /// Generates speech and plays it via <paramref name="source"/>.
-        /// Creates a new AudioClip each time.
+        /// Creates a new AudioClip each time and disposes it after playback
+        /// (no leak). See <see cref="TtsPlaybackMode"/> for behavior choice.
         /// </summary>
         public static TtsResult GenerateAndPlay(
             this ITtsService tts,
             string text,
-            AudioSource source)
+            AudioSource source,
+            TtsPlaybackMode mode = TtsPlaybackMode.Overlap)
         {
             if (!ValidateArgs(tts, text, source))
                 return null;
 
             var result = tts.Generate(text);
-            PlayResult(result, source);
+            PlayResult(result, source, mode);
             return result;
         }
 
         /// <summary>
         /// Generates speech on a background thread and plays it.
-        /// Creates a new AudioClip each time.
+        /// Creates a new AudioClip each time and disposes it after playback
+        /// (no leak). See <see cref="TtsPlaybackMode"/> for behavior choice.
         /// </summary>
         public static async Task<TtsResult> GenerateAndPlayAsync(
             this ITtsService tts,
             string text,
-            AudioSource source)
+            AudioSource source,
+            TtsPlaybackMode mode = TtsPlaybackMode.Overlap)
         {
             if (!ValidateArgs(tts, text, source))
                 return null;
 
             var result = await tts.GenerateAsync(text);
-            PlayResult(result, source);
+            PlayResult(result, source, mode);
             return result;
         }
 
@@ -93,12 +99,73 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         // ── Private helpers ──
 
-        private static void PlayResult(TtsResult result, AudioSource source)
+        private static void PlayResult(
+            TtsResult result, AudioSource source, TtsPlaybackMode mode)
         {
-            if (result == null || !result.IsValid)
+            if (result == null || !result.IsValid || source == null)
                 return;
 
-            source.PlayOneShot(result.ToAudioClip());
+            var clip = result.ToAudioClip();
+
+            if (mode == TtsPlaybackMode.Overlap)
+            {
+                source.PlayOneShot(clip);
+                ScheduleDestroyAfterDuration(clip, source);
+            }
+            else
+            {
+                PlayExclusiveAndDisposeAsync(source, clip).Forget();
+            }
+        }
+
+        /// <summary>
+        /// Overlap-mode cleanup: fire UniTask delay sized to the captured
+        /// clip duration (pitch-adjusted). Uses unscaled time so timeScale=0
+        /// doesn't strand the destroy. Visible in profiler, unlike the
+        /// built-in Object.Destroy(obj, t) timer.
+        /// </summary>
+        private static void ScheduleDestroyAfterDuration(
+            AudioClip clip, AudioSource source)
+        {
+            float pitch = source != null ? source.pitch : 1f;
+            float seconds = clip.length / Mathf.Max(0.01f, pitch) + 0.1f;
+            DestroyClipAfterAsync(clip, seconds).Forget();
+        }
+
+        private static async UniTaskVoid DestroyClipAfterAsync(
+            AudioClip clip, float seconds)
+        {
+            await UniTask.Delay(
+                TimeSpan.FromSeconds(seconds),
+                DelayType.UnscaledDeltaTime);
+
+            if (clip != null)
+                UnityEngine.Object.Destroy(clip);
+        }
+
+        /// <summary>
+        /// Exclusive-mode playback: assigns clip, plays, polls until done,
+        /// then nulls the slot and destroys the clip. Reacts to early Stop,
+        /// source destruction, and clip swaps without leaking.
+        /// </summary>
+        private static async UniTaskVoid PlayExclusiveAndDisposeAsync(
+            AudioSource source, AudioClip clip)
+        {
+            source.clip = clip;
+            source.Play();
+
+            while (source != null
+                   && source.clip == clip
+                   && source.isPlaying)
+            {
+                await UniTask.Yield(PlayerLoopTiming.Update);
+            }
+
+            if (source != null && source.clip == clip)
+                source.clip = null;
+
+            if (clip != null)
+                UnityEngine.Object.Destroy(clip);
         }
 
         private static void PlayPooled(
@@ -113,10 +180,14 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (clip == null)
             {
                 // Pool unavailable — fallback to non-pooled source.
+                // Preserves PlayOneShot semantics; clip is destroyed via
+                // UniTask delay (see ScheduleDestroyAfterDuration).
                 var fallback = cache.RentSource();
                 if (fallback != null)
                 {
-                    fallback.PlayOneShot(result.ToAudioClip());
+                    var fallbackClip = result.ToAudioClip();
+                    fallback.PlayOneShot(fallbackClip);
+                    ScheduleDestroyAfterDuration(fallbackClip, fallback);
                     owner.StartCoroutine(
                         ReturnSourceWhenDone(fallback, null, cache, owner));
                 }

@@ -20,6 +20,11 @@ namespace PonyuDev.SherpaOnnx.Tts
         [SerializeField]
         private bool _initializeOnAwake = true;
 
+        [SerializeField]
+        [Tooltip("Playback mode for the non-pooled fallback path " +
+                 "(when no cache is configured). Pooled playback ignores this.")]
+        private TtsPlaybackMode _defaultPlaybackMode = TtsPlaybackMode.Overlap;
+
         private TtsService _innerService;
         private CachedTtsService _cachedService;
 
@@ -46,7 +51,8 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         /// <summary>
         /// Generates speech and plays it using pooled objects if cache
-        /// is available, otherwise creates a new AudioClip each time.
+        /// is available, otherwise creates a new AudioClip each time
+        /// (auto-disposed after playback per <see cref="DefaultPlaybackMode"/>).
         /// </summary>
         public TtsResult GenerateAndPlay(string text)
         {
@@ -55,7 +61,7 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (cache != null)
                 return svc.GenerateAndPlay(text, cache, this);
 
-            return svc.GenerateAndPlay(text, GetOrCreateSource());
+            return svc.GenerateAndPlay(text, GetOrCreateSource(), _defaultPlaybackMode);
         }
 
         /// <summary>
@@ -69,7 +75,17 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (cache != null)
                 return svc.GenerateAndPlayAsync(text, cache, this);
 
-            return svc.GenerateAndPlayAsync(text, GetOrCreateSource());
+            return svc.GenerateAndPlayAsync(text, GetOrCreateSource(), _defaultPlaybackMode);
+        }
+
+        /// <summary>
+        /// Mode used by the non-pooled fallback (when no cache is configured).
+        /// Set in inspector or at runtime before calling GenerateAndPlay.
+        /// </summary>
+        public TtsPlaybackMode DefaultPlaybackMode
+        {
+            get => _defaultPlaybackMode;
+            set => _defaultPlaybackMode = value;
         }
 
         // ── Lifecycle ──
