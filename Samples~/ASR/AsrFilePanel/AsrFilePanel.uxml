@@ -8,8 +8,12 @@
         <ui:Label text="Recognize speech from a pre-loaded AudioClip."
                   class="sample-info" style="margin-bottom: 24px;"/>
 
-        <ui:Button name="recognizeButton" text="Recognize"
-                   class="sample-generate-btn"/>
+        <ui:VisualElement class="file-action-row">
+            <ui:Button name="recognizeButton" text="Recognize"
+                       class="sample-generate-btn file-action-btn"/>
+            <ui:Button name="playButton" text="Play Original"
+                       class="sample-generate-btn file-action-btn"/>
+        </ui:VisualElement>
 
         <ui:Label name="timingLabel" text="" class="asr-timing"/>
         <ui:Label name="resultLabel" text="" class="asr-result"/>

@@ -1,5 +1,18 @@
 /* ── AsrFilePanel styles ── */
 
+.file-action-row {
+    flex-direction: row;
+    margin-bottom: 16px;
+}
+
+.file-action-btn {
+    flex-grow: 1;
+    flex-basis: 45%;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: 0;
+}
+
 .asr-result {
     font-size: 32px;
     color: rgb(220, 220, 220);
