@@ -23,6 +23,13 @@ namespace PonyuDev.SherpaOnnx.Common.Audio.Config
         public float micStartTimeoutSec = 2f;
 
         /// <summary>
+        /// Algorithm applied when the device's native rate differs from
+        /// <see cref="sampleRate"/>. Common on Android where hardware
+        /// is locked at 44.1/48 kHz regardless of the requested rate.
+        /// </summary>
+        public ResamplingMode resamplingMode = ResamplingMode.Linear;
+
+        /// <summary>
         /// Amplitude below this value is treated as silence.
         /// Real speech is typically maxAbs &gt; 0.05.
         /// </summary>

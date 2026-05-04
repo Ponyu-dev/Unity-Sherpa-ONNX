@@ -1,4 +1,5 @@
 using System;
+using PonyuDev.SherpaOnnx.Common.Audio;
 using PonyuDev.SherpaOnnx.Common.Audio.Config;
 using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using PonyuDev.SherpaOnnx.Editor.Microphone.Settings;
@@ -21,6 +22,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
         private IntegerField _sampleRateField;
         private IntegerField _clipLengthField;
         private FloatField _micStartTimeoutField;
+        private EnumField _resamplingModeField;
         private FloatField _silenceThresholdField;
         private IntegerField _silenceFrameLimitField;
         private IntegerField _diagFrameCountField;
@@ -53,6 +55,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
             _sampleRateField?.UnregisterValueChangedCallback(HandleSampleRateChanged);
             _clipLengthField?.UnregisterValueChangedCallback(HandleClipLengthChanged);
             _micStartTimeoutField?.UnregisterValueChangedCallback(HandleMicStartTimeoutChanged);
+            _resamplingModeField?.UnregisterValueChangedCallback(HandleResamplingModeChanged);
             _silenceThresholdField?.UnregisterValueChangedCallback(HandleSilenceThresholdChanged);
             _silenceFrameLimitField?.UnregisterValueChangedCallback(HandleSilenceFrameLimitChanged);
             _diagFrameCountField?.UnregisterValueChangedCallback(HandleDiagFrameCountChanged);
@@ -60,6 +63,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
             _sampleRateField = null;
             _clipLengthField = null;
             _micStartTimeoutField = null;
+            _resamplingModeField = null;
             _silenceThresholdField = null;
             _silenceFrameLimitField = null;
             _diagFrameCountField = null;
@@ -88,6 +92,14 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
             {
                 _micStartTimeoutField.value = data.micStartTimeoutSec;
                 _micStartTimeoutField.RegisterValueChangedCallback(HandleMicStartTimeoutChanged);
+            }
+
+            _resamplingModeField = root.Q<EnumField>("resamplingModeField");
+            if (_resamplingModeField != null)
+            {
+                _resamplingModeField.Init(data.resamplingMode);
+                _resamplingModeField.value = data.resamplingMode;
+                _resamplingModeField.RegisterValueChangedCallback(HandleResamplingModeChanged);
             }
 
             _silenceThresholdField = root.Q<FloatField>("silenceThresholdField");
@@ -132,6 +144,13 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
         {
             var s = MicrophoneProjectSettings.instance;
             s.data.micStartTimeoutSec = evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleResamplingModeChanged(ChangeEvent<Enum> evt)
+        {
+            var s = MicrophoneProjectSettings.instance;
+            s.data.resamplingMode = (ResamplingMode)evt.newValue;
             s.SaveSettings();
         }
 

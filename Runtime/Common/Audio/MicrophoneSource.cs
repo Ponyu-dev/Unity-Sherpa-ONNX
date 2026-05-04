@@ -29,6 +29,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
 
         private AudioClip _clip;
         private string _resolvedDevice;
+        private int _clipFrequency;
         private int _pushLastPos;
         private int _pullLastPos;
         private GameObject _silentGo;
@@ -131,8 +132,8 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
 
             int currentPos =
                 Microphone.GetPosition(_resolvedDevice);
-            return ExtractSamples(
-                ref _pullLastPos, currentPos);
+            float[] samples = ExtractSamples(ref _pullLastPos, currentPos);
+            return ResampleIfNeeded(samples);
         }
 
         /// <summary>
@@ -150,7 +151,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             var buffer =
                 new float[_clip.samples * _clip.channels];
             _clip.GetData(buffer, 0);
-            return buffer;
+            return ResampleIfNeeded(buffer);
         }
 
         /// <summary>
@@ -219,6 +220,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             }
 
             IsRecording = true;
+            _clipFrequency = _clip.frequency;
             _pushLastPos =
                 Microphone.GetPosition(_resolvedDevice);
             _pullLastPos = _pushLastPos;
@@ -227,11 +229,13 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                 .CreateLinkedTokenSource(ct);
             PollUnityLoopAsync(_pollCts.Token).Forget();
 
+            bool resampling = _clipFrequency != _sampleRate;
             SherpaOnnxLog.RuntimeLog(
                 "[SherpaOnnx] MicrophoneSource: started " +
                 $"(device='{_resolvedDevice}', " +
                 $"rate={_sampleRate}, " +
-                $"clipFreq={_clip.frequency}).");
+                $"clipFreq={_clipFrequency}, " +
+                $"resampling={(resampling ? _settings.resamplingMode.ToString() : "off")}).");
             return true;
         }
 
@@ -260,6 +264,7 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                     _resolvedDevice);
                 float[] samples = ExtractSamples(
                     ref _pushLastPos, currentPos);
+                samples = ResampleIfNeeded(samples);
 
                 if (samples == null || samples.Length == 0)
                     continue;
@@ -535,6 +540,15 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
 
             lastPos = currentPos;
             return samples;
+        }
+
+        private float[] ResampleIfNeeded(float[] samples)
+        {
+            if (samples == null || samples.Length == 0)
+                return samples;
+            if (_clipFrequency <= 0 || _clipFrequency == _sampleRate)
+                return samples;
+            return Resampler.Resample(samples, _clipFrequency, _sampleRate, _settings.resamplingMode);
         }
 
         // ── Shared helpers ──

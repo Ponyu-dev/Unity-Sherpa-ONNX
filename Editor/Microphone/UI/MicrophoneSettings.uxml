@@ -11,6 +11,8 @@
             <ui:IntegerField label="Sample rate (Hz)" name="sampleRateField"/>
             <ui:IntegerField label="Buffer length (sec)" name="clipLengthField"/>
             <ui:FloatField label="Start timeout (sec)" name="micStartTimeoutField"/>
+            <ui:EnumField label="Resampling mode" name="resamplingModeField"/>
+            <ui:HelpBox text="Used when the device's native rate (often 44.1/48 kHz on Android) differs from the requested sample rate. Linear is cheap and good enough for ASR/VAD; Lowpass adds a one-pole pre-filter for cleaner downsampling at slightly higher CPU cost." message-type="None"/>
         </ui:VisualElement>
 
         <ui:VisualElement class="mic-section">
