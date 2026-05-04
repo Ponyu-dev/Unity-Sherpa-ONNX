@@ -122,7 +122,6 @@ namespace PonyuDev.SherpaOnnx.Samples
                 }
 
                 _microphone.SamplesAvailable += HandleMicSamples;
-                _microphone.SilenceDetected += HandleSilenceDetected;
                 _service.StartSession();
                 _isRecording = true;
 
@@ -167,21 +166,6 @@ namespace PonyuDev.SherpaOnnx.Samples
             _service.ProcessAvailableFrames();
         }
 
-        private void HandleSilenceDetected(string diagnosis)
-        {
-            StopRecordingIfActive();
-
-            SetStatus(
-                "Microphone silence detected — " +
-                "voice capture is not available on this device. " +
-                "This may be a hardware or OS-level issue.");
-
-            SherpaOnnxLog.RuntimeWarning(
-                "[SherpaOnnx] AsrStreamPanel: " +
-                "silence detected, recording stopped. " +
-                "Diag: " + diagnosis);
-        }
-
         // ── Service events ──
 
         private void HandlePartialResult(OnlineAsrResult result)
@@ -213,7 +197,6 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_microphone != null)
             {
                 _microphone.SamplesAvailable -= HandleMicSamples;
-                _microphone.SilenceDetected -= HandleSilenceDetected;
                 _microphone.StopRecording();
             }
 

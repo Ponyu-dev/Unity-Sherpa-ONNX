@@ -28,23 +28,5 @@ namespace PonyuDev.SherpaOnnx.Common.Audio.Config
         /// is locked at 44.1/48 kHz regardless of the requested rate.
         /// </summary>
         public ResamplingMode resamplingMode = ResamplingMode.Linear;
-
-        /// <summary>
-        /// Amplitude below this value is treated as silence.
-        /// Real speech is typically maxAbs &gt; 0.05.
-        /// </summary>
-        public float silenceThreshold = 0.05f;
-
-        /// <summary>
-        /// Consecutive silent frames before fallback triggers.
-        /// At 30 fps: 90 frames ~ 3 seconds.
-        /// </summary>
-        public int silenceFrameLimit = 90;
-
-        /// <summary>
-        /// Number of diagnostic log frames at the start
-        /// of each recording path.
-        /// </summary>
-        public int diagFrameCount = 5;
     }
 }

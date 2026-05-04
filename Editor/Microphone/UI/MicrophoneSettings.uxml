@@ -15,13 +15,6 @@
             <ui:HelpBox text="Used when the device's native rate (often 44.1/48 kHz on Android) differs from the requested sample rate. Linear is cheap and good enough for ASR/VAD; Lowpass adds a one-pole pre-filter for cleaner downsampling at slightly higher CPU cost." message-type="None"/>
         </ui:VisualElement>
 
-        <ui:VisualElement class="mic-section">
-            <ui:Label text="Silence diagnostics" class="mic-section-title"/>
-            <ui:HelpBox text="Used by the legacy native AudioRecord fallback. Will be removed when the fallback is dropped." message-type="None"/>
-            <ui:FloatField label="Silence threshold" name="silenceThresholdField"/>
-            <ui:IntegerField label="Silence frame limit" name="silenceFrameLimitField"/>
-            <ui:IntegerField label="Diag frame count" name="diagFrameCountField"/>
-        </ui:VisualElement>
     </ui:VisualElement>
     </ui:ScrollView>
 </ui:UXML>

@@ -127,8 +127,6 @@ namespace PonyuDev.SherpaOnnx.Samples
                 }
 
                 _microphone.SamplesAvailable += HandleMicSamples;
-                _microphone.SilenceDetected +=
-                    HandleSilenceDetected;
                 _isRecording = true;
                 _segmentCount = 0;
 
@@ -172,21 +170,6 @@ namespace PonyuDev.SherpaOnnx.Samples
             _pipeline?.AcceptSamples(samples);
         }
 
-        private void HandleSilenceDetected(string diagnosis)
-        {
-            StopRecordingIfActive();
-
-            SetStatus(
-                "Microphone silence detected \u2014 " +
-                "voice capture is not available on " +
-                "this device.");
-
-            SherpaOnnxLog.RuntimeWarning(
-                "[SherpaOnnx] VadDemoPanel: " +
-                "silence detected, recording stopped. " +
-                "Diag: " + diagnosis);
-        }
-
         // ── Pipeline events ──
 
         private void HandleSpeechStart()
@@ -216,8 +199,6 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_microphone != null)
             {
                 _microphone.SamplesAvailable -= HandleMicSamples;
-                _microphone.SilenceDetected -=
-                    HandleSilenceDetected;
                 _microphone.StopRecording();
             }
 

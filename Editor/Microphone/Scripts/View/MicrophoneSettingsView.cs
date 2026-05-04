@@ -23,9 +23,6 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
         private IntegerField _clipLengthField;
         private FloatField _micStartTimeoutField;
         private EnumField _resamplingModeField;
-        private FloatField _silenceThresholdField;
-        private IntegerField _silenceFrameLimitField;
-        private IntegerField _diagFrameCountField;
 
         internal MicrophoneSettingsView(string uxmlPath)
         {
@@ -56,17 +53,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
             _clipLengthField?.UnregisterValueChangedCallback(HandleClipLengthChanged);
             _micStartTimeoutField?.UnregisterValueChangedCallback(HandleMicStartTimeoutChanged);
             _resamplingModeField?.UnregisterValueChangedCallback(HandleResamplingModeChanged);
-            _silenceThresholdField?.UnregisterValueChangedCallback(HandleSilenceThresholdChanged);
-            _silenceFrameLimitField?.UnregisterValueChangedCallback(HandleSilenceFrameLimitChanged);
-            _diagFrameCountField?.UnregisterValueChangedCallback(HandleDiagFrameCountChanged);
 
             _sampleRateField = null;
             _clipLengthField = null;
             _micStartTimeoutField = null;
             _resamplingModeField = null;
-            _silenceThresholdField = null;
-            _silenceFrameLimitField = null;
-            _diagFrameCountField = null;
         }
 
         // ── Bindings ──
@@ -101,27 +92,6 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
                 _resamplingModeField.value = data.resamplingMode;
                 _resamplingModeField.RegisterValueChangedCallback(HandleResamplingModeChanged);
             }
-
-            _silenceThresholdField = root.Q<FloatField>("silenceThresholdField");
-            if (_silenceThresholdField != null)
-            {
-                _silenceThresholdField.value = data.silenceThreshold;
-                _silenceThresholdField.RegisterValueChangedCallback(HandleSilenceThresholdChanged);
-            }
-
-            _silenceFrameLimitField = root.Q<IntegerField>("silenceFrameLimitField");
-            if (_silenceFrameLimitField != null)
-            {
-                _silenceFrameLimitField.value = data.silenceFrameLimit;
-                _silenceFrameLimitField.RegisterValueChangedCallback(HandleSilenceFrameLimitChanged);
-            }
-
-            _diagFrameCountField = root.Q<IntegerField>("diagFrameCountField");
-            if (_diagFrameCountField != null)
-            {
-                _diagFrameCountField.value = data.diagFrameCount;
-                _diagFrameCountField.RegisterValueChangedCallback(HandleDiagFrameCountChanged);
-            }
         }
 
         // ── Persistence ──
@@ -151,27 +121,6 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
         {
             var s = MicrophoneProjectSettings.instance;
             s.data.resamplingMode = (ResamplingMode)evt.newValue;
-            s.SaveSettings();
-        }
-
-        private static void HandleSilenceThresholdChanged(ChangeEvent<float> evt)
-        {
-            var s = MicrophoneProjectSettings.instance;
-            s.data.silenceThreshold = evt.newValue;
-            s.SaveSettings();
-        }
-
-        private static void HandleSilenceFrameLimitChanged(ChangeEvent<int> evt)
-        {
-            var s = MicrophoneProjectSettings.instance;
-            s.data.silenceFrameLimit = evt.newValue;
-            s.SaveSettings();
-        }
-
-        private static void HandleDiagFrameCountChanged(ChangeEvent<int> evt)
-        {
-            var s = MicrophoneProjectSettings.instance;
-            s.data.diagFrameCount = evt.newValue;
             s.SaveSettings();
         }
 
