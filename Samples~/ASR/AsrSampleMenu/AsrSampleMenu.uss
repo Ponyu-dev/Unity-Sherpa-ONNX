@@ -28,4 +28,5 @@
     font-size: 24px;
     color: rgb(160, 160, 160);
     white-space: normal;
+    -unity-text-align: upper-left;
 }

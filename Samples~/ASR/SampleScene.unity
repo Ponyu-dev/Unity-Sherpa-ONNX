@@ -380,6 +380,7 @@ MonoBehaviour:
   _menuAsset: {fileID: 9197481963319205126, guid: b5ef5531c1fdf421e80a2e31fb3f8d40, type: 3}
   _fileAsset: {fileID: 9197481963319205126, guid: ddad707c5a08c4be6b452faa4d3589ee, type: 3}
   _streamAsset: {fileID: 9197481963319205126, guid: 28fb8cd19928146afbd7a295da490351, type: 3}
+  _combinedAsset: {fileID: 9197481963319205126, guid: 941451ecb3c613045ab059dfc407dcd9, type: 3}
   _sampleClip: {fileID: 8300000, guid: edf09d775c7e446aaacd80a4e278e2c5, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

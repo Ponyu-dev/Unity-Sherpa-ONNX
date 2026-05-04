@@ -1,0 +1,37 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../Shared/Shared.uss"/>
+    <Style src="../AsrStreamPanel/AsrStreamPanel.uss"/>
+    <Style src="AsrCombinedPanel.uss"/>
+    <ui:ScrollView mode="Vertical">
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="Concurrent Audio Test" class="sample-title"/>
+        <ui:Label text="Verify that the microphone keeps capturing while music, SFX, and TTS playback share the audio mix. Toggle each path independently and watch the mic level."
+                  class="combined-description"/>
+
+        <ui:VisualElement class="combined-section">
+            <ui:Label text="Background audio" class="combined-section-title"/>
+            <ui:VisualElement class="combined-row">
+                <ui:Button name="musicToggleButton" text="Play Music Loop" class="sample-generate-btn combined-btn"/>
+                <ui:Button name="sfxButton" text="Play SFX" class="sample-generate-btn combined-btn"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="combined-section">
+            <ui:Label text="TTS" class="combined-section-title"/>
+            <ui:TextField name="ttsTextField" multiline="true" class="sample-text-field combined-tts-field"/>
+            <ui:Button name="speakButton" text="Speak" class="sample-generate-btn"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="combined-section combined-stt-section">
+            <ui:Label text="STT (live recognition)" class="combined-section-title"/>
+            <ui:Button name="sttToggleButton" text="Start STT" class="sample-generate-btn"/>
+            <ui:Label name="levelLabel" text="Mic level: —" class="combined-level"/>
+            <ui:Label name="partialLabel" text="" class="stream-partial"/>
+            <ui:ScrollView name="transcriptScroll" class="stream-transcript"/>
+        </ui:VisualElement>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+    </ui:VisualElement>
+    </ui:ScrollView>
+</ui:UXML>

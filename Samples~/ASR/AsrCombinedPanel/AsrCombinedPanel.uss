@@ -1,0 +1,52 @@
+/* AsrCombinedPanel — concurrent audio test layout. */
+
+.combined-description {
+    font-size: 22px;
+    color: rgb(140, 140, 140);
+    white-space: normal;
+    margin-bottom: 24px;
+}
+
+.combined-section {
+    border-width: 1px;
+    border-color: rgba(80, 80, 80, 0.6);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 20px;
+    background-color: rgba(35, 35, 35, 0.4);
+}
+
+.combined-section-title {
+    font-size: 28px;
+    -unity-font-style: bold;
+    margin-bottom: 12px;
+    color: rgb(220, 220, 220);
+}
+
+.combined-row {
+    flex-direction: row;
+}
+
+.combined-btn {
+    flex-grow: 1;
+    flex-basis: 45%;
+    margin-left: 4px;
+    margin-right: 4px;
+    margin-bottom: 0;
+}
+
+.combined-tts-field {
+    min-height: 120px;
+}
+
+.combined-tts-field .unity-text-element {
+    white-space: normal;
+}
+
+.combined-level {
+    font-size: 26px;
+    -unity-font-style: bold;
+    color: rgb(180, 220, 180);
+    margin-top: 8px;
+    margin-bottom: 12px;
+}

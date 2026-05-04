@@ -24,6 +24,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         [SerializeField] private VisualTreeAsset _menuAsset;
         [SerializeField] private VisualTreeAsset _fileAsset;
         [SerializeField] private VisualTreeAsset _streamAsset;
+        [SerializeField] private VisualTreeAsset _combinedAsset;
 
         [Header("Audio")]
         [SerializeField] private AudioClip _sampleClip;
@@ -45,6 +46,7 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             _panels[AsrSampleMenu.IdFile] = new AsrFilePanel();
             _panels[AsrSampleMenu.IdStream] = new AsrStreamPanel();
+            _panels[AsrSampleMenu.IdCombined] = new AsrCombinedPanel();
 
             await InitializeServicesAsync();
         }
@@ -88,6 +90,7 @@ namespace PonyuDev.SherpaOnnx.Samples
 
                 if (ready)
                 {
+                    await WarmUpServicesAsync();
                     SherpaOnnxLog.RuntimeLog(
                         "[SherpaOnnx] AsrSampleNavigator: " +
                         "services ready.");
@@ -104,6 +107,44 @@ namespace PonyuDev.SherpaOnnx.Samples
                 SherpaOnnxLog.RuntimeError(
                     "[SherpaOnnx] AsrSampleNavigator init failed: " +
                     ex.Message);
+            }
+        }
+
+        // Cold ONNX models stall the first real call by ~0.5-1.5s. Run a
+        // throwaway inference on silence so the first user click is fast.
+        // Streaming zipformer needs ~2s of audio to trigger its first
+        // chunk inference; 0.5s rolls past without running anything.
+        private async UniTask WarmUpServicesAsync()
+        {
+            const int sampleRate = 16000;
+            var offlineSilent = new float[sampleRate / 2]; // 0.5 s
+            var onlineSilent = new float[sampleRate * 2];  // 2 s
+
+            if (_offlineService != null && _offlineService.IsReady)
+            {
+                try { await _offlineService.RecognizeAsync(offlineSilent, sampleRate); }
+                catch (Exception ex)
+                {
+                    SherpaOnnxLog.RuntimeWarning(
+                        "[SherpaOnnx] AsrSampleNavigator: offline warm-up failed: " + ex.Message);
+                }
+            }
+
+            if (_onlineService != null && _onlineService.IsReady)
+            {
+                try
+                {
+                    _onlineService.StartSession();
+                    _onlineService.AcceptSamples(onlineSilent, sampleRate);
+                    _onlineService.ProcessAvailableFrames();
+                    _onlineService.StopSession();
+                    _onlineService.ResetStream();
+                }
+                catch (Exception ex)
+                {
+                    SherpaOnnxLog.RuntimeWarning(
+                        "[SherpaOnnx] AsrSampleNavigator: online warm-up failed: " + ex.Message);
+                }
             }
         }
 
@@ -192,6 +233,8 @@ namespace PonyuDev.SherpaOnnx.Samples
                 return _fileAsset;
             if (panelId == AsrSampleMenu.IdStream)
                 return _streamAsset;
+            if (panelId == AsrSampleMenu.IdCombined)
+                return _combinedAsset;
             return null;
         }
     }
