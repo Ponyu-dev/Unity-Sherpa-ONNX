@@ -52,9 +52,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 $"[SherpaOnnx] TTS engine loading: {profile.profileName}" +
                 $" (pool={poolSize})");
 
-            if (ModelFileValidator.BlockIfInt8Model(
-                    modelDir, "TTS", profile.allowInt8))
-                return;
+            ModelFileValidator.LogIfInt8(modelDir, "TTS");
 
             _lastConfig = TtsConfigBuilder.Build(profile, modelDir);
 

@@ -50,8 +50,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Engine
                 return;
             }
 
-            if (ModelFileValidator.BlockIfInt8Model(modelDir, "Online ASR", profile.allowInt8))
-                return;
+            ModelFileValidator.LogIfInt8(modelDir, "Online ASR");
 
             var config = OnlineAsrConfigBuilder.Build(profile, modelDir);
             var guard = NativeLocaleGuard.Begin();

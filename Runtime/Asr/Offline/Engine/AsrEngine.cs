@@ -53,9 +53,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Engine
             if (!ValidateModelDirectory(modelDir, profile))
                 return;
 
-            if (ModelFileValidator.BlockIfInt8Model(
-                    modelDir, "ASR", profile.allowInt8))
-                return;
+            ModelFileValidator.LogIfInt8(modelDir, "ASR");
 
             _lastConfig = AsrConfigBuilder.Build(profile, modelDir);
 
