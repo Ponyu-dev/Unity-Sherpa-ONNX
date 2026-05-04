@@ -1,5 +1,12 @@
 /* ── AsrStreamPanel styles ── */
 
+.stream-level {
+    font-size: 24px;
+    -unity-font-style: bold;
+    color: rgb(180, 220, 180);
+    margin-bottom: 8px;
+}
+
 .stream-partial {
     font-size: 28px;
     color: rgb(180, 220, 180);

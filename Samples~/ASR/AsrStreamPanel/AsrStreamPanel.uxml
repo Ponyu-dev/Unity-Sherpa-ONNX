@@ -8,6 +8,7 @@
         <ui:Button name="toggleButton" text="Start Recording"
                    class="sample-generate-btn stream-toggle-btn"/>
 
+        <ui:Label name="levelLabel" text="Mic level: —" class="stream-level"/>
         <ui:Label name="partialLabel" text="" class="stream-partial"/>
 
         <ui:ScrollView name="transcriptScroll" class="stream-transcript"/>

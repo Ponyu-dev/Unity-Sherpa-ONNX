@@ -24,6 +24,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private Button _clearButton;
         private Button _backButton;
         private Label _partialLabel;
+        private Label _levelLabel;
         private ScrollView _transcriptScroll;
         private Label _statusLabel;
         private Label _infoLabel;
@@ -48,6 +49,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _clearButton = root.Q<Button>("clearButton");
             _backButton = root.Q<Button>("backButton");
             _partialLabel = root.Q<Label>("partialLabel");
+            _levelLabel = root.Q<Label>("levelLabel");
             _transcriptScroll = root.Q<ScrollView>("transcriptScroll");
             _statusLabel = root.Q<Label>("statusLabel");
             _infoLabel = root.Q<Label>("infoLabel");
@@ -79,6 +81,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _clearButton = null;
             _backButton = null;
             _partialLabel = null;
+            _levelLabel = null;
             _transcriptScroll = null;
             _statusLabel = null;
             _infoLabel = null;
@@ -110,23 +113,32 @@ namespace PonyuDev.SherpaOnnx.Samples
             }
 
             SetStatus("Starting...");
+            if (_partialLabel != null)
+                _partialLabel.text = string.Empty;
             _toggleButton?.SetEnabled(false);
 
             try
             {
+                // Start the session and subscribe BEFORE the mic actually
+                // produces samples. The previous order (mic first, then
+                // subscribe) dropped the first audio frames on the floor —
+                // partial results then started "from the middle" of the
+                // user's first utterance.
+                _service.StartSession();
+                _microphone.SamplesAvailable += HandleMicSamples;
+
                 bool started = await _microphone.StartRecordingAsync();
                 if (!started)
                 {
+                    _microphone.SamplesAvailable -= HandleMicSamples;
+                    _service.StopSession();
                     SetStatus("Microphone failed to start.");
                     return;
                 }
 
-                _microphone.SamplesAvailable += HandleMicSamples;
-                _service.StartSession();
                 _isRecording = true;
-
                 UpdateToggleButton();
-                SetStatus("Recording...");
+                SetStatus("Listening — speak now.");
             }
             catch (Exception ex)
             {
@@ -159,11 +171,29 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         private void HandleMicSamples(float[] samples)
         {
+            if (samples == null || samples.Length == 0)
+                return;
+
+            UpdateLevel(samples);
+
             if (_service == null || !_service.IsSessionActive)
                 return;
 
             _service.AcceptSamples(samples, _microphone.SampleRate);
             _service.ProcessAvailableFrames();
+        }
+
+        private void UpdateLevel(float[] samples)
+        {
+            if (_levelLabel == null) return;
+
+            float maxAbs = 0f;
+            for (int i = 0; i < samples.Length; i++)
+            {
+                float abs = samples[i] < 0f ? -samples[i] : samples[i];
+                if (abs > maxAbs) maxAbs = abs;
+            }
+            _levelLabel.text = $"Mic level: {maxAbs:F3}";
         }
 
         // ── Service events ──
@@ -202,6 +232,11 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             _service?.StopSession();
             _isRecording = false;
+
+            if (_levelLabel != null)
+                _levelLabel.text = "Mic level: —";
+            if (_partialLabel != null)
+                _partialLabel.text = string.Empty;
 
             UpdateToggleButton();
             SetStatus("Stopped.");
