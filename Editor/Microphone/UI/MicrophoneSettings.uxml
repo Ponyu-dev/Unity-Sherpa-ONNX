@@ -1,0 +1,25 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <ui:ScrollView name="rootScroll" mode="Vertical" class="model-scroll">
+    <ui:VisualElement class="model-root">
+        <ui:VisualElement name="microphone-header" class="model-header">
+            <ui:Label text="Microphone" class="model-header-title"/>
+            <ui:HelpBox text="Capture settings shared by ASR and VAD. Used by MicrophoneSource on all platforms. Changes are saved to ProjectSettings/MicrophoneSettings.asset and exported to StreamingAssets/SherpaOnnx/microphone-settings.json." message-type="Info"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="mic-section">
+            <ui:Label text="Capture" class="mic-section-title"/>
+            <ui:IntegerField label="Sample rate (Hz)" name="sampleRateField"/>
+            <ui:IntegerField label="Buffer length (sec)" name="clipLengthField"/>
+            <ui:FloatField label="Start timeout (sec)" name="micStartTimeoutField"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="mic-section">
+            <ui:Label text="Silence diagnostics" class="mic-section-title"/>
+            <ui:HelpBox text="Used by the legacy native AudioRecord fallback. Will be removed when the fallback is dropped." message-type="None"/>
+            <ui:FloatField label="Silence threshold" name="silenceThresholdField"/>
+            <ui:IntegerField label="Silence frame limit" name="silenceFrameLimitField"/>
+            <ui:IntegerField label="Diag frame count" name="diagFrameCountField"/>
+        </ui:VisualElement>
+    </ui:VisualElement>
+    </ui:ScrollView>
+</ui:UXML>
