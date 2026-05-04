@@ -339,9 +339,7 @@ public class VadAsrInitializer : IAsyncStartable
         _micSettings.sampleRate = loaded.sampleRate;
         _micSettings.clipLengthSec = loaded.clipLengthSec;
         _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
-        _micSettings.silenceThreshold = loaded.silenceThreshold;
-        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
-        _micSettings.diagFrameCount = loaded.diagFrameCount;
+        _micSettings.resamplingMode = loaded.resamplingMode;
 
         await _vad.InitializeAsync(ct: ct);
         await _asr.InitializeAsync(ct: ct);
@@ -501,9 +499,7 @@ public class VadAsrInitializer : IInitializable, IDisposable
         _micSettings.sampleRate = loaded.sampleRate;
         _micSettings.clipLengthSec = loaded.clipLengthSec;
         _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
-        _micSettings.silenceThreshold = loaded.silenceThreshold;
-        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
-        _micSettings.diagFrameCount = loaded.diagFrameCount;
+        _micSettings.resamplingMode = loaded.resamplingMode;
 
         await _vad.InitializeAsync();
         await _asr.InitializeAsync();

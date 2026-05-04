@@ -42,7 +42,6 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 
 | Problem | Platform | What the plugin does |
 |---------|----------|----------------------|
-| 🔇 **Unity Microphone returns silence** | Android | Detects silence automatically, falls back to native `AudioRecord` via JNI with audio source cascade (`VOICE_RECOGNITION` → `VOICE_COMMUNICATION` → `MIC`). Disables NoiseSuppressor, AGC, and AEC that can mute the signal. Fires `SilenceDetected` event with full diagnostics. |
 | 📦 **StreamingAssets locked inside APK** | Android | Extracts model files to `persistentDataPath` on first launch with version tracking and progress reporting. Skips re-extraction on subsequent launches. |
 | 🌍 **Non-US locale breaks native code** | Android | Wraps native calls with a locale guard that temporarily sets `LC_NUMERIC` to `"C"`, preventing comma-as-decimal crashes in sherpa-onnx's float parsing. |
 | 🍏 **No dynamic library loading** | iOS | Builds a patched `sherpa-onnx.dll` with `DllImport("__Internal")` and downloads it automatically during install. |
@@ -52,8 +51,8 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 | 🎵 **Sample rate mismatch** | All | Built-in resampler converts any input rate to the model's expected rate (typically 16 kHz). |
 | 🔐 **Microphone permission** | Android / iOS | Async permission request with `UniTask` — returns `false` gracefully if denied. |
 
-> ⚙️ All microphone settings (silence threshold, fallback timing, diagnostics) are configurable via
-> a JSON file in StreamingAssets — no code changes needed.
+> ⚙️ Microphone settings (sample rate, buffer length, start timeout, resampling mode) are configurable
+> via `Edit → Project Settings → Sherpa-ONNX → Microphone` or `microphone-settings.json` in StreamingAssets.
 
 ---
 
