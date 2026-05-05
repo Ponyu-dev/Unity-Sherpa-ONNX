@@ -51,6 +51,7 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 | 🎵 **Sample rate mismatch** | All | Built-in resampler converts any input rate to the model's expected rate (typically 16 kHz). |
 | 🔐 **Microphone permission** | Android / iOS | Async permission request with `UniTask` — returns `false` gracefully if denied. iOS waits 1s after the permission dialog so the AVAudioSession can settle before capture starts. |
 | 🎧 **TTS playback breaks mic capture** | iOS / Android | `AudioSessionBridge` switches AVAudioSession between PlayAndRecord/Playback on iOS, and sets `AudioManager.MODE_IN_COMMUNICATION` + speakerphone on Android — engaging the platform AEC/AGC so the mic does not return near-silence after TTS. Public API for projects that want to drive it manually. |
+| 🗣️ **Native TTS callbacks unsupported on IL2CPP** | iOS / Android / IL2CPP Standalone | sherpa-onnx C# bindings wrap user callbacks in closures that IL2CPP cannot marshal to native. The plugin auto-falls-back `GenerateAsync` (and other callback-using paths) to the callback-less `Generate` on IL2CPP so TTS keeps working — and ships a **Sentence Queue** API (`ITtsService.Speak(text, audio, ct, lookAhead)`) that delivers the same low-latency long-text experience as native streaming, but in pure C# with `lookAhead` parallel pre-generation and works on every scripting backend. |
 
 > ⚙️ Microphone settings (sample rate, buffer length, start timeout, resampling mode, audio session
 > management) are configurable via `Edit → Project Settings → Sherpa-ONNX → Microphone` or

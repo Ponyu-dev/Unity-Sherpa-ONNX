@@ -407,11 +407,20 @@ during synthesis. For models that emit one big callback at the end of each
 sentence (typical for VITS-Piper), the latency improvement is small for a
 single sentence — use `Speak` instead for paragraphs.
 
-### Sentence queue (long paragraphs)
+> ⚠️ **IL2CPP (iOS / Android / IL2CPP Standalone):** native chunk-by-chunk
+> streaming relies on a P/Invoke callback that IL2CPP cannot marshal — under
+> IL2CPP `SpeakStreamingAsync` falls back to non-streaming generation
+> (functional but no first-audio-latency benefit). Use **Sentence queue**
+> below for the equivalent low-latency long-text experience on every
+> scripting backend.
+
+### Sentence queue (long paragraphs) — recommended for IL2CPP
 
 For multi-sentence text, `Speak` splits at punctuation (Latin `.!?` and CJK
 `。！？`) and queues per-sentence generation+playback. While sentence N plays,
-sentence N+1 is generated in the background — virtually no gap between them:
+sentence N+1 is generated in the background — virtually no gap between them.
+**Pure C#, no native callbacks** — works on every scripting backend including
+IL2CPP, where it is the recommended low-latency path:
 
 ```csharp
 await _orchestrator.Speak(
@@ -709,12 +718,21 @@ below for brevity.
 | | `Generate(text, speed, speakerId)` | Sync with explicit parameters |
 | | `GenerateAsync(text, ct)` | Background thread generation |
 | | `GenerateAsync(text, speed, speakerId, ct)` | Background thread with parameters |
-| **Callbacks** | `GenerateWithCallback(...)` | Chunk callback (streaming) |
+| **Callbacks** ⚠️ | `GenerateWithCallback(...)` | Chunk callback (streaming) |
 | | `GenerateWithCallbackProgress(...)` | Chunk callback with progress float |
 | | `GenerateWithConfig(...)` | Advanced config (reference audio, numSteps) |
-| **Async callbacks** | `GenerateWithCallbackAsync(..., ct)` | Background thread + chunk callback |
+| **Async callbacks** ⚠️ | `GenerateWithCallbackAsync(..., ct)` | Background thread + chunk callback |
 | | `GenerateWithCallbackProgressAsync(..., ct)` | Background thread + progress |
 | | `GenerateWithConfigAsync(..., ct)` | Background thread + advanced config |
+
+> ⚠️ **IL2CPP note for callback APIs:** sherpa-onnx C# bindings wrap user
+> callbacks in closures that point to instance methods, which IL2CPP cannot
+> marshal to native code. On IL2CPP builds (iOS / Android / IL2CPP
+> Standalone) the plugin transparently falls back to the callback-less
+> `Generate(...)` path — the audio is still produced (whole result at the
+> end), but per-chunk progress callbacks are **not invoked** and a one-time
+> warning is logged. For low-latency long-text playback on IL2CPP, use
+> `ITtsService.Speak(text, audio, ct, lookAhead)` (sentence-queue, pure C#).
 
 ### TtsResult
 

@@ -69,7 +69,13 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             UpdateButtons();
             SetStatus(_service != null && _service.IsReady ? "Ready." : "Engine not loaded.");
+#if ENABLE_IL2CPP
+            SetStreamingResult(
+                "Streaming → unavailable on IL2CPP. " +
+                "Use Sentence Queue ↓ for the same low-latency long-text effect.");
+#else
             SetStreamingResult("");
+#endif
             SetBlockingResult("");
             SetQueueResult("");
         }
@@ -107,6 +113,18 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_isWorking || _service == null || !_service.IsReady)
                 return;
 
+#if ENABLE_IL2CPP
+            // Native chunk-by-chunk streaming relies on a sherpa-onnx
+            // P/Invoke callback that IL2CPP cannot marshal (closure on an
+            // instance method). The "Sentence Queue" path below achieves
+            // the same low-latency long-text playback in pure C# and
+            // works on every scripting backend.
+            SetStatus("Native streaming is not available on IL2CPP — use Sentence Queue.");
+            SetStreamingResult(
+                "Streaming → not supported on IL2CPP (iOS / Android / IL2CPP Standalone). " +
+                "Use Sentence Queue for the same effect on any device.");
+            return;
+#else
             string text = _textField?.value ?? "";
             if (string.IsNullOrWhiteSpace(text))
             {
@@ -153,6 +171,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             {
                 EndWork();
             }
+#endif
         }
 
         private async void HandleSpeakBlocking()

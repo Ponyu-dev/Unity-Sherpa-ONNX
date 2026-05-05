@@ -246,42 +246,18 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         // ── TTS ──
 
-        // Background load + warm-up kicked off from Bind. By the time the
-        // user clicks Speak, the model is in memory and the first inference
-        // is paid down by a throwaway " " generation.
-        //
-        // TtsService.InitializeAsync calls LoadProfile synchronously
-        // (native sherpa-onnx construction + ONNX model parse), so even
-        // with `.Forget()` the main thread blocks for ~1-2s on first entry.
-        // We yield once so the panel paints, then SwitchToThreadPool to
-        // actually move the heavy work off the UI thread.
+        // Load TTS so the Speak button can be enabled when the engine is ready.
+        // Plain async usage — same pattern any consumer would write.
         private async UniTaskVoid EnsureTtsReadyAsync(CancellationToken ct)
         {
             try
             {
-                await UniTask.Yield();
-                if (ct.IsCancellationRequested) return;
-
-                await UniTask.SwitchToThreadPool();
-
                 _tts = new TtsService();
                 await _tts.InitializeAsync(ct: ct);
 
-                if (!ct.IsCancellationRequested && _tts.IsReady)
-                {
-                    try { await _tts.GenerateAsync(" ", ct); }
-                    catch (OperationCanceledException) { }
-                    catch (Exception ex)
-                    {
-                        SherpaOnnxLog.RuntimeWarning(
-                            "[SherpaOnnx] AsrCombinedPanel: TTS warm-up failed: " + ex.Message);
-                    }
-                }
-
-                await UniTask.SwitchToMainThread();
                 if (ct.IsCancellationRequested) return;
 
-                if (_tts == null || !_tts.IsReady)
+                if (!_tts.IsReady)
                 {
                     SetStatus("TTS engine failed to load.");
                     return;
@@ -297,7 +273,6 @@ namespace PonyuDev.SherpaOnnx.Samples
             catch (OperationCanceledException) { }
             catch (Exception ex)
             {
-                await UniTask.SwitchToMainThread();
                 SherpaOnnxLog.RuntimeError($"[SherpaOnnx] AsrCombinedPanel TTS init: {ex}");
                 SetStatus($"TTS init error: {ex.Message}");
             }

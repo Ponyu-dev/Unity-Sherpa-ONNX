@@ -326,10 +326,16 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
         private static TtsResult RunGenerateWithCallback(
             OfflineTts tts, string text, float speed, int speakerId, TtsCallback callback)
         {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallback));
+            var audio = tts.Generate(text, speed, speakerId);
+            return WrapAudio(audio);
+#else
             var bridge = MakeCallback(callback);
             var audio = tts.GenerateWithCallback(text, speed, speakerId, bridge);
             GC.KeepAlive(bridge);
             return WrapAudio(audio);
+#endif
         }
 
         /// <summary>Body of sync <see cref="GenerateWithCallbackProgress"/>.</summary>
@@ -337,10 +343,16 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             OfflineTts tts, string text, float speed, int speakerId,
             TtsCallbackProgress callback)
         {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallbackProgress));
+            var audio = tts.Generate(text, speed, speakerId);
+            return WrapAudio(audio);
+#else
             var bridge = MakeProgressCallback(callback);
             var audio = tts.GenerateWithCallbackProgress(text, speed, speakerId, bridge);
             GC.KeepAlive(bridge);
             return WrapAudio(audio);
+#endif
         }
 
         /// <summary>Body of sync <see cref="GenerateWithConfig"/>.</summary>
@@ -348,26 +360,50 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             OfflineTts tts, string text, OfflineTtsGenerationConfig nativeConfig,
             TtsCallbackProgress callback)
         {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithConfig));
+            var audio = tts.Generate(text, nativeConfig.Speed, nativeConfig.Sid);
+            return WrapAudio(audio);
+#else
             var bridge = MakeProgressWithArgCallback(callback);
             var audio = tts.GenerateWithConfig(text, nativeConfig, bridge);
             GC.KeepAlive(bridge);
             return WrapAudio(audio);
+#endif
         }
 
         // ── Async generation bodies (named for debug stack traces) ──
+        //
+        // IL2CPP note: sherpa-onnx C# bindings wrap user callbacks in a
+        // compiler-generated closure (instance method) before passing the
+        // delegate into native code via P/Invoke. IL2CPP cannot marshal
+        // delegates that point to instance methods to native, so any path
+        // through tts.GenerateWithCallback / GenerateWithCallbackProgress /
+        // GenerateWithConfig throws NotSupportedException at runtime on
+        // iOS / Android / any IL2CPP build. We fall back to the
+        // callback-less tts.Generate(...) when ENABLE_IL2CPP is set.
+        // Cancellation becomes "soft": the awaiting Task observes the CT,
+        // but the native generation runs to completion (no mid-stream
+        // abort and no streaming progress callbacks).
 
         /// <summary>
         /// Body of <see cref="GenerateAsync"/> — runs on a worker thread via Task.Run.
-        /// Wraps in a cancellation-only callback so sherpa-onnx can be aborted.
         /// </summary>
         private static TtsResult RunGenerate(
             OfflineTts tts, string text, float speed, int speakerId, CancellationToken ct)
         {
+#if ENABLE_IL2CPP
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, speed, speakerId);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
             var cancelCheck = MakeCancellationCallback(ct);
             var audio = tts.GenerateWithCallback(text, speed, speakerId, cancelCheck);
             GC.KeepAlive(cancelCheck);
             ct.ThrowIfCancellationRequested();
             return WrapAudio(audio);
+#endif
         }
 
         /// <summary>Body of <see cref="GenerateWithCallbackAsync"/>.</summary>
@@ -375,11 +411,19 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             OfflineTts tts, string text, float speed, int speakerId,
             TtsCallback callback, CancellationToken ct)
         {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallbackAsync));
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, speed, speakerId);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
             var bridge = MakeCancellableCallback(callback, ct);
             var audio = tts.GenerateWithCallback(text, speed, speakerId, bridge);
             GC.KeepAlive(bridge);
             ct.ThrowIfCancellationRequested();
             return WrapAudio(audio);
+#endif
         }
 
         /// <summary>Body of <see cref="GenerateWithCallbackProgressAsync"/>.</summary>
@@ -387,11 +431,19 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             OfflineTts tts, string text, float speed, int speakerId,
             TtsCallbackProgress callback, CancellationToken ct)
         {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallbackProgressAsync));
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, speed, speakerId);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
             var bridge = MakeCancellableProgressCallback(callback, ct);
             var audio = tts.GenerateWithCallbackProgress(text, speed, speakerId, bridge);
             GC.KeepAlive(bridge);
             ct.ThrowIfCancellationRequested();
             return WrapAudio(audio);
+#endif
         }
 
         /// <summary>Body of <see cref="GenerateWithConfigAsync"/>.</summary>
@@ -399,12 +451,38 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             OfflineTts tts, string text, OfflineTtsGenerationConfig nativeConfig,
             TtsCallbackProgress callback, CancellationToken ct)
         {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithConfigAsync));
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, nativeConfig.Speed, nativeConfig.Sid);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
             var bridge = MakeCancellableProgressWithArgCallback(callback, ct);
             var audio = tts.GenerateWithConfig(text, nativeConfig, bridge);
             GC.KeepAlive(bridge);
             ct.ThrowIfCancellationRequested();
             return WrapAudio(audio);
+#endif
         }
+
+#if ENABLE_IL2CPP
+        // Logged at most once per process so we don't spam the log on every
+        // generation call.
+        private static int _il2cppCallbackWarningsLogged;
+
+        private static void WarnCallbacksUnsupportedOnIl2cpp(string apiName)
+        {
+            if (System.Threading.Interlocked.Exchange(ref _il2cppCallbackWarningsLogged, 1) != 0)
+                return;
+
+            SherpaOnnxLog.RuntimeWarning(
+                $"[SherpaOnnx] TtsEngine.{apiName}: progress/streaming callbacks are " +
+                "ignored on IL2CPP (sherpa-onnx C# bindings use closure delegates that " +
+                "IL2CPP cannot marshal to native). Falling back to non-streaming Generate. " +
+                "Use GenerateAsync if you don't need progress callbacks.");
+        }
+#endif
 
         // ── Callback factories (encapsulate the native-bridge lambdas) ──
 
