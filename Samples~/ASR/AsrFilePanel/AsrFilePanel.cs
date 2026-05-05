@@ -1,5 +1,7 @@
 using System;
 using System.Diagnostics;
+using System.Threading;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Offline.Engine;
 using PonyuDev.SherpaOnnx.Asr.Online;
@@ -16,16 +18,24 @@ namespace PonyuDev.SherpaOnnx.Samples
     /// </summary>
     public sealed class AsrFilePanel : IAsrSamplePanel
     {
+        private const string PlayButtonText = "Play Original";
+        private const string StopButtonText = "Stop Playback";
+
         private IAsrService _service;
         private AudioClip _clip;
         private Action _onBack;
 
         private Button _recognizeButton;
+        private Button _playButton;
         private Button _backButton;
         private Label _resultLabel;
         private Label _statusLabel;
         private Label _infoLabel;
         private Label _timingLabel;
+
+        private GameObject _audioRoot;
+        private AudioSource _audioSource;
+        private CancellationTokenSource _playCts;
 
         private bool _isRecognizing;
 
@@ -44,6 +54,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _onBack = onBack;
 
             _recognizeButton = root.Q<Button>("recognizeButton");
+            _playButton = root.Q<Button>("playButton");
             _backButton = root.Q<Button>("backButton");
             _resultLabel = root.Q<Label>("resultLabel");
             _statusLabel = root.Q<Label>("statusLabel");
@@ -52,20 +63,37 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             if (_recognizeButton != null)
                 _recognizeButton.clicked += HandleRecognize;
+            if (_playButton != null)
+                _playButton.clicked += HandlePlay;
             if (_backButton != null)
                 _backButton.clicked += HandleBack;
+
+            BuildAudio();
+            if (_clip == null && _playButton != null)
+            {
+                _playButton.SetEnabled(false);
+            }
 
             UpdateInfo();
         }
 
         public void Unbind()
         {
+            _playCts?.Cancel();
+            _playCts?.Dispose();
+            _playCts = null;
+
+            DestroyAudio();
+
             if (_recognizeButton != null)
                 _recognizeButton.clicked -= HandleRecognize;
+            if (_playButton != null)
+                _playButton.clicked -= HandlePlay;
             if (_backButton != null)
                 _backButton.clicked -= HandleBack;
 
             _recognizeButton = null;
+            _playButton = null;
             _backButton = null;
             _resultLabel = null;
             _statusLabel = null;
@@ -74,6 +102,33 @@ namespace PonyuDev.SherpaOnnx.Samples
             _service = null;
             _clip = null;
             _onBack = null;
+        }
+
+        // ── Audio ──
+
+        private void BuildAudio()
+        {
+            _audioRoot = new GameObject("[SherpaOnnx] AsrFileSamplePlayback");
+            _audioRoot.hideFlags = HideFlags.HideAndDontSave;
+            UnityEngine.Object.DontDestroyOnLoad(_audioRoot);
+
+            _audioSource = _audioRoot.AddComponent<AudioSource>();
+            _audioSource.playOnAwake = false;
+            _audioSource.loop = false;
+            _audioSource.volume = 1f;
+        }
+
+        private void DestroyAudio()
+        {
+            if (_audioSource != null)
+                _audioSource.Stop();
+
+            if (_audioRoot != null)
+            {
+                UnityEngine.Object.Destroy(_audioRoot);
+                _audioRoot = null;
+            }
+            _audioSource = null;
         }
 
         // ── Handlers ──
@@ -132,6 +187,50 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _isRecognizing = false;
                 _recognizeButton?.SetEnabled(true);
             }
+        }
+
+        private async void HandlePlay()
+        {
+            if (_audioSource == null || _clip == null)
+                return;
+
+            if (_audioSource.isPlaying)
+            {
+                StopPlayback();
+                return;
+            }
+
+            _audioSource.clip = _clip;
+            _audioSource.Play();
+            if (_playButton != null)
+                _playButton.text = StopButtonText;
+
+            _playCts?.Cancel();
+            _playCts?.Dispose();
+            _playCts = new CancellationTokenSource();
+            var ct = _playCts.Token;
+
+            try
+            {
+                int delayMs = Mathf.CeilToInt((_clip.length + 0.05f) * 1000f);
+                await UniTask.Delay(delayMs, ignoreTimeScale: true, cancellationToken: ct);
+            }
+            catch (OperationCanceledException) { return; }
+
+            if (ct.IsCancellationRequested) return;
+            if (_playButton != null)
+                _playButton.text = PlayButtonText;
+        }
+
+        private void StopPlayback()
+        {
+            if (_audioSource != null && _audioSource.isPlaying)
+                _audioSource.Stop();
+
+            _playCts?.Cancel();
+
+            if (_playButton != null)
+                _playButton.text = PlayButtonText;
         }
 
         private void HandleBack()

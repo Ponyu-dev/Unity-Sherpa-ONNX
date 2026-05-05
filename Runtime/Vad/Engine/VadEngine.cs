@@ -48,9 +48,7 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
             if (!ValidateModelDirectory(modelDir, profile))
                 return;
 
-            if (ModelFileValidator.BlockIfInt8Model(
-                    modelDir, "VAD", profile.allowInt8))
-                return;
+            ModelFileValidator.LogIfInt8(modelDir, "VAD");
 
             var config = VadConfigBuilder.Build(profile, modelDir);
 

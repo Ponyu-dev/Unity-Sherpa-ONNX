@@ -23,21 +23,42 @@ namespace PonyuDev.SherpaOnnx.Common.Audio.Config
         public float micStartTimeoutSec = 2f;
 
         /// <summary>
-        /// Amplitude below this value is treated as silence.
-        /// Real speech is typically maxAbs &gt; 0.05.
+        /// Algorithm applied when the device's native rate differs from
+        /// <see cref="sampleRate"/>. Common on Android where hardware
+        /// is locked at 44.1/48 kHz regardless of the requested rate.
         /// </summary>
-        public float silenceThreshold = 0.05f;
+        public ResamplingMode resamplingMode = ResamplingMode.Linear;
 
         /// <summary>
-        /// Consecutive silent frames before fallback triggers.
-        /// At 30 fps: 90 frames ~ 3 seconds.
+        /// When <c>true</c>, <see cref="MicrophoneSource"/> auto-configures
+        /// the platform audio session on start/stop:
+        /// iOS — switches AVAudioSession between PlayAndRecord and Playback;
+        /// Android — sets AudioManager MODE_IN_COMMUNICATION + speakerphone.
+        /// Disable when the host project manages its own audio session.
         /// </summary>
-        public int silenceFrameLimit = 90;
+        public bool manageAudioSession = true;
 
         /// <summary>
-        /// Number of diagnostic log frames at the start
-        /// of each recording path.
+        /// Android only. When <c>true</c>, <see cref="MicrophoneSource"/>
+        /// returns AudioManager to MODE_NORMAL on stop. By default the
+        /// MODE_IN_COMMUNICATION + speakerphone setup is left in place
+        /// for the rest of the session — switching modes mid-session
+        /// triggers an audio route change that can break the next capture.
+        /// Enable only when you need normal media volume between captures.
         /// </summary>
-        public int diagFrameCount = 5;
+        public bool androidReturnToNormalOnStop;
+
+        /// <summary>
+        /// Android only. Delay in milliseconds applied between switching
+        /// AudioManager into MODE_IN_COMMUNICATION + speakerphone and
+        /// starting <see cref="UnityEngine.Microphone"/>. The mode change
+        /// triggers an asynchronous audio route change; without the wait
+        /// the mic starts on the old route and produces no samples until
+        /// the routing settles, which often exceeds
+        /// <see cref="micStartTimeoutSec"/>. Only applied on the first
+        /// capture (subsequent captures reuse the already-configured
+        /// mode).
+        /// </summary>
+        public int androidAudioSessionSettleMs = 500;
     }
 }

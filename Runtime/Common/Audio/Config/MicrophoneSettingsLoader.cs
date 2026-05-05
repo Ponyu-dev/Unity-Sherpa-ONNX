@@ -73,8 +73,8 @@ namespace PonyuDev.SherpaOnnx.Common.Audio.Config
 
                 SherpaOnnxLog.RuntimeLog(
                     "[SherpaOnnx] Microphone settings loaded " +
-                    $"(threshold={data.silenceThreshold}, " +
-                    $"silenceLimit={data.silenceFrameLimit}).");
+                    $"(rate={data.sampleRate}, " +
+                    $"resampling={data.resamplingMode}).");
                 return data ?? new MicrophoneSettingsData();
             }
             catch (Exception ex)

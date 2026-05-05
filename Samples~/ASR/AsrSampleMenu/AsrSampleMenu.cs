@@ -15,9 +15,11 @@ namespace PonyuDev.SherpaOnnx.Samples
     {
         public const string IdFile = "file";
         public const string IdStream = "stream";
+        public const string IdCombined = "combined";
 
         private Button _btnFile;
         private Button _btnStream;
+        private Button _btnCombined;
         private Label _infoLabel;
         private Action<string> _onNavigate;
 
@@ -48,12 +50,15 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             _btnFile = root.Q<Button>("btnFile");
             _btnStream = root.Q<Button>("btnStream");
+            _btnCombined = root.Q<Button>("btnCombined");
             _infoLabel = root.Q<Label>("infoLabel");
 
             if (_btnFile != null)
                 _btnFile.clicked += HandleFile;
             if (_btnStream != null)
                 _btnStream.clicked += HandleStream;
+            if (_btnCombined != null)
+                _btnCombined.clicked += HandleCombined;
 
             UpdateInfo(offlineService, onlineService);
         }
@@ -64,9 +69,12 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnFile.clicked -= HandleFile;
             if (_btnStream != null)
                 _btnStream.clicked -= HandleStream;
+            if (_btnCombined != null)
+                _btnCombined.clicked -= HandleCombined;
 
             _btnFile = null;
             _btnStream = null;
+            _btnCombined = null;
             _infoLabel = null;
             _onNavigate = null;
         }
@@ -81,6 +89,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         private void HandleStream()
         {
             _onNavigate?.Invoke(IdStream);
+        }
+
+        private void HandleCombined()
+        {
+            _onNavigate?.Invoke(IdCombined);
         }
 
         // ── Helpers ──

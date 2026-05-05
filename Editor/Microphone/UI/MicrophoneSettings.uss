@@ -1,0 +1,14 @@
+/* Microphone settings panel — section spacing only.
+   Shared layout rules live in ModelSettings.uss. */
+
+.mic-section {
+    margin-top: 12px;
+    padding: 8px;
+    border-width: 1px;
+    border-radius: 4px;
+}
+
+.mic-section-title {
+    -unity-font-style: bold;
+    margin-bottom: 6px;
+}
