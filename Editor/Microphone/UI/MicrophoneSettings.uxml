@@ -15,6 +15,16 @@
             <ui:HelpBox text="Used when the device's native rate (often 44.1/48 kHz on Android) differs from the requested sample rate. Linear is cheap and good enough for ASR/VAD; Lowpass adds a one-pole pre-filter for cleaner downsampling at slightly higher CPU cost." message-type="None"/>
         </ui:VisualElement>
 
+        <ui:VisualElement class="mic-section">
+            <ui:Label text="Audio session" class="mic-section-title"/>
+            <ui:Toggle label="Manage audio session" name="manageAudioSessionField"/>
+            <ui:Toggle label="Android: return to MODE_NORMAL on stop" name="androidReturnToNormalField"/>
+            <ui:IntegerField label="Android settle delay (ms)" name="androidSettleMsField"/>
+            <ui:HelpBox text="When enabled, MicrophoneSource auto-configures the platform audio session: iOS switches AVAudioSession between PlayAndRecord (recording) and Playback (idle); Android sets AudioManager MODE_IN_COMMUNICATION + speakerphone — this engages AEC/AGC, without which TTS playback often makes the mic capture near-silent. Disable when the host project manages its own audio session — AudioSessionBridge.ConfigureForRecording/RestoreForPlayback are public for manual use." message-type="Info"/>
+            <ui:HelpBox text="Android: by default the communication mode is left in place once configured because mid-session mode switches trigger an audio route change that can break the next mic capture. Enable the toggle above only if you need normal media volume between captures." message-type="None"/>
+            <ui:HelpBox text="Android settle delay: applied only on the first capture, after switching AudioManager mode and before Microphone.Start. The mode change triggers an asynchronous route change; without the wait the mic starts on the old route and never produces samples within the start timeout. Default 500 ms is safe on most devices; raise to 800–1000 if you still see &quot;device did not start within Ns&quot; on first record." message-type="None"/>
+        </ui:VisualElement>
+
     </ui:VisualElement>
     </ui:ScrollView>
 </ui:UXML>

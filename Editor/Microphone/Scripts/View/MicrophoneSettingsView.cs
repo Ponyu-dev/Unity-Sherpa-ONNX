@@ -23,6 +23,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
         private IntegerField _clipLengthField;
         private FloatField _micStartTimeoutField;
         private EnumField _resamplingModeField;
+        private Toggle _manageAudioSessionField;
+        private Toggle _androidReturnToNormalField;
+        private IntegerField _androidSettleMsField;
 
         internal MicrophoneSettingsView(string uxmlPath)
         {
@@ -53,11 +56,17 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
             _clipLengthField?.UnregisterValueChangedCallback(HandleClipLengthChanged);
             _micStartTimeoutField?.UnregisterValueChangedCallback(HandleMicStartTimeoutChanged);
             _resamplingModeField?.UnregisterValueChangedCallback(HandleResamplingModeChanged);
+            _manageAudioSessionField?.UnregisterValueChangedCallback(HandleManageAudioSessionChanged);
+            _androidReturnToNormalField?.UnregisterValueChangedCallback(HandleAndroidReturnToNormalChanged);
+            _androidSettleMsField?.UnregisterValueChangedCallback(HandleAndroidSettleMsChanged);
 
             _sampleRateField = null;
             _clipLengthField = null;
             _micStartTimeoutField = null;
             _resamplingModeField = null;
+            _manageAudioSessionField = null;
+            _androidReturnToNormalField = null;
+            _androidSettleMsField = null;
         }
 
         // ── Bindings ──
@@ -92,6 +101,27 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
                 _resamplingModeField.value = data.resamplingMode;
                 _resamplingModeField.RegisterValueChangedCallback(HandleResamplingModeChanged);
             }
+
+            _manageAudioSessionField = root.Q<Toggle>("manageAudioSessionField");
+            if (_manageAudioSessionField != null)
+            {
+                _manageAudioSessionField.value = data.manageAudioSession;
+                _manageAudioSessionField.RegisterValueChangedCallback(HandleManageAudioSessionChanged);
+            }
+
+            _androidReturnToNormalField = root.Q<Toggle>("androidReturnToNormalField");
+            if (_androidReturnToNormalField != null)
+            {
+                _androidReturnToNormalField.value = data.androidReturnToNormalOnStop;
+                _androidReturnToNormalField.RegisterValueChangedCallback(HandleAndroidReturnToNormalChanged);
+            }
+
+            _androidSettleMsField = root.Q<IntegerField>("androidSettleMsField");
+            if (_androidSettleMsField != null)
+            {
+                _androidSettleMsField.value = data.androidAudioSessionSettleMs;
+                _androidSettleMsField.RegisterValueChangedCallback(HandleAndroidSettleMsChanged);
+            }
         }
 
         // ── Persistence ──
@@ -121,6 +151,27 @@ namespace PonyuDev.SherpaOnnx.Editor.Microphone.View
         {
             var s = MicrophoneProjectSettings.instance;
             s.data.resamplingMode = (ResamplingMode)evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleManageAudioSessionChanged(ChangeEvent<bool> evt)
+        {
+            var s = MicrophoneProjectSettings.instance;
+            s.data.manageAudioSession = evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleAndroidReturnToNormalChanged(ChangeEvent<bool> evt)
+        {
+            var s = MicrophoneProjectSettings.instance;
+            s.data.androidReturnToNormalOnStop = evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleAndroidSettleMsChanged(ChangeEvent<int> evt)
+        {
+            var s = MicrophoneProjectSettings.instance;
+            s.data.androidAudioSessionSettleMs = evt.newValue < 0 ? 0 : evt.newValue;
             s.SaveSettings();
         }
 

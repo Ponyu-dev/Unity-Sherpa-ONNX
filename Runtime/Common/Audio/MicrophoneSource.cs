@@ -84,6 +84,9 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             StopSilentPlayback();
             Microphone.End(_resolvedDevice);
 
+            if (_settings.manageAudioSession)
+                AudioSessionBridge.RestoreForPlayback(_settings.androidReturnToNormalOnStop);
+
             IsRecording = false;
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] MicrophoneSource: stopped.");
             RecordingStopped?.Invoke();
@@ -142,13 +145,25 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
             if (string.IsNullOrEmpty(_resolvedDevice))
                 _resolvedDevice = Microphone.devices[0];
 
-            iOSAudioSessionBridge.ConfigureForRecording();
+            if (_settings.manageAudioSession)
+            {
+                bool androidModeJustApplied = AudioSessionBridge.ConfigureForRecording();
+                if (androidModeJustApplied && _settings.androidAudioSessionSettleMs > 0)
+                {
+                    SherpaOnnxLog.RuntimeLog(
+                        "[SherpaOnnx] MicrophoneSource: waiting " +
+                        $"{_settings.androidAudioSessionSettleMs}ms for Android audio route to settle.");
+                    await UniTask.Delay(_settings.androidAudioSessionSettleMs, cancellationToken: ct);
+                }
+            }
 
             _clip = Microphone.Start(_resolvedDevice, true, _clipLengthSec, _sampleRate);
 
             if (_clip == null)
             {
                 SherpaOnnxLog.RuntimeError("[SherpaOnnx] MicrophoneSource: Microphone.Start returned null.");
+                if (_settings.manageAudioSession)
+                    AudioSessionBridge.RestoreForPlayback(_settings.androidReturnToNormalOnStop);
                 return false;
             }
 
@@ -160,6 +175,8 @@ namespace PonyuDev.SherpaOnnx.Common.Audio
                 StopSilentPlayback();
                 Microphone.End(_resolvedDevice);
                 _clip = null;
+                if (_settings.manageAudioSession)
+                    AudioSessionBridge.RestoreForPlayback(_settings.androidReturnToNormalOnStop);
                 SherpaOnnxLog.RuntimeError(
                     "[SherpaOnnx] MicrophoneSource: device did not start within " +
                     $"{_settings.micStartTimeoutSec}s.");
