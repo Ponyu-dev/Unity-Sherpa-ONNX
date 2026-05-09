@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Networking;
+using UnityEngine;
 
 namespace PonyuDev.SherpaOnnx.Common.Platform
 {
@@ -17,13 +18,24 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
     /// <see cref="ProfileReadyPhase.Extract"/> phase (or
     /// <see cref="ProfileReadyPhase.Download"/> + Extract for Remote)
     /// with 0..100 percent through the supplied <c>onEvent</c>.
+    ///
+    /// Editor override: in <c>Application.isEditor</c> any non-Local
+    /// source is treated as Local — no zip extraction, no download.
+    /// The Editor always reads model files from StreamingAssets, since
+    /// downloading 100 MB+ archives every PlayMode is wasteful and
+    /// LocalZip's build-time zip artifact does not exist yet. The path
+    /// resolvers in TtsModelPathResolver / AsrModelPathResolver /
+    /// VadModelPathResolver mirror this and route every source to the
+    /// StreamingAssets-relative directory in Editor.
     /// </summary>
     public static class ProfileSourceResolver
     {
         /// <summary>
         /// Extracts the bundled <c>.zip</c> archive for a
         /// <see cref="ModelSource.LocalZip"/> profile. No-op for any
-        /// other source.
+        /// other source. In Editor the zip artifact does not exist
+        /// (it is created at build time), so this is also a no-op
+        /// there — files are read straight from StreamingAssets.
         /// </summary>
         public static async UniTask<bool> EnsureLocalZipReadyAsync(
             IModelProfile profile,
@@ -33,6 +45,9 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             CancellationToken ct = default)
         {
             if (profile == null || profile.ModelSource != ModelSource.LocalZip)
+                return true;
+
+            if (Application.isEditor)
                 return true;
 
             ProfileReadyEvents.Emit(onEvent, ProfileReadyPhase.Extract, 0);
@@ -56,6 +71,13 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         /// <see cref="ModelSource.Remote"/> profile. No-op for any
         /// other source. Forwards Download / Extract / Failed events
         /// directly from <see cref="RemoteProfileFetcher"/>.
+        ///
+        /// In Editor this is also a no-op — the model files are
+        /// expected in StreamingAssets (typically placed there by the
+        /// Editor "Import from URL" importer). If they are not there
+        /// LoadProfile will fail with a missing-file error, prompting
+        /// the developer to import the model into the project rather
+        /// than re-download every PlayMode.
         /// </summary>
         public static async UniTask<bool> EnsureRemoteReadyAsync(
             IModelProfile profile,
@@ -65,6 +87,9 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             CancellationToken ct = default)
         {
             if (profile == null || profile.ModelSource != ModelSource.Remote)
+                return true;
+
+            if (Application.isEditor)
                 return true;
 
             bool ok = await RemoteProfileFetcher.EnsureDownloadedAsync(modelsSubfolder, profile.ProfileName, profile.SourceUrl, onEvent, ct);

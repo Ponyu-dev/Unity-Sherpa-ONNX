@@ -1,0 +1,31 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../UI/Shared.uss"/>
+    <Style src="DemoTopMenu.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Label text="Sherpa-ONNX Demo" class="sample-title"/>
+        <ui:Label text="Pick a module to explore. Each card shows its current load state."
+                  class="sample-info"
+                  style="margin-bottom: 32px;"/>
+
+        <ui:Button name="cardTts" class="menu-card">
+            <ui:Label text="TTS" class="menu-card-title"/>
+            <ui:Label text="Text-to-speech: simple synthesis, streaming, runtime controls, cache."
+                      class="menu-card-desc"/>
+            <ui:Label name="ttsStatus" text="Initializing…" class="card-status"/>
+        </ui:Button>
+
+        <ui:Button name="cardAsr" class="menu-card">
+            <ui:Label text="ASR" class="menu-card-title"/>
+            <ui:Label text="Speech recognition: offline file, online streaming, combined demo."
+                      class="menu-card-desc"/>
+            <ui:Label name="asrStatus" text="Initializing…" class="card-status"/>
+        </ui:Button>
+
+        <ui:Button name="cardVad" class="menu-card">
+            <ui:Label text="VAD" class="menu-card-title"/>
+            <ui:Label text="Voice activity detection + ASR pipeline on microphone capture."
+                      class="menu-card-desc"/>
+            <ui:Label name="vadStatus" text="Initializing…" class="card-status"/>
+        </ui:Button>
+    </ui:VisualElement>
+</ui:UXML>

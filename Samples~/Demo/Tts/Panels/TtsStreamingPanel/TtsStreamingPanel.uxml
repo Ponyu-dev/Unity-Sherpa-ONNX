@@ -1,0 +1,41 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../../../UI/Shared.uss"/>
+    <Style src="TtsStreamingPanel.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="&#x2190; Back" class="sample-back-btn"/>
+        <ui:Label text="Streaming TTS" class="sample-title"/>
+
+        <ui:Label class="sample-info streaming-hint"
+                  text="Three approaches to long-text playback. Blocking: wait for full synthesis, then play. Streaming: model-level chunking — first audio plays as soon as sherpa-onnx emits the first chunk (works best on long sentences). Sentence Queue: C#-level chunking — splits text by punctuation, generates each sentence on demand while the previous one plays. Watch the &#x22;First audio&#x22; metric. Note: blocking and queue go through CachedTtsService — a second click on the same text returns instantly with &#x22;(cached hit)&#x22; tag. Streaming bypasses the cache. Heads-up: native streaming relies on a P/Invoke callback that IL2CPP cannot marshal, so on iOS / Android / IL2CPP Standalone the Streaming button is intentionally inert — use Sentence Queue, which does the same low-latency trick in pure C# and works everywhere."/>
+
+        <ui:TextField name="textField" label="Text" multiline="true"
+                      value="The quick brown fox jumps over the lazy dog. Sherpa-onnx generates speech sentence by sentence, which means we can start playing the first sentence while the rest is still being synthesized. This is exactly what streaming text-to-speech is for, and it shines especially well on long passages. Imagine reading a five-page article aloud: with blocking generation you would wait several seconds before any sound appears. With streaming, the very first words come out almost immediately. The longer the text, the bigger the perceived difference. Try it on this paragraph and compare the two timings shown below."
+                      class="sample-text-field"/>
+
+        <ui:VisualElement class="streaming-row">
+            <ui:Button name="btnSpeakStreaming" text="Speak (Streaming)"
+                       class="sample-generate-btn streaming-btn"/>
+            <ui:Button name="btnSpeakBlocking" text="Speak (Blocking)"
+                       class="sample-generate-btn streaming-btn"/>
+        </ui:VisualElement>
+
+        <ui:VisualElement class="streaming-row">
+            <ui:SliderInt name="lookAheadSlider" label="Queue look-ahead"
+                          low-value="1" high-value="5" value="1"
+                          show-input-field="true"
+                          class="streaming-slider"/>
+        </ui:VisualElement>
+
+        <ui:Button name="btnSpeakQueue" text="Speak (Sentence Queue)"
+                   class="sample-generate-btn"/>
+
+        <ui:Button name="btnStop" text="Stop"
+                   class="sample-generate-btn streaming-btn-stop"/>
+
+        <ui:Label name="statusLabel" text="Ready" class="sample-status"/>
+
+        <ui:Label name="streamingResult" class="streaming-result-label"/>
+        <ui:Label name="blockingResult" class="streaming-result-label streaming-result-blocking"/>
+        <ui:Label name="queueResult" class="streaming-result-label streaming-result-queue"/>
+    </ui:VisualElement>
+</ui:UXML>
