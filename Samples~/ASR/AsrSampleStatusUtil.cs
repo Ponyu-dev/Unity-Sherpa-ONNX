@@ -1,31 +1,58 @@
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Online;
+using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Samples
 {
     /// <summary>
-    /// Builds the bottom-status line shown by every ASR sample panel.
-    /// Centralises the wording so panels stay consistent and don't
-    /// duplicate a one-liner across the codebase. Combines live
-    /// init-progress from <see cref="AsrInitProgressBus"/> with the
-    /// service's runtime state.
+    /// Builds the bottom-status line for ASR sample panels and the
+    /// menu. Reads the latest <see cref="ProfileReadyEvent"/> from
+    /// <see cref="AsrInitProgressBus"/> for offline / online streams
+    /// and turns each into one line per phase.
     /// </summary>
     internal static class AsrSampleStatusUtil
     {
         public static string BuildOfflineCurrent(IAsrService asr)
         {
-            if (!AsrInitProgressBus.OfflineFinished)
-                return $"Initializing offline ASR — {AsrInitProgressBus.OfflinePercent}%";
+            if (AsrInitProgressBus.OfflineReady)
+                return BuildOfflineReady(asr);
 
-            return BuildOfflineReady(asr);
+            if (!AsrInitProgressBus.OfflineHasEvent)
+                return "Initializing offline ASR…";
+
+            return BuildPhaseText(AsrInitProgressBus.LastOfflineEvent, "Offline ASR");
         }
 
         public static string BuildOnlineCurrent(IOnlineAsrService asr)
         {
-            if (!AsrInitProgressBus.OnlineFinished)
-                return $"Initializing online ASR — {AsrInitProgressBus.OnlinePercent}%";
+            if (AsrInitProgressBus.OnlineReady)
+                return BuildOnlineReady(asr);
 
-            return BuildOnlineReady(asr);
+            if (!AsrInitProgressBus.OnlineHasEvent)
+                return "Initializing online ASR…";
+
+            return BuildPhaseText(AsrInitProgressBus.LastOnlineEvent, "Online ASR");
+        }
+
+        private static string BuildPhaseText(ProfileReadyEvent e, string engineName)
+        {
+            switch (e.Phase)
+            {
+                case ProfileReadyPhase.Download:
+                    return $"{engineName} • downloading {e.Percent}%";
+                case ProfileReadyPhase.DownloadRetrying:
+                    return $"{engineName} • network issue, retrying ({e.RetryAttempt})…";
+                case ProfileReadyPhase.Extract:
+                    return $"{engineName} • extracting {e.Percent}%";
+                case ProfileReadyPhase.Init:
+                    return $"{engineName} • initializing engine {e.Percent}%";
+                case ProfileReadyPhase.Failed:
+                    return $"{engineName} • failed: {e.Message ?? "unknown error"}";
+                case ProfileReadyPhase.Ready:
+                    return $"{engineName} • ready";
+                default:
+                    return $"{engineName}…";
+            }
         }
 
         public static string BuildOfflineReady(IAsrService asr)
@@ -36,9 +63,7 @@ namespace PonyuDev.SherpaOnnx.Samples
                 return "Offline ASR engine failed to load. See console for details.";
 
             var profile = asr.ActiveProfile;
-            string profileName = profile != null
-                ? profile.profileName
-                : "(no profile)";
+            string profileName = profile != null ? profile.profileName : "(no profile)";
             return $"Ready • offline ASR profile '{profileName}'";
         }
 
@@ -50,9 +75,7 @@ namespace PonyuDev.SherpaOnnx.Samples
                 return "Online ASR engine failed to load. See console for details.";
 
             var profile = asr.ActiveProfile;
-            string profileName = profile != null
-                ? profile.profileName
-                : "(no profile)";
+            string profileName = profile != null ? profile.profileName : "(no profile)";
             return $"Ready • online ASR profile '{profileName}'";
         }
     }

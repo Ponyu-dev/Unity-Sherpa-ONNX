@@ -80,70 +80,22 @@ namespace PonyuDev.SherpaOnnx.Samples
             try
             {
                 SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VAD init: starting…");
-                var vadProgress = new Progress<float>(ReportVadInitProgress);
-                var asrProgress = new Progress<float>(ReportAsrInitProgress);
-                await _vadService.InitializeAsync(vadProgress);
-                VadInitProgressBus.MarkVadFinished();
-                await _asrService.InitializeAsync(asrProgress);
-                VadInitProgressBus.MarkAsrFinished();
+                await _vadService.InitializeAsync(VadInitProgressBus.PublishVadEvent);
+                await _asrService.InitializeAsync(VadInitProgressBus.PublishAsrEvent);
 
                 if (_vadService.IsReady)
-                {
-                    _pipeline = new VadAsrPipeline(
-                        _vadService, _asrService);
-                }
+                    _pipeline = new VadAsrPipeline(_vadService, _asrService);
 
-                bool ready = _vadService.IsReady &&
-                             _asrService.IsReady;
-
+                bool ready = _vadService.IsReady && _asrService.IsReady;
                 if (ready)
-                {
-                    SherpaOnnxLog.RuntimeLog(
-                        "[SherpaOnnx] VadSampleNavigator: " +
-                        "services ready.");
-                }
+                    SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadSampleNavigator: services ready.");
                 else
-                {
-                    SherpaOnnxLog.RuntimeWarning(
-                        "[SherpaOnnx] VadSampleNavigator: " +
-                        "services initialized but engines " +
-                        "not loaded.");
-                }
+                    SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] VadSampleNavigator: services initialized but engines not loaded.");
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] VadSampleNavigator init " +
-                    "failed: " + ex.Message);
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] VadSampleNavigator init failed: " + ex.Message);
             }
-            finally
-            {
-                VadInitProgressBus.MarkVadFinished();
-                VadInitProgressBus.MarkAsrFinished();
-            }
-        }
-
-        // Mirror progress into the bus (panels read it live) and the
-        // console (one entry per changed percent so the log doesn't drown).
-        private static int _lastReportedVadPct = -1;
-        private static int _lastReportedVadAsrPct = -1;
-        private static void ReportVadInitProgress(float fraction)
-        {
-            VadInitProgressBus.ReportVad(fraction);
-
-            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
-            if (pct == _lastReportedVadPct) return;
-            _lastReportedVadPct = pct;
-            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] VAD init: {pct}%");
-        }
-        private static void ReportAsrInitProgress(float fraction)
-        {
-            VadInitProgressBus.ReportAsr(fraction);
-
-            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
-            if (pct == _lastReportedVadAsrPct) return;
-            _lastReportedVadAsrPct = pct;
-            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] VAD-pipeline ASR init: {pct}%");
         }
 
         // ── Navigation ──

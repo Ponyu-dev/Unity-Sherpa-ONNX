@@ -1,56 +1,56 @@
 using System;
-using UnityEngine;
+using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Samples
 {
     /// <summary>
-    /// Static channel through which the ASR <c>SampleNavigator</c>
-    /// publishes init progress for both the offline and online
-    /// services, and any open sample panel subscribes to refresh its
-    /// bottom status label in real time. Static so panels can reach
-    /// it without changing their <c>Bind</c> signature.
+    /// Static channel for the ASR sample. Holds the latest
+    /// <see cref="ProfileReadyEvent"/> for both the offline and online
+    /// services side by side so the sample menu and any panel can
+    /// render a status line for each engine without reaching into the
+    /// services directly.
     /// </summary>
     internal static class AsrInitProgressBus
     {
         public static event Action Changed;
 
-        private static float _offlineFraction;
-        private static float _onlineFraction;
-        private static bool _offlineFinished;
-        private static bool _onlineFinished;
+        public static ProfileReadyEvent LastOfflineEvent { get; private set; }
+        public static bool OfflineHasEvent { get; private set; }
+        public static bool OfflineReady { get; private set; }
+        public static bool OfflineFailed { get; private set; }
 
-        public static int OfflinePercent =>
-            Mathf.Clamp((int)(_offlineFraction * 100f), 0, 100);
+        public static ProfileReadyEvent LastOnlineEvent { get; private set; }
+        public static bool OnlineHasEvent { get; private set; }
+        public static bool OnlineReady { get; private set; }
+        public static bool OnlineFailed { get; private set; }
 
-        public static int OnlinePercent =>
-            Mathf.Clamp((int)(_onlineFraction * 100f), 0, 100);
-
-        public static bool OfflineFinished => _offlineFinished;
-        public static bool OnlineFinished => _onlineFinished;
-
-        public static void ReportOffline(float fraction)
+        /// <summary>
+        /// Method-group target passed into
+        /// <c>IAsrService.InitializeAsync(PublishOfflineEvent, ct)</c>.
+        /// </summary>
+        public static void PublishOfflineEvent(ProfileReadyEvent e)
         {
-            _offlineFraction = fraction;
+            LastOfflineEvent = e;
+            OfflineHasEvent = true;
+            if (e.Phase == ProfileReadyPhase.Ready)
+                OfflineReady = true;
+            else if (e.Phase == ProfileReadyPhase.Failed)
+                OfflineFailed = true;
             Changed?.Invoke();
         }
 
-        public static void ReportOnline(float fraction)
+        /// <summary>
+        /// Method-group target passed into
+        /// <c>IOnlineAsrService.InitializeAsync(PublishOnlineEvent, ct)</c>.
+        /// </summary>
+        public static void PublishOnlineEvent(ProfileReadyEvent e)
         {
-            _onlineFraction = fraction;
-            Changed?.Invoke();
-        }
-
-        public static void MarkOfflineFinished()
-        {
-            _offlineFraction = 1f;
-            _offlineFinished = true;
-            Changed?.Invoke();
-        }
-
-        public static void MarkOnlineFinished()
-        {
-            _onlineFraction = 1f;
-            _onlineFinished = true;
+            LastOnlineEvent = e;
+            OnlineHasEvent = true;
+            if (e.Phase == ProfileReadyPhase.Ready)
+                OnlineReady = true;
+            else if (e.Phase == ProfileReadyPhase.Failed)
+                OnlineFailed = true;
             Changed?.Invoke();
         }
     }

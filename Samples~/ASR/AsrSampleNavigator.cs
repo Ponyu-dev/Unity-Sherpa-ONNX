@@ -83,43 +83,23 @@ namespace PonyuDev.SherpaOnnx.Samples
             try
             {
                 SherpaOnnxLog.RuntimeLog("[SherpaOnnx] ASR init: starting…");
-                var offlineProgress = new Progress<float>(ReportOfflineAsrInitProgress);
-                var onlineProgress = new Progress<float>(ReportOnlineAsrInitProgress);
-                await _offlineService.InitializeAsync(offlineProgress);
-                AsrInitProgressBus.MarkOfflineFinished();
-                await _onlineService.InitializeAsync(onlineProgress);
-                AsrInitProgressBus.MarkOnlineFinished();
+                await _offlineService.InitializeAsync(AsrInitProgressBus.PublishOfflineEvent);
+                await _onlineService.InitializeAsync(AsrInitProgressBus.PublishOnlineEvent);
 
-                bool ready = _offlineService.IsReady ||
-                             _onlineService.IsReady;
-
+                bool ready = _offlineService.IsReady || _onlineService.IsReady;
                 if (ready)
                 {
                     await WarmUpServicesAsync();
-                    SherpaOnnxLog.RuntimeLog(
-                        "[SherpaOnnx] AsrSampleNavigator: " +
-                        "services ready.");
+                    SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrSampleNavigator: services ready.");
                 }
                 else
                 {
-                    SherpaOnnxLog.RuntimeWarning(
-                        "[SherpaOnnx] AsrSampleNavigator: " +
-                        "services initialized but engines not loaded.");
+                    SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] AsrSampleNavigator: services initialized but engines not loaded.");
                 }
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrSampleNavigator init failed: " +
-                    ex.Message);
-            }
-            finally
-            {
-                // Flip both flags so panels stop showing stale loading text
-                // even when init failed — they read IsReady and switch to
-                // the proper error message.
-                AsrInitProgressBus.MarkOfflineFinished();
-                AsrInitProgressBus.MarkOnlineFinished();
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrSampleNavigator init failed: " + ex.Message);
             }
         }
 
@@ -159,29 +139,6 @@ namespace PonyuDev.SherpaOnnx.Samples
                         "[SherpaOnnx] AsrSampleNavigator: online warm-up failed: " + ex.Message);
                 }
             }
-        }
-
-        // Mirror progress into the bus (panels read it live) and the
-        // console (one entry per changed percent so the log doesn't drown).
-        private static int _lastReportedOfflineAsrPct = -1;
-        private static int _lastReportedOnlineAsrPct = -1;
-        private static void ReportOfflineAsrInitProgress(float fraction)
-        {
-            AsrInitProgressBus.ReportOffline(fraction);
-
-            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
-            if (pct == _lastReportedOfflineAsrPct) return;
-            _lastReportedOfflineAsrPct = pct;
-            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] ASR (offline) init: {pct}%");
-        }
-        private static void ReportOnlineAsrInitProgress(float fraction)
-        {
-            AsrInitProgressBus.ReportOnline(fraction);
-
-            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
-            if (pct == _lastReportedOnlineAsrPct) return;
-            _lastReportedOnlineAsrPct = pct;
-            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] ASR (online) init: {pct}%");
         }
 
         // ── Navigation ──
