@@ -581,15 +581,105 @@ cannot extract files from the APK.
 Ensure `RECORD_AUDIO` permission is in your `AndroidManifest.xml`.
 The build validator checks this when ASR is enabled.
 
-### Progress Tracking
+### Initialization Progress (`ProfileReadyEvent`)
 
-Monitor extraction progress on Android:
+`IVadService.InitializeAsync` exposes a single semantic callback:
 
 ```csharp
-var progress = new Progress<float>(p =>
-    Debug.Log($"Extracting: {p:P0}"));
+UniTask InitializeAsync(
+    Action<ProfileReadyEvent> onEvent = null,
+    CancellationToken ct = default);
+```
 
-await _vad.InitializeAsync(progress);
+Phases fire in order — `Download` (Remote only) → `Extract` (Remote /
+LocalZip / Local-on-Android) → `Init` — each carrying its own 0..100
+percent in `Percent`. Terminal phases are `Ready` (success) and
+`Failed` (retries exhausted or unrecoverable I/O error).
+
+| Phase | When | Notes |
+|-------|------|-------|
+| `Download` | Remote profile, every chunk written to disk | `Url` set; `Percent` 0..100 |
+| `DownloadRetrying` | Network error before retry | `RetryAttempt` 1..N, `Message` = previous error |
+| `Extract` | Decompressing zip / tar.gz | Tar streams report 0% then 100%; zips report per-entry |
+| `Init` | Native engine ctor on the thread pool | Single 0% before, 100% after |
+| `Failed` | Pipeline aborted | `Error` + `Message` describe what |
+| `Ready` | Service fully usable | `Percent = 100` |
+
+VAD models are tiny (Silero ≈ 2 MB, TEN-VAD ≈ 1 MB), so for a VAD-only
+loading screen `Extract` and `Download` finish almost instantly. The
+single-bar weighting still works — just expect `Init` to dominate
+visually for VAD.
+
+#### Per-phase status text
+
+```csharp
+await _vad.InitializeAsync(OnVadEvent);
+
+void OnVadEvent(ProfileReadyEvent e)
+{
+    string text = e.Phase switch
+    {
+        ProfileReadyPhase.Download         => $"Downloading model: {e.Percent}%",
+        ProfileReadyPhase.DownloadRetrying => $"Network issue, retrying ({e.RetryAttempt})…",
+        ProfileReadyPhase.Extract          => $"Extracting model: {e.Percent}%",
+        ProfileReadyPhase.Init             => "Initializing engine…",
+        ProfileReadyPhase.Failed           => $"Failed: {e.Message}",
+        ProfileReadyPhase.Ready            => "Ready",
+        _ => null,
+    };
+    _statusLabel.text = text;
+}
+```
+
+#### Single 0..100 unified bar (VAD + ASR pipeline)
+
+When initializing the `VadAsrPipeline`, run both services through the
+same bar with `Extract` weighted heaviest (ASR archives are larger):
+
+```csharp
+const float DownloadWeight = 0.20f;
+const float ExtractWeight  = 0.70f;
+const float InitWeight     = 0.10f;
+
+float _vadDl, _vadEx, _vadInit;
+float _asrDl, _asrEx, _asrInit;
+
+await _vad.InitializeAsync(e => Track(e, ref _vadDl, ref _vadEx, ref _vadInit));
+await _asr.InitializeAsync(e => Track(e, ref _asrDl, ref _asrEx, ref _asrInit));
+
+void Track(ProfileReadyEvent e, ref float dl, ref float ex, ref float init)
+{
+    switch (e.Phase)
+    {
+        case ProfileReadyPhase.Download: dl = e.Percent / 100f; break;
+        case ProfileReadyPhase.Extract:  ex = e.Percent / 100f; break;
+        case ProfileReadyPhase.Init:     init = e.Percent / 100f; break;
+        case ProfileReadyPhase.Ready:    dl = ex = init = 1f; break;
+    }
+    UpdateBar();
+}
+
+void UpdateBar()
+{
+    float vad = _vadDl * DownloadWeight + _vadEx * ExtractWeight + _vadInit * InitWeight;
+    float asr = _asrDl * DownloadWeight + _asrEx * ExtractWeight + _asrInit * InitWeight;
+    _progressBar.value = Mathf.Clamp01((vad + asr) * 0.5f) * 100f;
+}
+```
+
+#### Failure handling
+
+```csharp
+await _vad.InitializeAsync(e =>
+{
+    if (e.Phase == ProfileReadyPhase.Failed)
+        Debug.LogError($"[VAD] {e.Message}\n{e.Error}");
+});
+
+if (!_vad.IsReady)
+{
+    // Show a retry button — InitializeAsync can be called again.
+}
 ```
 
 ---
@@ -601,7 +691,7 @@ await _vad.InitializeAsync(progress);
 | Category | Member | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific VAD profile |
 | | `SwitchProfile(index)` | Switch by index |
 | | `SwitchProfile(name)` | Switch by name |
