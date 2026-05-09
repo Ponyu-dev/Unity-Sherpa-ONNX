@@ -22,30 +22,99 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
 
         // ── Public API ──
 
+        // ── Path cache ──
+        //
+        // Application.persistentDataPath / streamingAssetsPath / platform
+        // are Unity APIs that throw "can only be called from the main
+        // thread" when accessed from the thread pool. Several plugin
+        // paths (model-dir resolution, native engine load) need these
+        // values from background threads — we capture them once on the
+        // main thread (during EnsureExtractedAsync below, or on first
+        // explicit access via PrimePathCacheOnMainThread) and serve them
+        // out of fields afterwards.
+
+        private static string _cachedPersistentDataPath;
+        private static string _cachedStreamingAssetsPath;
+        private static bool _cachedIsAndroid;
+        private static volatile bool _pathsCached;
+
+        /// <summary>
+        /// Captures <see cref="Application.persistentDataPath"/>,
+        /// <see cref="Application.streamingAssetsPath"/>, and
+        /// <see cref="Application.platform"/> for later use from the
+        /// thread pool. Idempotent. <b>Must be called from the main
+        /// thread</b> on its very first invocation; subsequent calls
+        /// from any thread are free.
+        /// </summary>
+        public static void PrimePathCacheOnMainThread()
+        {
+            if (_pathsCached) return;
+            _cachedPersistentDataPath = Application.persistentDataPath;
+            _cachedStreamingAssetsPath = Application.streamingAssetsPath;
+            _cachedIsAndroid = Application.platform == RuntimePlatform.Android;
+            _pathsCached = true;
+        }
+
+        /// <summary>
+        /// Cached <see cref="Application.persistentDataPath"/> — safe to
+        /// read from any thread once <see cref="PrimePathCacheOnMainThread"/>
+        /// has run (it does so automatically inside
+        /// <see cref="EnsureExtractedAsync"/>).
+        /// </summary>
+        public static string PersistentDataPath
+        {
+            get
+            {
+                if (!_pathsCached) PrimePathCacheOnMainThread();
+                return _cachedPersistentDataPath;
+            }
+        }
+
+        /// <summary>
+        /// Cached <see cref="Application.streamingAssetsPath"/> — safe
+        /// to read from any thread once the cache is primed.
+        /// </summary>
+        public static string StreamingAssetsPath
+        {
+            get
+            {
+                if (!_pathsCached) PrimePathCacheOnMainThread();
+                return _cachedStreamingAssetsPath;
+            }
+        }
+
         /// <summary>
         /// Returns the root path where SherpaOnnx files are readable.
         /// Android: <see cref="Application.persistentDataPath"/>
         /// (files copied there from APK).
         /// Other platforms: <see cref="Application.streamingAssetsPath"/>
         /// (direct filesystem access).
+        /// Safe to call from any thread once the path cache is primed.
         /// </summary>
         public static string GetResolvedStreamingAssetsPath()
         {
-            if (NeedsExtraction())
-                return Application.persistentDataPath;
-
-            return Application.streamingAssetsPath;
+            if (!_pathsCached) PrimePathCacheOnMainThread();
+            return _cachedIsAndroid
+                ? _cachedPersistentDataPath
+                : _cachedStreamingAssetsPath;
         }
 
         /// <summary>
         /// Ensures all SherpaOnnx files from the manifest are available
         /// on the local filesystem. On non-Android platforms returns
         /// immediately. Skips copy if the version marker matches.
+        /// Safe to call from any thread — the method enters the main
+        /// thread internally because it touches Unity APIs
+        /// (<see cref="Application"/>, <see cref="UnityWebRequest"/>)
+        /// that throw when invoked from the thread pool.
         /// </summary>
         public static async UniTask<bool> EnsureExtractedAsync(
             IProgress<float> progress = null,
             CancellationToken ct = default)
         {
+            await UniTask.SwitchToMainThread(ct);
+            PrimePathCacheOnMainThread();
+
             if (!NeedsExtraction())
                 return true;
 
@@ -71,7 +140,8 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
 
         private static bool NeedsExtraction()
         {
-            return Application.platform == RuntimePlatform.Android;
+            if (!_pathsCached) PrimePathCacheOnMainThread();
+            return _cachedIsAndroid;
         }
 
         private static async UniTask<bool> ExtractAllAsync(
@@ -87,7 +157,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             }
 
             string targetDir = Path.Combine(
-                Application.persistentDataPath, TargetFolder);
+                _cachedPersistentDataPath, TargetFolder);
 
             // Check version marker.
             if (IsAlreadyExtracted(targetDir, manifest.version))
@@ -102,7 +172,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             if (manifest.totalSizeBytes > 0)
             {
                 string spaceError = StorageChecker.CheckSpace(
-                    Application.persistentDataPath, manifest.totalSizeBytes);
+                    _cachedPersistentDataPath, manifest.totalSizeBytes);
                 if (spaceError != null)
                 {
                     SherpaOnnxLog.RuntimeError($"[SherpaOnnx] {spaceError}");
@@ -123,17 +193,27 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
                     ct.ThrowIfCancellationRequested();
 
                     string relativePath = manifest.files[i];
-                    byte[] data = await ReadStreamingAssetAsync(relativePath, ct);
+                    int fileIndex = i;
 
-                    if (data == null)
-                    {
-                        SherpaOnnxLog.RuntimeError(
-                            $"[SherpaOnnx] Failed to read: {relativePath}");
+                    // Per-file byte-progress adapter: maps the request's
+                    // 0..1 download progress into the overall 0..1 by
+                    // adding the index of the file currently in flight.
+                    // Without this, large single files (~hundreds of MB)
+                    // would leave the bar stuck at 0 until the file
+                    // finishes and then jump.
+                    IProgress<float> fileProgress = progress == null
+                        ? null
+                        : new Progress<float>(byteProgress =>
+                            progress.Report((fileIndex + byteProgress) / total));
+
+                    bool extracted = await ExtractFileAsync(
+                        relativePath, _cachedPersistentDataPath,
+                        fileProgress, ct);
+
+                    if (!extracted)
                         return false;
-                    }
 
-                    WriteFile(Application.persistentDataPath, relativePath, data);
-                    progress?.Report((i + 1f) / total);
+                    progress?.Report((fileIndex + 1f) / total);
                 }
 
                 WriteVersionMarker(targetDir, manifest.version);
@@ -163,11 +243,54 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             return JsonUtility.FromJson<StreamingAssetsManifest>(json);
         }
 
-        private static async UniTask<byte[]> ReadStreamingAssetAsync(
-            string relativePath, CancellationToken ct)
+        /// <summary>
+        /// Streams a single asset directly into a file under
+        /// <paramref name="rootDir"/>, without buffering its bytes in memory.
+        /// Uses <see cref="DownloadHandlerFile"/> so the main thread never
+        /// blocks on a large <c>File.WriteAllBytes</c>: bytes flow into the
+        /// destination as they arrive over the player loop's async tick.
+        /// <paramref name="progress"/> receives the request's byte progress
+        /// (0..1 over this single file) — caller is expected to scale it
+        /// into an overall fraction.
+        /// </summary>
+        private static async UniTask<bool> ExtractFileAsync(
+            string relativePath, string rootDir,
+            IProgress<float> progress, CancellationToken ct)
         {
+            string targetPath = Path.Combine(rootDir, relativePath);
+            string targetDir = Path.GetDirectoryName(targetPath);
+            if (!string.IsNullOrEmpty(targetDir))
+                Directory.CreateDirectory(targetDir);
+
             string url = CombineStreamingUrl(relativePath);
-            return await DownloadBytesAsync(url, ct);
+
+            using var request = UnityWebRequest.Get(url);
+            request.downloadHandler =
+                new DownloadHandlerFile(targetPath) { removeFileOnAbort = true };
+
+            try
+            {
+                await request.SendWebRequest()
+                    .ToUniTask(progress: progress, cancellationToken: ct);
+            }
+            catch (OperationCanceledException)
+            {
+                // DownloadHandlerFile.removeFileOnAbort takes care of the
+                // partial file when SendWebRequest is aborted via CT.
+                throw;
+            }
+
+            if (HasError(request))
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] Download error: {url} — {request.error}");
+                // HTTP / network failures don't trigger removeFileOnAbort,
+                // so clean up any zero-byte / partial file ourselves.
+                FileSystemHelper.TryDeleteFile(targetPath);
+                return false;
+            }
+
+            return true;
         }
 
         private static async UniTask<byte[]> DownloadBytesAsync(
@@ -191,7 +314,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         private static string CombineStreamingUrl(string relativePath)
         {
             // On Android streamingAssetsPath is already a jar: URL.
-            return Application.streamingAssetsPath + "/" + relativePath;
+            return _cachedStreamingAssetsPath + "/" + relativePath;
         }
 
         private static bool IsAlreadyExtracted(
@@ -212,18 +335,6 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             Directory.CreateDirectory(targetDir);
             string markerPath = Path.Combine(targetDir, VersionFile);
             File.WriteAllText(markerPath, version);
-        }
-
-        private static void WriteFile(
-            string rootDir, string relativePath, byte[] data)
-        {
-            string fullPath = Path.Combine(rootDir, relativePath);
-            string dir = Path.GetDirectoryName(fullPath);
-
-            if (!string.IsNullOrEmpty(dir))
-                Directory.CreateDirectory(dir);
-
-            File.WriteAllBytes(fullPath, data);
         }
 
         private static bool HasError(UnityWebRequest request)

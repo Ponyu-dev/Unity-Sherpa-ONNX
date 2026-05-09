@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 
@@ -12,7 +13,7 @@ namespace PonyuDev.SherpaOnnx.Tts
     /// Implement or mock for testing; the default implementation
     /// is <see cref="TtsService"/>.
     /// </summary>
-    public interface ITtsService : IDisposable
+    public interface ITtsService : IDisposable, IModelDiskUsage
     {
         bool IsReady { get; }
         TtsProfile ActiveProfile { get; }

@@ -68,6 +68,13 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
             ResetCallCount++;
         }
 
+        // ── IModelDiskUsage (no-op stubs) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles() => Array.Empty<string>();
+        public long GetExtractedProfileSizeBytes(string profileName) => 0L;
+        public bool TryDeleteExtractedProfile(string profileName) => true;
+        public int CleanupUnusedExtractedProfiles() => 0;
+
         public void Dispose() { }
 
         // ── Test helpers ──

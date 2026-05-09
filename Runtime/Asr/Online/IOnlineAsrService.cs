@@ -3,6 +3,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Asr.Online.Engine;
+using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Asr.Online
 {
@@ -10,7 +11,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
     /// Public contract for streaming (online) ASR operations.
     /// The default implementation is <see cref="OnlineAsrService"/>.
     /// </summary>
-    public interface IOnlineAsrService : IDisposable
+    public interface IOnlineAsrService : IDisposable, IModelDiskUsage
     {
         bool IsReady { get; }
         bool IsSessionActive { get; }

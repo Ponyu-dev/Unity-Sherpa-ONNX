@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -187,6 +188,20 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         {
             return _inner.GenerateWithConfigAsync(text, config, callback, ct);
         }
+
+        // ── IModelDiskUsage (forwarded to inner) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => _inner.GetExtractedProfiles();
+
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => _inner.GetExtractedProfileSizeBytes(profileName);
+
+        public bool TryDeleteExtractedProfile(string profileName)
+            => _inner.TryDeleteExtractedProfile(profileName);
+
+        public int CleanupUnusedExtractedProfiles()
+            => _inner.CleanupUnusedExtractedProfiles();
 
         // ── ITtsCacheControl: enable/disable ──
 

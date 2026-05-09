@@ -23,6 +23,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
         private readonly string _uxmlPath;
         private Toggle _vadEnabledToggle;
+        private Toggle _autoDeletePreviousProfileToggle;
 
         private ActiveProfilePresenter<VadProfile> _activeProfilePresenter;
         private ProfileListPresenter<VadProfile> _listPresenter;
@@ -54,6 +55,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
             BindEnabledToggle(hostRoot, settings);
             BindLinks(hostRoot);
+            BuildAutoDeleteToggle(hostRoot, settings);
             BuildProfilePresenters(hostRoot, settings);
         }
 
@@ -63,6 +65,9 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
             _vadEnabledToggle?.UnregisterValueChangedCallback(HandleVadEnabledChanged);
             _vadEnabledToggle = null;
+
+            _autoDeletePreviousProfileToggle?.UnregisterValueChangedCallback(HandleAutoDeletePreviousProfileChanged);
+            _autoDeletePreviousProfileToggle = null;
 
             _activeProfilePresenter?.Dispose();
             _activeProfilePresenter = null;
@@ -129,6 +134,48 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
         private static void HandleLinkClicked(PointerUpEvent evt, string url)
         {
             Application.OpenURL(url);
+        }
+
+        // ── Disk usage ──
+
+        private void BuildAutoDeleteToggle(VisualElement root, VadProjectSettings settings)
+        {
+            var header = root.Q<VisualElement>("vad-header");
+            VisualElement container;
+            int idx;
+            if (header?.parent != null)
+            {
+                container = header.parent;
+                idx = container.IndexOf(header) + 1;
+            }
+            else
+            {
+                container = root;
+                idx = 0;
+            }
+
+            var foldout = new Foldout { text = "Disk Usage" };
+            foldout.AddToClassList("model-foldout");
+
+            _autoDeletePreviousProfileToggle = new Toggle(AutoDeletePreviousProfileToggle.Label)
+            {
+                tooltip = AutoDeletePreviousProfileToggle.Tooltip,
+                value = settings.data.autoDeletePreviousProfile,
+            };
+            _autoDeletePreviousProfileToggle.RegisterValueChangedCallback(
+                HandleAutoDeletePreviousProfileChanged);
+
+            foldout.Add(_autoDeletePreviousProfileToggle);
+
+            if (idx > container.childCount) idx = container.childCount;
+            container.Insert(idx, foldout);
+        }
+
+        private static void HandleAutoDeletePreviousProfileChanged(ChangeEvent<bool> evt)
+        {
+            var s = VadProjectSettings.instance;
+            s.data.autoDeletePreviousProfile = evt.newValue;
+            s.SaveSettings();
         }
 
         // ── Profiles ──

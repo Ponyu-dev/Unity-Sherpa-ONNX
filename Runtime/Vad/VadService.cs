@@ -24,6 +24,17 @@ namespace PonyuDev.SherpaOnnx.Vad
         private VadSettingsData _settings;
         private IVadEngine _engine;
         private VadProfile _activeProfile;
+        private VadProfile _profilePendingLoad;
+
+        // Method-group target for UniTask.RunOnThreadPool inside
+        // InitializeAsync — keeps the call site lambda-free.
+        private void LoadPendingProfile()
+        {
+            var p = _profilePendingLoad;
+            _profilePendingLoad = null;
+            if (p != null)
+                LoadProfile(p);
+        }
         private bool _wasSpeech;
 
         public event Action<VadSegment> OnSegment;
@@ -103,7 +114,12 @@ namespace PonyuDev.SherpaOnnx.Vad
                 }
             }
 
-            LoadProfile(profile);
+            // Native VAD construction (sherpa-onnx VoiceActivityDetector
+            // ctor) is multi-hundred-ms and pure C/C++ via P/Invoke. Run
+            // it off the main thread so the UI does not freeze while the
+            // detector warms up.
+            _profilePendingLoad = profile;
+            await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
 
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService async initialized.");
         }
@@ -142,7 +158,7 @@ namespace PonyuDev.SherpaOnnx.Vad
                 return;
             }
 
-            LoadProfile(_settings.profiles[index]);
+            SwitchToProfile(_settings.profiles[index]);
         }
 
         public void SwitchProfile(string profileName)
@@ -162,7 +178,32 @@ namespace PonyuDev.SherpaOnnx.Vad
                 return;
             }
 
-            LoadProfile(profile);
+            SwitchToProfile(profile);
+        }
+
+        // Captures the previously active profile, loads the new one, and —
+        // if the engine reports itself ready and VadSettingsData.
+        // autoDeletePreviousProfile is set — frees the disk space used by
+        // the previous LocalZip extraction. Failed loads leave the old
+        // extraction intact.
+        private void SwitchToProfile(VadProfile newProfile)
+        {
+            var previous = _activeProfile;
+            LoadProfile(newProfile);
+
+            if (!IsReady)
+                return;
+
+            if (_settings != null
+                && _settings.autoDeletePreviousProfile
+                && previous != null
+                && previous.modelSource == ModelSource.LocalZip
+                && !string.IsNullOrEmpty(previous.profileName)
+                && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
+            {
+                LocalZipExtractor.TryDeleteExtractedModel(
+                    VadModelPathResolver.ModelsSubfolder, previous.profileName);
+            }
         }
 
         // ── Processing ──
@@ -211,6 +252,36 @@ namespace PonyuDev.SherpaOnnx.Vad
         {
             _engine?.Reset();
             _wasSpeech = false;
+        }
+
+        // ── Disk usage ──
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => LocalZipExtractor.ListExtractedProfiles(VadModelPathResolver.ModelsSubfolder);
+
+        /// <inheritdoc />
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => LocalZipExtractor.GetExtractedSizeBytes(VadModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public bool TryDeleteExtractedProfile(string profileName)
+            => LocalZipExtractor.TryDeleteExtractedModel(VadModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public int CleanupUnusedExtractedProfiles()
+        {
+            var keep = new List<string>();
+            if (_settings?.profiles != null)
+            {
+                foreach (var p in _settings.profiles)
+                {
+                    if (!string.IsNullOrEmpty(p?.profileName))
+                        keep.Add(p.profileName);
+                }
+            }
+            return LocalZipExtractor.CleanupUnusedProfiles(
+                VadModelPathResolver.ModelsSubfolder, keep);
         }
 
         // ── Cleanup ──

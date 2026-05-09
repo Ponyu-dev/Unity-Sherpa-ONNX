@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -99,8 +100,24 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
                 }
             }
 
-            LoadProfile(profile);
+            // Native recognizer construction (sherpa-onnx OnlineRecognizer
+            // ctor) is multi-second; pure C/C++ via P/Invoke with no Unity
+            // API access. Run it off the main thread so the UI does not
+            // freeze while the streaming engine warms up.
+            _profilePendingLoad = profile;
+            await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] OnlineAsrService async initialized.");
+        }
+
+        private OnlineAsrProfile _profilePendingLoad;
+        // Method-group target for UniTask.RunOnThreadPool — keeps the
+        // InitializeAsync call site lambda-free.
+        private void LoadPendingProfile()
+        {
+            var p = _profilePendingLoad;
+            _profilePendingLoad = null;
+            if (p != null)
+                LoadProfile(p);
         }
 
         public void LoadProfile(OnlineAsrProfile profile)
@@ -140,7 +157,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
                 return;
             }
 
-            LoadProfile(_settings.profiles[index]);
+            SwitchToProfile(_settings.profiles[index]);
         }
         public void SwitchProfile(string profileName)
         {
@@ -159,7 +176,32 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
                 return;
             }
 
-            LoadProfile(profile);
+            SwitchToProfile(profile);
+        }
+
+        // Captures the previously active profile, loads the new one, and —
+        // if the engine reports itself ready and OnlineAsrSettingsData.
+        // autoDeletePreviousProfile is set — frees the disk space used by
+        // the previous LocalZip extraction. Failed loads leave the old
+        // extraction intact.
+        private void SwitchToProfile(OnlineAsrProfile newProfile)
+        {
+            var previous = _activeProfile;
+            LoadProfile(newProfile);
+
+            if (!IsReady)
+                return;
+
+            if (_settings != null
+                && _settings.autoDeletePreviousProfile
+                && previous != null
+                && previous.modelSource == ModelSource.LocalZip
+                && !string.IsNullOrEmpty(previous.profileName)
+                && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
+            {
+                LocalZipExtractor.TryDeleteExtractedModel(
+                    AsrModelPathResolver.ModelsSubfolder, previous.profileName);
+            }
         }
         // ── Session & Audio ──
 
@@ -177,6 +219,36 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
 
         public void ProcessAvailableFrames() => _engine?.ProcessAvailableFrames();
         public void ResetStream() => _engine?.ResetStream();
+
+        // ── Disk usage ──
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => LocalZipExtractor.ListExtractedProfiles(AsrModelPathResolver.ModelsSubfolder);
+
+        /// <inheritdoc />
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => LocalZipExtractor.GetExtractedSizeBytes(AsrModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public bool TryDeleteExtractedProfile(string profileName)
+            => LocalZipExtractor.TryDeleteExtractedModel(AsrModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public int CleanupUnusedExtractedProfiles()
+        {
+            var keep = new List<string>();
+            if (_settings?.profiles != null)
+            {
+                foreach (var p in _settings.profiles)
+                {
+                    if (!string.IsNullOrEmpty(p?.profileName))
+                        keep.Add(p.profileName);
+                }
+            }
+            return LocalZipExtractor.CleanupUnusedProfiles(
+                AsrModelPathResolver.ModelsSubfolder, keep);
+        }
 
         public void Dispose()
         {

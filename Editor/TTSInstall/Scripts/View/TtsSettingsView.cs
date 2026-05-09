@@ -24,6 +24,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private readonly string _uxmlPath;
         private Toggle _ttsEnabledToggle;
+        private Toggle _autoDeletePreviousProfileToggle;
 
         private ActiveProfilePresenter<TtsProfile> _activeProfilePresenter;
         private ProfileListPresenter<TtsProfile> _listPresenter;
@@ -57,6 +58,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             BindEnabledToggle(hostRoot, settings);
             BindLinks(hostRoot);
             BuildCacheSection(hostRoot, settings);
+            BuildAutoDeleteToggle(hostRoot, settings);
             BuildProfilePresenters(hostRoot, settings);
         }
 
@@ -66,6 +68,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
             _ttsEnabledToggle?.UnregisterValueChangedCallback(HandleTtsEnabledChanged);
             _ttsEnabledToggle = null;
+
+            _autoDeletePreviousProfileToggle?.UnregisterValueChangedCallback(HandleAutoDeletePreviousProfileChanged);
+            _autoDeletePreviousProfileToggle = null;
 
             _activeProfilePresenter?.Dispose();
             _activeProfilePresenter = null;
@@ -184,6 +189,38 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             VisualElement container = header.parent;
             int idx = container.IndexOf(header) + 2;
             container.Insert(idx, foldout);
+        }
+
+        private void BuildAutoDeleteToggle(VisualElement root, TtsProjectSettings settings)
+        {
+            var header = root.Q<VisualElement>("tts-header");
+            if (header?.parent == null)
+                return;
+
+            var foldout = new Foldout { text = "Disk Usage" };
+            foldout.AddToClassList("model-foldout");
+
+            _autoDeletePreviousProfileToggle = new Toggle(AutoDeletePreviousProfileToggle.Label)
+            {
+                tooltip = AutoDeletePreviousProfileToggle.Tooltip,
+                value = settings.data.autoDeletePreviousProfile,
+            };
+            _autoDeletePreviousProfileToggle.RegisterValueChangedCallback(
+                HandleAutoDeletePreviousProfileChanged);
+
+            foldout.Add(_autoDeletePreviousProfileToggle);
+
+            VisualElement container = header.parent;
+            int idx = container.IndexOf(header) + 3;
+            if (idx > container.childCount) idx = container.childCount;
+            container.Insert(idx, foldout);
+        }
+
+        private static void HandleAutoDeletePreviousProfileChanged(ChangeEvent<bool> evt)
+        {
+            var s = TtsProjectSettings.instance;
+            s.data.autoDeletePreviousProfile = evt.newValue;
+            s.SaveSettings();
         }
 
         private void BuildProfilePresenters(VisualElement root, TtsProjectSettings settings)

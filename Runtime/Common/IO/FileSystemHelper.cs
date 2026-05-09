@@ -29,6 +29,24 @@ namespace PonyuDev.SherpaOnnx.Common.IO
         }
 
         /// <summary>
+        /// Deletes a single file, silently ignoring any errors.
+        /// Safe to call with a non-existent path.
+        /// </summary>
+        public static void TryDeleteFile(string path)
+        {
+            try
+            {
+                if (File.Exists(path))
+                    File.Delete(path);
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    $"[SherpaOnnx] TryDeleteFile failed for '{path}': {ex.Message}");
+            }
+        }
+
+        /// <summary>
         /// Ensures the directory at <paramref name="path"/> exists and is empty.
         /// Deletes it first if present, then recreates.
         /// </summary>

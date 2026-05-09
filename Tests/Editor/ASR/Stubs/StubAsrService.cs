@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
@@ -65,6 +66,13 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
             var result = Recognize(samples, sampleRate);
             return Task.FromResult(result);
         }
+
+        // ── IModelDiskUsage (no-op stubs) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles() => Array.Empty<string>();
+        public long GetExtractedProfileSizeBytes(string profileName) => 0L;
+        public bool TryDeleteExtractedProfile(string profileName) => true;
+        public int CleanupUnusedExtractedProfiles() => 0;
 
         public void Dispose() { }
     }
