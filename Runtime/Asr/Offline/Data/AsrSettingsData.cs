@@ -22,6 +22,21 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         /// </summary>
         public bool autoDeletePreviousProfile;
 
+        /// <summary>
+        /// When <c>true</c>, the Editor build pipeline temporarily moves
+        /// every non-active offline ASR profile's model directory (and
+        /// any <see cref="Common.Data.ModelSource.LocalZip"/> archive)
+        /// out of StreamingAssets before manifest generation, so the
+        /// produced build only ships the active profile's model files.
+        /// Online ASR has its own independent flag on
+        /// <see cref="Online.Data.OnlineAsrSettingsData"/>. Moved content
+        /// is restored after the build finishes; a defensive restore on
+        /// Editor reload covers crashes / cancellations. Default
+        /// <c>false</c>: every profile in <see cref="profiles"/> ships
+        /// into the build.
+        /// </summary>
+        public bool buildOnlyActiveProfile;
+
         public List<AsrProfile> profiles = new();
 
         int ISettingsData<AsrProfile>.ActiveProfileIndex

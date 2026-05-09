@@ -24,6 +24,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
         private readonly string _uxmlPath;
         private Toggle _vadEnabledToggle;
         private Toggle _autoDeletePreviousProfileToggle;
+        private Toggle _buildOnlyActiveProfileToggle;
 
         private ActiveProfilePresenter<VadProfile> _activeProfilePresenter;
         private ProfileListPresenter<VadProfile> _listPresenter;
@@ -68,6 +69,9 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
             _autoDeletePreviousProfileToggle?.UnregisterValueChangedCallback(HandleAutoDeletePreviousProfileChanged);
             _autoDeletePreviousProfileToggle = null;
+
+            _buildOnlyActiveProfileToggle?.UnregisterValueChangedCallback(HandleBuildOnlyActiveProfileChanged);
+            _buildOnlyActiveProfileToggle = null;
 
             _activeProfilePresenter?.Dispose();
             _activeProfilePresenter = null;
@@ -167,6 +171,16 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
 
             foldout.Add(_autoDeletePreviousProfileToggle);
 
+            _buildOnlyActiveProfileToggle = new Toggle(OnlyActiveProfileInBuildToggle.Label)
+            {
+                tooltip = OnlyActiveProfileInBuildToggle.Tooltip,
+                value = settings.data.buildOnlyActiveProfile,
+            };
+            _buildOnlyActiveProfileToggle.RegisterValueChangedCallback(
+                HandleBuildOnlyActiveProfileChanged);
+
+            foldout.Add(_buildOnlyActiveProfileToggle);
+
             if (idx > container.childCount) idx = container.childCount;
             container.Insert(idx, foldout);
         }
@@ -175,6 +189,13 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.View
         {
             var s = VadProjectSettings.instance;
             s.data.autoDeletePreviousProfile = evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleBuildOnlyActiveProfileChanged(ChangeEvent<bool> evt)
+        {
+            var s = VadProjectSettings.instance;
+            s.data.buildOnlyActiveProfile = evt.newValue;
             s.SaveSettings();
         }
 
