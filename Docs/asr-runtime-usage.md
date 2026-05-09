@@ -279,14 +279,23 @@ _asr.SwitchProfile(0);
 AsrResult result = _asr.Recognize(samples, sampleRate);
 ```
 
-### Disk Usage (LocalZip extracted models)
+### Disk Usage (extracted profile directories)
 
-`LocalZip` profiles are decompressed to `Application.persistentDataPath` on
-first use. Old extractions stay on disk after a `SwitchProfile` so a
-re-switch does not pay the re-extract cost. Both `IAsrService` and
-`IOnlineAsrService` implement `IModelDiskUsage` — host code can inspect
-and free that space without knowing about `LocalZipExtractor` or any path
-constants. Offline and online ASR each manage their own subfolder.
+On Android every active profile lands in
+`Application.persistentDataPath/SherpaOnnx/asr-models/{profileName}/`
+regardless of `ModelSource`:
+
+| Source   | How it gets there |
+|----------|-------------------|
+| `Local`  | Lazy per-profile extraction from APK on first `LoadProfile` (only that profile's files). |
+| `Remote` | Editor-time import puts files into StreamingAssets; on Android they extract the same way as `Local`. |
+| `LocalZip` | Per-profile zip is unpacked the first time it is loaded. |
+
+Old extractions stay on disk after `SwitchProfile` so a re-switch does
+not pay the re-extract cost. Both `IAsrService` and `IOnlineAsrService`
+implement `IModelDiskUsage` — host code can inspect and free that space
+without knowing about `LocalZipExtractor` or path constants. Offline and
+online ASR each manage their own subfolder.
 
 ```csharp
 // What is on disk for offline ASR
@@ -300,14 +309,23 @@ asr.TryDeleteExtractedProfile("old-zipformer");
 int removed = asr.CleanupUnusedExtractedProfiles();
 ```
 
-**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → ASR →
-Disk Usage → Auto-delete previous LocalZip on switch** (separate toggles
-in the Offline and Online tabs). Then every successful `SwitchProfile(...)`
-to a different LocalZip profile drops the previous extraction. Off by
-default.
+`GetExtractedProfiles()` returns every profile that has an extraction
+marker on disk regardless of source (LocalZip's `.zip-extracted` and
+Local/Remote's `.profile-extracted` are both recognised).
 
-`Local` and `Remote` profiles are not extracted to `persistentDataPath`,
-so they never appear in `GetExtractedProfiles()`.
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → ASR →
+Disk Usage → Auto-delete previous profile on switch** (separate toggles
+in the Offline and Online tabs). Then every successful `SwitchProfile(...)`
+to a different profile drops the previous extraction. Off by default. On
+non-Android platforms nothing is extracted, so the toggle is a no-op.
+
+> ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
+> version**, regenerate the manifest once via
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest`. Old manifests
+> have a flat `files` list and trigger a single full extraction at first
+> launch (the runtime detects this and falls back gracefully); the new
+> manifest format is what enables per-profile lazy extraction and
+> per-profile cleanup.
 
 ### Engine Pool Size (offline only)
 

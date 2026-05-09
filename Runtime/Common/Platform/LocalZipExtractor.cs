@@ -141,7 +141,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             if (string.IsNullOrEmpty(profileName))
                 return false;
             string destDir = GetExtractedModelDirectory(modelsSubfolder, profileName);
-            return IsAlreadyExtracted(destDir);
+            return HasAnyExtractionMarker(destDir);
         }
 
         /// <summary>
@@ -173,9 +173,13 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
 
         /// <summary>
         /// Lists every profile name that has an extracted directory under
-        /// <c>persistentDataPath/SherpaOnnx/{modelsSubfolder}</c>. Includes
-        /// stale folders left over from profiles that were renamed or
-        /// removed from settings — useful as input for
+        /// <c>persistentDataPath/SherpaOnnx/{modelsSubfolder}</c>. Picks
+        /// up both LocalZip extractions (<c>.zip-extracted</c> marker)
+        /// and Local/Remote per-profile extractions
+        /// (<c>.profile-extracted</c> marker written by
+        /// <see cref="StreamingAssetsCopier.EnsureProfileExtractedAsync"/>).
+        /// Includes stale folders left over from profiles that were
+        /// renamed or removed from settings — useful as input for
         /// <see cref="CleanupUnusedProfiles"/>.
         /// </summary>
         public static IReadOnlyList<string> ListExtractedProfiles(string modelsSubfolder)
@@ -190,7 +194,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             {
                 foreach (var dir in Directory.EnumerateDirectories(root))
                 {
-                    if (File.Exists(Path.Combine(dir, ExtractedMarker)))
+                    if (HasAnyExtractionMarker(dir))
                         results.Add(Path.GetFileName(dir));
                 }
             }
@@ -200,6 +204,16 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
                     $"[SherpaOnnx] ListExtractedProfiles('{modelsSubfolder}'): {ex.Message}");
             }
             return results;
+        }
+
+        // True when the directory carries either marker — LocalZip's
+        // ".zip-extracted" or the Local/Remote ".profile-extracted"
+        // emitted by StreamingAssetsCopier.EnsureProfileExtractedAsync.
+        private const string ProfileExtractedMarker = ".profile-extracted";
+        private static bool HasAnyExtractionMarker(string dir)
+        {
+            return File.Exists(Path.Combine(dir, ExtractedMarker))
+                || File.Exists(Path.Combine(dir, ProfileExtractedMarker));
         }
 
         /// <summary>

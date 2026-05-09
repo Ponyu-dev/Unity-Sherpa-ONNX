@@ -117,6 +117,21 @@ namespace PonyuDev.SherpaOnnx.Tts
                     return;
                 }
             }
+            else
+            {
+                // Local / Remote profiles ship inside StreamingAssets.
+                // On Android the per-profile group is extracted lazily
+                // from the APK so individual profiles can be deleted to
+                // reclaim disk space without breaking other profiles.
+                // On non-Android this is a no-op.
+                string subdir = $"{TtsModelPathResolver.ModelsSubfolder}/{profile.profileName}";
+                bool ok = await StreamingAssetsCopier.EnsureProfileExtractedAsync(subdir, progress, ct);
+                if (!ok)
+                {
+                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] TtsService: profile extraction failed for '{subdir}'.");
+                    return;
+                }
+            }
 
             // Native engine construction (sherpa-onnx OfflineTts ctor —
             // ONNX/lexicon/data parsing) is multi-second per instance and
@@ -224,10 +239,12 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (_settings != null
                 && _settings.autoDeletePreviousProfile
                 && previous != null
-                && previous.modelSource == ModelSource.LocalZip
                 && !string.IsNullOrEmpty(previous.profileName)
                 && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
             {
+                // Local / Remote / LocalZip all land in the same per-profile
+                // dir under persistentDataPath on Android — drop it. On
+                // non-Android nothing is extracted, so this is a no-op.
                 LocalZipExtractor.TryDeleteExtractedModel(
                     TtsModelPathResolver.ModelsSubfolder, previous.profileName);
             }

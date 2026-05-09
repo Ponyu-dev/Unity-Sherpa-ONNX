@@ -61,7 +61,7 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 | 🔐 **Microphone permission** | Async permission request with `UniTask` — returns `false` gracefully if denied. iOS waits 1s after the permission dialog so the AVAudioSession can settle before capture starts. |
 | 🎧 **TTS playback breaks mic capture** | `AudioSessionBridge` switches AVAudioSession between PlayAndRecord/Playback on iOS, and sets `AudioManager.MODE_IN_COMMUNICATION` + speakerphone on Android — engaging the platform AEC/AGC so the mic does not return near-silence after TTS. Public API for projects that want to drive it manually. |
 | 🗣️ **Native TTS callbacks unsupported on IL2CPP** (also affects IL2CPP Standalone) | sherpa-onnx C# bindings wrap user callbacks in closures that IL2CPP cannot marshal to native. The plugin auto-falls-back `GenerateAsync` (and other callback-using paths) to the callback-less `Generate` on IL2CPP so TTS keeps working — and ships a **Sentence Queue** API (`ITtsService.Speak(text, audio, ct, lookAhead)`) that delivers the same low-latency long-text experience as native streaming, but in pure C# with `lookAhead` parallel pre-generation and works on every scripting backend. |
-| 🗄️ **Disk fills up as users switch profiles** | Each model service (`ITtsService` / `IAsrService` / `IOnlineAsrService` / `IVadService`) implements `IModelDiskUsage` — host code can `GetExtractedProfiles()`, `GetExtractedProfileSizeBytes(name)`, `TryDeleteExtractedProfile(name)` and `CleanupUnusedExtractedProfiles()` from one place. Optional **Auto-delete previous LocalZip on switch** toggle in Project Settings drops the old extraction right after a successful `SwitchProfile`. |
+| 🗄️ **Disk fills up as users switch profiles** | On Android every active profile (Local, Remote, or LocalZip) is extracted lazily into `persistentDataPath/SherpaOnnx/{type}-models/{profile}/` and stays cached across sessions. Each model service (`ITtsService` / `IAsrService` / `IOnlineAsrService` / `IVadService`) implements `IModelDiskUsage` — host code can `GetExtractedProfiles()`, `GetExtractedProfileSizeBytes(name)`, `TryDeleteExtractedProfile(name)` and `CleanupUnusedExtractedProfiles()` from one place. Optional **Auto-delete previous profile on switch** toggle in Project Settings drops the old extraction right after a successful `SwitchProfile` — applies to all sources, not just LocalZip. |
 
 #### 🪟 All Unity platforms (desktop + mobile)
 
@@ -75,9 +75,14 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
 > management) are configurable via `Edit → Project Settings → Sherpa-ONNX → Microphone` or
 > `microphone-settings.json` in StreamingAssets.
 >
-> 🗄️ Disk-usage settings (auto-delete previous LocalZip on switch) are per-service: TTS / ASR / Online
+> 🗄️ Disk-usage settings (auto-delete previous profile on switch) are per-service: TTS / ASR / Online
 > ASR / VAD panels in `Edit → Project Settings → Sherpa-ONNX`. Manual API: see "Disk Usage" in the
 > [TTS](Docs/tts-runtime-usage.md) / [ASR](Docs/asr-runtime-usage.md) / [VAD](Docs/vad-runtime-usage.md) docs.
+>
+> ⚠️ After upgrading the plugin from a pre-per-profile-extraction version, run
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest` once. Old manifests have a flat `files`
+> list and trigger a single full extraction at first launch (the runtime falls back gracefully); the
+> new manifest format is what enables per-profile lazy extraction and per-profile cleanup.
 
 ---
 

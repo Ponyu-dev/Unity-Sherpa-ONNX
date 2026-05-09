@@ -187,13 +187,22 @@ _orchestrator.Service.SwitchProfile(0);
 _orchestrator.GenerateAndPlay("Now using a different voice.");
 ```
 
-### Disk Usage (LocalZip extracted models)
+### Disk Usage (extracted profile directories)
 
-`LocalZip` profiles are decompressed to `Application.persistentDataPath` on
-first use. As users switch profiles, old extractions stay on disk so a
-re-switch does not pay the re-extract cost. `ITtsService` implements
+On Android every active profile lands in
+`Application.persistentDataPath/SherpaOnnx/tts-models/{profileName}/`,
+regardless of `ModelSource`:
+
+| Source   | How it gets there |
+|----------|-------------------|
+| `Local`  | Lazy per-profile extraction from APK on first `LoadProfile` (only that profile's files; the rest stays bundled). |
+| `Remote` | Editor-time import puts files into StreamingAssets; on Android they extract the same way as `Local`. |
+| `LocalZip` | Per-profile zip is unpacked the first time it is loaded. |
+
+As users switch profiles, old extractions stay on disk so a re-switch
+does not pay the re-extract cost. `ITtsService` implements
 `IModelDiskUsage` so the host project can inspect and free that space
-without knowing about `LocalZipExtractor` or any path constants.
+without knowing about `LocalZipExtractor` or path constants.
 
 ```csharp
 // What is on disk
@@ -211,16 +220,26 @@ int removed = tts.CleanupUnusedExtractedProfiles();
 Debug.Log($"Freed {removed} unused profile(s).");
 ```
 
-**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → TTS →
-Disk Usage → Auto-delete previous LocalZip on switch** (or set
-`TtsSettingsData.autoDeletePreviousProfile = true`). Then every successful
-`SwitchProfile(...)` to a different LocalZip profile drops the previous
-extraction. Off by default — leave it off if you alternate between
-profiles often.
+`GetExtractedProfiles()` returns every profile that has an extraction
+marker on disk, no matter which source produced it (LocalZip's
+`.zip-extracted` and Local/Remote's `.profile-extracted` are both
+recognised).
 
-`Local` (bundled in StreamingAssets) and `Remote` (Editor-imported into
-StreamingAssets) profiles are not extracted to `persistentDataPath`, so
-they never appear in `GetExtractedProfiles()`.
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → TTS →
+Disk Usage → Auto-delete previous profile on switch** (or set
+`TtsSettingsData.autoDeletePreviousProfile = true`). Then every successful
+`SwitchProfile(...)` to a different profile drops the previous extraction.
+Off by default — leave it off if you alternate between profiles often.
+On non-Android platforms profiles are not extracted (StreamingAssets are
+already on the filesystem), so this toggle is a no-op there.
+
+> ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
+> version**, regenerate the manifest once via
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest`. Old manifests
+> have a flat `files` list and trigger a single full extraction at first
+> launch (the runtime detects this and falls back gracefully); the new
+> manifest format is what enables per-profile lazy extraction and
+> per-profile cleanup.
 
 ### Custom Speed and Speaker
 

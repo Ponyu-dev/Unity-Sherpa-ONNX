@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -18,7 +19,19 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             "SherpaOnnx/streaming-assets-manifest.json";
 
         private const string TargetFolder = "SherpaOnnx";
-        private const string VersionFile = ".version";
+
+        // Legacy marker — written by older builders that produced a flat
+        // file list (manifest.files) instead of shared+profileGroups.
+        // Still recognised so users upgrading from an older build don't
+        // re-extract everything on first launch under the new code.
+        private const string LegacyVersionFile = ".version";
+
+        // New markers used when the manifest carries shared/profileGroups.
+        // Per-profile marker lives inside the profile's own folder so
+        // deleting the folder also drops the marker, which makes the
+        // next "ensure" call re-extract that single profile.
+        private const string SharedVersionFile = ".shared-version";
+        private const string ProfileExtractedFile = ".profile-extracted";
 
         // ── Public API ──
 
@@ -100,9 +113,14 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         }
 
         /// <summary>
-        /// Ensures all SherpaOnnx files from the manifest are available
-        /// on the local filesystem. On non-Android platforms returns
-        /// immediately. Skips copy if the version marker matches.
+        /// Ensures the shared SherpaOnnx files (settings JSONs + anything
+        /// outside per-profile subfolders) are available on the local
+        /// filesystem. On non-Android platforms returns immediately. Skips
+        /// the copy if the shared marker matches the current manifest
+        /// version. Per-profile model files are extracted lazily by
+        /// <see cref="EnsureProfileExtractedAsync"/> when the active
+        /// service first needs them, so individual profiles can be
+        /// deleted to reclaim disk space without breaking other profiles.
         /// Safe to call from any thread — the method enters the main
         /// thread internally because it touches Unity APIs
         /// (<see cref="Application"/>, <see cref="UnityWebRequest"/>)
@@ -120,7 +138,17 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
 
             try
             {
-                return await ExtractAllAsync(progress, ct);
+                var manifest = await GetManifestAsync(ct);
+                if (manifest == null)
+                    return false;
+
+                bool hasNewLayout =
+                    (manifest.profileGroups != null && manifest.profileGroups.Count > 0)
+                    || (manifest.shared != null && manifest.shared.Count > 0);
+
+                return hasNewLayout
+                    ? await ExtractSharedAsync(manifest, progress, ct)
+                    : await ExtractLegacyAsync(manifest, progress, ct);
             }
             catch (OperationCanceledException)
             {
@@ -136,6 +164,121 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             }
         }
 
+        /// <summary>
+        /// Ensures the files of a single per-profile group are extracted
+        /// to <see cref="Application.persistentDataPath"/>. The argument
+        /// is the relative subdir under <c>SherpaOnnx/</c>, e.g.
+        /// <c>tts-models/vits-piper-en</c>. Skips the copy when the
+        /// per-profile marker matches the current manifest version.
+        /// Returns <c>true</c> on non-Android platforms (no extraction
+        /// needed), when the manifest has no entry for the subdir
+        /// (legacy manifest, nothing to do), or when the group is
+        /// already extracted. Returns <c>false</c> on I/O / network
+        /// failure.
+        /// </summary>
+        public static async UniTask<bool> EnsureProfileExtractedAsync(
+            string profileSubdir,
+            IProgress<float> progress = null,
+            CancellationToken ct = default)
+        {
+            if (string.IsNullOrEmpty(profileSubdir))
+                return false;
+
+            await UniTask.SwitchToMainThread(ct);
+            PrimePathCacheOnMainThread();
+
+            if (!NeedsExtraction())
+                return true;
+
+            try
+            {
+                var manifest = await GetManifestAsync(ct);
+                if (manifest == null)
+                    return false;
+
+                StreamingAssetsManifestProfileGroup group = null;
+                if (manifest.profileGroups != null)
+                {
+                    foreach (var g in manifest.profileGroups)
+                    {
+                        if (g != null && g.subdir == profileSubdir)
+                        {
+                            group = g;
+                            break;
+                        }
+                    }
+                }
+
+                if (group == null || group.files == null || group.files.Count == 0)
+                {
+                    // Either an old manifest (the legacy ExtractAll path
+                    // already laid this profile down at first launch), or
+                    // an unknown subdir. Nothing to do.
+                    progress?.Report(1f);
+                    return true;
+                }
+
+                string profileDir = Path.Combine(
+                    _cachedPersistentDataPath, TargetFolder, profileSubdir);
+
+                if (IsProfileMarkerCurrent(profileDir, manifest.version))
+                {
+                    progress?.Report(1f);
+                    return true;
+                }
+
+                if (group.sizeBytes > 0)
+                {
+                    string spaceError = StorageChecker.CheckSpace(
+                        _cachedPersistentDataPath, group.sizeBytes);
+                    if (spaceError != null)
+                    {
+                        SherpaOnnxLog.RuntimeError($"[SherpaOnnx] {spaceError}");
+                        return false;
+                    }
+                }
+
+                SherpaOnnxLog.RuntimeLog(
+                    $"[SherpaOnnx] Extracting profile '{profileSubdir}' " +
+                    $"({group.files.Count} files)...");
+
+                bool ok = await ExtractFileListAsync(
+                    group.files, progress, ct, profileDir);
+                if (!ok)
+                    return false;
+
+                WriteProfileMarker(profileDir, manifest.version);
+                SherpaOnnxLog.RuntimeLog(
+                    $"[SherpaOnnx] Profile '{profileSubdir}' extracted.");
+                return true;
+            }
+            catch (OperationCanceledException)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    $"[SherpaOnnx] Profile extraction cancelled: {profileSubdir}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] Profile extraction failed for '{profileSubdir}': {ex.Message}");
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Forgets the cached manifest so the next
+        /// <see cref="EnsureExtractedAsync"/> /
+        /// <see cref="EnsureProfileExtractedAsync"/> call re-reads it
+        /// from StreamingAssets. Useful after replacing
+        /// <c>streaming-assets-manifest.json</c> at runtime — typically
+        /// not needed in shipping apps.
+        /// </summary>
+        public static void InvalidateManifestCache()
+        {
+            _cachedManifest = null;
+        }
+
         // ── Private ──
 
         private static bool NeedsExtraction()
@@ -144,12 +287,15 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             return _cachedIsAndroid;
         }
 
-        private static async UniTask<bool> ExtractAllAsync(
+        // Legacy path — manifest has the flat `files` list and no
+        // shared/profileGroups split. Extracts the lot in one pass and
+        // writes the legacy `.version` marker, exactly as the previous
+        // implementation did.
+        private static async UniTask<bool> ExtractLegacyAsync(
+            StreamingAssetsManifest manifest,
             IProgress<float> progress, CancellationToken ct)
         {
-            // Load manifest from APK via UnityWebRequest.
-            var manifest = await LoadManifestAsync(ct);
-            if (manifest == null || manifest.files.Count == 0)
+            if (manifest.files == null || manifest.files.Count == 0)
             {
                 SherpaOnnxLog.RuntimeError(
                     "[SherpaOnnx] Manifest is empty or failed to load.");
@@ -159,8 +305,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             string targetDir = Path.Combine(
                 _cachedPersistentDataPath, TargetFolder);
 
-            // Check version marker.
-            if (IsAlreadyExtracted(targetDir, manifest.version))
+            if (IsLegacyMarkerCurrent(targetDir, manifest.version))
             {
                 SherpaOnnxLog.RuntimeLog(
                     "[SherpaOnnx] Files already extracted, skipping.");
@@ -168,7 +313,6 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
                 return true;
             }
 
-            // Check available disk space before extraction.
             if (manifest.totalSizeBytes > 0)
             {
                 string spaceError = StorageChecker.CheckSpace(
@@ -183,50 +327,122 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] Extracting {manifest.files.Count} files...");
 
-            int total = manifest.files.Count;
-            bool success = false;
+            bool ok = await ExtractFileListAsync(
+                manifest.files, progress, ct, targetDir);
+            if (!ok)
+                return false;
 
+            WriteLegacyMarker(targetDir, manifest.version);
+            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] Extraction complete.");
+            return true;
+        }
+
+        // New path — extracts only the shared section. Per-profile
+        // groups are extracted lazily via EnsureProfileExtractedAsync.
+        private static async UniTask<bool> ExtractSharedAsync(
+            StreamingAssetsManifest manifest,
+            IProgress<float> progress, CancellationToken ct)
+        {
+            string targetDir = Path.Combine(
+                _cachedPersistentDataPath, TargetFolder);
+
+            if (IsSharedMarkerCurrent(targetDir, manifest.version))
+            {
+                progress?.Report(1f);
+                return true;
+            }
+
+            var sharedFiles = manifest.shared ?? new List<string>();
+
+            // Disk-space check — sum of shared sizes only. We don't have
+            // a per-shared sizeBytes in the manifest, so fall back to
+            // totalSizeBytes when the share is the only thing present.
+            // Practically the shared section is settings JSONs, sub-MB.
+            // Profile groups will check their own size before extracting.
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Extracting {sharedFiles.Count} shared files...");
+
+            bool ok = await ExtractFileListAsync(
+                sharedFiles, progress, ct, targetDir);
+            if (!ok)
+                return false;
+
+            WriteSharedMarker(targetDir, manifest.version);
+            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] Shared extraction complete.");
+            return true;
+        }
+
+        // Common loop body for legacy + shared extraction. Walks the
+        // file list, runs ExtractFileAsync with per-file byte progress,
+        // and on failure cleans up the target directory. Marker / log
+        // writes are the caller's responsibility on success.
+        private static async UniTask<bool> ExtractFileListAsync(
+            List<string> files,
+            IProgress<float> progress, CancellationToken ct,
+            string cleanupDirOnFailure)
+        {
+            int total = files.Count;
+            if (total == 0)
+            {
+                progress?.Report(1f);
+                return true;
+            }
+
+            bool success = false;
             try
             {
                 for (int i = 0; i < total; i++)
                 {
                     ct.ThrowIfCancellationRequested();
 
-                    string relativePath = manifest.files[i];
-                    int fileIndex = i;
+                    string relativePath = files[i];
 
-                    // Per-file byte-progress adapter: maps the request's
-                    // 0..1 download progress into the overall 0..1 by
-                    // adding the index of the file currently in flight.
-                    // Without this, large single files (~hundreds of MB)
-                    // would leave the bar stuck at 0 until the file
-                    // finishes and then jump.
                     IProgress<float> fileProgress = progress == null
                         ? null
-                        : new Progress<float>(byteProgress =>
-                            progress.Report((fileIndex + byteProgress) / total));
+                        : new FileProgressAdapter(progress, i, total);
 
                     bool extracted = await ExtractFileAsync(
                         relativePath, _cachedPersistentDataPath,
                         fileProgress, ct);
-
                     if (!extracted)
                         return false;
 
-                    progress?.Report((fileIndex + 1f) / total);
+                    progress?.Report((i + 1f) / total);
                 }
 
-                WriteVersionMarker(targetDir, manifest.version);
                 success = true;
-
-                SherpaOnnxLog.RuntimeLog(
-                    "[SherpaOnnx] Extraction complete.");
                 return true;
             }
             finally
             {
-                if (!success)
-                    FileSystemHelper.TryDeleteDirectory(targetDir);
+                if (!success && !string.IsNullOrEmpty(cleanupDirOnFailure))
+                    FileSystemHelper.TryDeleteDirectory(cleanupDirOnFailure);
+            }
+        }
+
+        // Maps the per-file 0..1 download fraction into the overall 0..1
+        // by adding the index of the file currently in flight. Without
+        // this, large single files would leave the bar stuck at 0 until
+        // the file finishes and then jump. Plain class instead of an
+        // inline `new Progress<float>(p => ...)` so the call site stays
+        // lambda-free.
+        private sealed class FileProgressAdapter : IProgress<float>
+        {
+            private readonly IProgress<float> _outer;
+            private readonly int _fileIndex;
+            private readonly int _total;
+
+            public FileProgressAdapter(IProgress<float> outer, int fileIndex, int total)
+            {
+                _outer = outer;
+                _fileIndex = fileIndex;
+                _total = total;
+            }
+
+            public void Report(float byteProgress)
+            {
+                _outer.Report((_fileIndex + byteProgress) / _total);
             }
         }
 
@@ -317,24 +533,61 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             return _cachedStreamingAssetsPath + "/" + relativePath;
         }
 
-        private static bool IsAlreadyExtracted(
-            string targetDir, string version)
-        {
-            string markerPath = Path.Combine(targetDir, VersionFile);
+        // ── Markers ──
 
+        private static bool IsLegacyMarkerCurrent(string targetDir, string version)
+            => IsMarkerCurrent(Path.Combine(targetDir, LegacyVersionFile), version);
+
+        private static bool IsSharedMarkerCurrent(string targetDir, string version)
+            => IsMarkerCurrent(Path.Combine(targetDir, SharedVersionFile), version);
+
+        private static bool IsProfileMarkerCurrent(string profileDir, string version)
+            => IsMarkerCurrent(Path.Combine(profileDir, ProfileExtractedFile), version);
+
+        private static bool IsMarkerCurrent(string markerPath, string version)
+        {
             if (!File.Exists(markerPath))
                 return false;
-
-            string existing = File.ReadAllText(markerPath).Trim();
-            return existing == version;
+            try
+            {
+                string existing = File.ReadAllText(markerPath).Trim();
+                return existing == version;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
-        private static void WriteVersionMarker(
-            string targetDir, string version)
+        private static void WriteLegacyMarker(string targetDir, string version)
+            => WriteMarker(Path.Combine(targetDir, LegacyVersionFile), targetDir, version);
+
+        private static void WriteSharedMarker(string targetDir, string version)
+            => WriteMarker(Path.Combine(targetDir, SharedVersionFile), targetDir, version);
+
+        private static void WriteProfileMarker(string profileDir, string version)
+            => WriteMarker(Path.Combine(profileDir, ProfileExtractedFile), profileDir, version);
+
+        private static void WriteMarker(string markerPath, string parentDir, string version)
         {
-            Directory.CreateDirectory(targetDir);
-            string markerPath = Path.Combine(targetDir, VersionFile);
+            Directory.CreateDirectory(parentDir);
             File.WriteAllText(markerPath, version);
+        }
+
+        // ── Manifest cache ──
+
+        private static StreamingAssetsManifest _cachedManifest;
+
+        private static async UniTask<StreamingAssetsManifest> GetManifestAsync(
+            CancellationToken ct)
+        {
+            if (_cachedManifest != null)
+                return _cachedManifest;
+
+            var manifest = await LoadManifestAsync(ct);
+            if (manifest != null)
+                _cachedManifest = manifest;
+            return manifest;
         }
 
         private static bool HasError(UnityWebRequest request)

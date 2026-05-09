@@ -113,6 +113,18 @@ namespace PonyuDev.SherpaOnnx.Vad
                     return;
                 }
             }
+            else
+            {
+                // Local / Remote profiles ship inside StreamingAssets.
+                // On Android the per-profile group is extracted lazily.
+                string subdir = $"{VadModelPathResolver.ModelsSubfolder}/{profile.profileName}";
+                bool ok = await StreamingAssetsCopier.EnsureProfileExtractedAsync(subdir, progress, ct);
+                if (!ok)
+                {
+                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] VadService: profile extraction failed for '{subdir}'.");
+                    return;
+                }
+            }
 
             // Native VAD construction (sherpa-onnx VoiceActivityDetector
             // ctor) is multi-hundred-ms and pure C/C++ via P/Invoke. Run
@@ -197,10 +209,11 @@ namespace PonyuDev.SherpaOnnx.Vad
             if (_settings != null
                 && _settings.autoDeletePreviousProfile
                 && previous != null
-                && previous.modelSource == ModelSource.LocalZip
                 && !string.IsNullOrEmpty(previous.profileName)
                 && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
             {
+                // Local / Remote / LocalZip all land in the same per-profile
+                // dir under persistentDataPath on Android — drop it.
                 LocalZipExtractor.TryDeleteExtractedModel(
                     VadModelPathResolver.ModelsSubfolder, previous.profileName);
             }

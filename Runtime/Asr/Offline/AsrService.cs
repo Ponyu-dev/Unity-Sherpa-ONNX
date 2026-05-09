@@ -131,6 +131,20 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
                     return;
                 }
             }
+            else
+            {
+                // Local / Remote profiles ship inside StreamingAssets.
+                // On Android the per-profile group is extracted lazily
+                // so individual profiles can be deleted to reclaim disk
+                // space. On non-Android this is a no-op.
+                string subdir = $"{AsrModelPathResolver.ModelsSubfolder}/{profile.profileName}";
+                bool ok = await StreamingAssetsCopier.EnsureProfileExtractedAsync(subdir, progress, ct);
+                if (!ok)
+                {
+                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] AsrService: profile extraction failed for '{subdir}'.");
+                    return;
+                }
+            }
 
             // Native recognizer construction (sherpa-onnx OfflineRecognizer
             // ctor — ONNX/tokens/lexicon parsing) is multi-second per
@@ -227,10 +241,11 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             if (_settings != null
                 && _settings.autoDeletePreviousProfile
                 && previous != null
-                && previous.modelSource == ModelSource.LocalZip
                 && !string.IsNullOrEmpty(previous.profileName)
                 && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
             {
+                // Local / Remote / LocalZip all land in the same per-profile
+                // dir under persistentDataPath on Android — drop it.
                 LocalZipExtractor.TryDeleteExtractedModel(
                     AsrModelPathResolver.ModelsSubfolder, previous.profileName);
             }
