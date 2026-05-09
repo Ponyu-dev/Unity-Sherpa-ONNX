@@ -187,6 +187,41 @@ _orchestrator.Service.SwitchProfile(0);
 _orchestrator.GenerateAndPlay("Now using a different voice.");
 ```
 
+### Disk Usage (LocalZip extracted models)
+
+`LocalZip` profiles are decompressed to `Application.persistentDataPath` on
+first use. As users switch profiles, old extractions stay on disk so a
+re-switch does not pay the re-extract cost. `ITtsService` implements
+`IModelDiskUsage` so the host project can inspect and free that space
+without knowing about `LocalZipExtractor` or any path constants.
+
+```csharp
+// What is on disk
+foreach (var name in tts.GetExtractedProfiles())
+{
+    long bytes = tts.GetExtractedProfileSizeBytes(name);
+    Debug.Log($"{name}: {bytes / (1024 * 1024)} MB");
+}
+
+// Delete one stale profile
+tts.TryDeleteExtractedProfile("old-vits-piper");
+
+// Or sweep everything that is no longer in tts-settings.json
+int removed = tts.CleanupUnusedExtractedProfiles();
+Debug.Log($"Freed {removed} unused profile(s).");
+```
+
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → TTS →
+Disk Usage → Auto-delete previous LocalZip on switch** (or set
+`TtsSettingsData.autoDeletePreviousProfile = true`). Then every successful
+`SwitchProfile(...)` to a different LocalZip profile drops the previous
+extraction. Off by default — leave it off if you alternate between
+profiles often.
+
+`Local` (bundled in StreamingAssets) and `Remote` (Editor-imported into
+StreamingAssets) profiles are not extracted to `persistentDataPath`, so
+they never appear in `GetExtractedProfiles()`.
+
 ### Custom Speed and Speaker
 
 ```csharp

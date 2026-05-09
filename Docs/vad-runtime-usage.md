@@ -268,6 +268,34 @@ _vad.SwitchProfile("silero_vad");
 _vad.SwitchProfile(0);
 ```
 
+## Disk Usage (LocalZip extracted models)
+
+`LocalZip` profiles are decompressed to `Application.persistentDataPath` on
+first use. Old extractions stay on disk after a `SwitchProfile` so a
+re-switch does not pay the re-extract cost. `IVadService` implements
+`IModelDiskUsage` — host code can inspect and free that space without
+knowing about `LocalZipExtractor` or any path constants.
+
+```csharp
+// What is on disk
+foreach (var name in vad.GetExtractedProfiles())
+    Debug.Log($"{name}: {vad.GetExtractedProfileSizeBytes(name) / (1024 * 1024)} MB");
+
+// Delete one stale profile
+vad.TryDeleteExtractedProfile("old-silero");
+
+// Or sweep everything that is no longer in vad-settings.json
+int removed = vad.CleanupUnusedExtractedProfiles();
+```
+
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → VAD →
+Disk Usage → Auto-delete previous LocalZip on switch**. Then every
+successful `SwitchProfile(...)` to a different LocalZip profile drops the
+previous extraction. Off by default.
+
+`Local` and `Remote` profiles are not extracted to `persistentDataPath`,
+so they never appear in `GetExtractedProfiles()`.
+
 ---
 
 ## VContainer Integration

@@ -279,6 +279,36 @@ _asr.SwitchProfile(0);
 AsrResult result = _asr.Recognize(samples, sampleRate);
 ```
 
+### Disk Usage (LocalZip extracted models)
+
+`LocalZip` profiles are decompressed to `Application.persistentDataPath` on
+first use. Old extractions stay on disk after a `SwitchProfile` so a
+re-switch does not pay the re-extract cost. Both `IAsrService` and
+`IOnlineAsrService` implement `IModelDiskUsage` — host code can inspect
+and free that space without knowing about `LocalZipExtractor` or any path
+constants. Offline and online ASR each manage their own subfolder.
+
+```csharp
+// What is on disk for offline ASR
+foreach (var name in asr.GetExtractedProfiles())
+    Debug.Log($"{name}: {asr.GetExtractedProfileSizeBytes(name) / (1024 * 1024)} MB");
+
+// Delete one stale profile
+asr.TryDeleteExtractedProfile("old-zipformer");
+
+// Or sweep everything that is no longer in asr-settings.json
+int removed = asr.CleanupUnusedExtractedProfiles();
+```
+
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → ASR →
+Disk Usage → Auto-delete previous LocalZip on switch** (separate toggles
+in the Offline and Online tabs). Then every successful `SwitchProfile(...)`
+to a different LocalZip profile drops the previous extraction. Off by
+default.
+
+`Local` and `Remote` profiles are not extracted to `persistentDataPath`,
+so they never appear in `GetExtractedProfiles()`.
+
 ### Engine Pool Size (offline only)
 
 Multiple native recognizer instances allow concurrent recognition:
@@ -661,6 +691,14 @@ accessible via `System.IO.File`. The package handles this automatically:
 1. At build time, a manifest of all SherpaOnnx files is generated
 2. On first launch, files are extracted from APK to `persistentDataPath`
 3. Subsequent launches skip extraction (version marker check)
+
+Each file is streamed straight to disk via `UnityWebRequest` +
+`DownloadHandlerFile` — no `byte[]` is ever materialized in managed heap
+and no synchronous `File.WriteAllBytes` runs on the main thread. This
+keeps the UI responsive even when extracting hundred-megabyte models,
+and avoids heap spikes that could OOM on low-memory devices. Partial
+files are removed automatically on cancellation (via
+`DownloadHandlerFile.removeFileOnAbort`) and on HTTP errors.
 
 **You must use `InitializeAsync()` on Android.** The synchronous `Initialize()`
 cannot extract files from the APK.
