@@ -28,6 +28,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         private Toggle _asrEnabledToggle;
         private Toggle _offlineAutoDeletePreviousProfileToggle;
         private Toggle _onlineAutoDeletePreviousProfileToggle;
+        private Toggle _offlineBuildOnlyActiveProfileToggle;
+        private Toggle _onlineBuildOnlyActiveProfileToggle;
         private Button _offlineTabBtn;
         private Button _onlineTabBtn;
         private VisualElement _offlineContainer;
@@ -170,6 +172,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
                 HandleOfflineAutoDeletePreviousProfileChanged);
 
             foldout.Add(_offlineAutoDeletePreviousProfileToggle);
+
+            _offlineBuildOnlyActiveProfileToggle = new Toggle(OnlyActiveProfileInBuildToggle.Label)
+            {
+                tooltip = OnlyActiveProfileInBuildToggle.Tooltip,
+                value = settings.offlineData.buildOnlyActiveProfile,
+            };
+            _offlineBuildOnlyActiveProfileToggle.RegisterValueChangedCallback(
+                HandleOfflineBuildOnlyActiveProfileChanged);
+
+            foldout.Add(_offlineBuildOnlyActiveProfileToggle);
             _offlineContainer.Insert(0, foldout);
         }
 
@@ -187,6 +199,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
                 HandleOnlineAutoDeletePreviousProfileChanged);
 
             foldout.Add(_onlineAutoDeletePreviousProfileToggle);
+
+            _onlineBuildOnlyActiveProfileToggle = new Toggle(OnlyActiveProfileInBuildToggle.Label)
+            {
+                tooltip = OnlyActiveProfileInBuildToggle.Tooltip,
+                value = settings.onlineData.buildOnlyActiveProfile,
+            };
+            _onlineBuildOnlyActiveProfileToggle.RegisterValueChangedCallback(
+                HandleOnlineBuildOnlyActiveProfileChanged);
+
+            foldout.Add(_onlineBuildOnlyActiveProfileToggle);
             _onlineContainer.Insert(0, foldout);
         }
 
@@ -201,6 +223,20 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
         {
             var s = AsrProjectSettings.instance;
             s.onlineData.autoDeletePreviousProfile = evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleOfflineBuildOnlyActiveProfileChanged(ChangeEvent<bool> evt)
+        {
+            var s = AsrProjectSettings.instance;
+            s.offlineData.buildOnlyActiveProfile = evt.newValue;
+            s.SaveSettings();
+        }
+
+        private static void HandleOnlineBuildOnlyActiveProfileChanged(ChangeEvent<bool> evt)
+        {
+            var s = AsrProjectSettings.instance;
+            s.onlineData.buildOnlyActiveProfile = evt.newValue;
             s.SaveSettings();
         }
 
@@ -296,6 +332,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
                 HandleOfflineAutoDeletePreviousProfileChanged);
             _offlineAutoDeletePreviousProfileToggle = null;
 
+            _offlineBuildOnlyActiveProfileToggle?.UnregisterValueChangedCallback(
+                HandleOfflineBuildOnlyActiveProfileChanged);
+            _offlineBuildOnlyActiveProfileToggle = null;
+
             _offlineActivePresenter?.Dispose();
             _offlineImportPresenter?.Dispose();
             if (_offlineImportFromUrlButton != null)
@@ -317,6 +357,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.View
             _onlineAutoDeletePreviousProfileToggle?.UnregisterValueChangedCallback(
                 HandleOnlineAutoDeletePreviousProfileChanged);
             _onlineAutoDeletePreviousProfileToggle = null;
+
+            _onlineBuildOnlyActiveProfileToggle?.UnregisterValueChangedCallback(
+                HandleOnlineBuildOnlyActiveProfileChanged);
+            _onlineBuildOnlyActiveProfileToggle = null;
 
             _onlineActivePresenter?.Dispose();
             _onlineImportPresenter?.Dispose();
