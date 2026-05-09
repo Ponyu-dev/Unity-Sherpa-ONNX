@@ -206,14 +206,22 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             return results;
         }
 
-        // True when the directory carries either marker — LocalZip's
-        // ".zip-extracted" or the Local/Remote ".profile-extracted"
-        // emitted by StreamingAssetsCopier.EnsureProfileExtractedAsync.
+        // True when the directory carries any of the three known
+        // extraction markers, written by:
+        //   .zip-extracted     → LocalZipExtractor (StreamingAssets zip)
+        //   .profile-extracted → StreamingAssetsCopier
+        //                        .EnsureProfileExtractedAsync (Local /
+        //                        bundled Remote)
+        //   .remote-extracted  → RemoteProfileFetcher.EnsureDownloadedAsync
+        //                        (runtime download from URL)
+        // Listing / cleanup APIs treat all three the same.
         private const string ProfileExtractedMarker = ".profile-extracted";
+        private const string RemoteExtractedMarker = ".remote-extracted";
         private static bool HasAnyExtractionMarker(string dir)
         {
             return File.Exists(Path.Combine(dir, ExtractedMarker))
-                || File.Exists(Path.Combine(dir, ProfileExtractedMarker));
+                || File.Exists(Path.Combine(dir, ProfileExtractedMarker))
+                || File.Exists(Path.Combine(dir, RemoteExtractedMarker));
         }
 
         /// <summary>
