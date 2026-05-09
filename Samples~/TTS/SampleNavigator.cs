@@ -85,7 +85,9 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             try
             {
-                await _innerService.InitializeAsync();
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS init: starting…");
+                var initProgress = new Progress<float>(ReportTtsInitProgress);
+                await _innerService.InitializeAsync(initProgress);
 
                 var cache = _innerService.Settings?.cache;
                 if (cache != null)
@@ -97,7 +99,9 @@ namespace PonyuDev.SherpaOnnx.Samples
                 if (Service.IsReady)
                 {
                     SherpaOnnxLog.RuntimeLog(
-                        "[SherpaOnnx] SampleNavigator: service ready.");
+                        $"[SherpaOnnx] TTS init: ready • profile '" +
+                        $"{_innerService.ActiveProfile?.profileName ?? "(none)"}' • " +
+                        $"{_innerService.SampleRate} Hz");
                 }
                 else
                 {
@@ -111,6 +115,27 @@ namespace PonyuDev.SherpaOnnx.Samples
                 SherpaOnnxLog.RuntimeError(
                     $"[SherpaOnnx] SampleNavigator init failed: {ex.Message}");
             }
+            finally
+            {
+                // Even on failure, flip the bus to "finished" so panels stop
+                // showing a stale loading bar — they will then read IsReady
+                // and show the proper error text.
+                TtsInitProgressBus.MarkFinished();
+            }
+        }
+
+        // Mirror the progress fraction into both the bus (so any open panel
+        // can refresh its status label live) and the console (one entry per
+        // changed percent — full updates would drown the log).
+        private static int _lastReportedTtsPct = -1;
+        private static void ReportTtsInitProgress(float fraction)
+        {
+            TtsInitProgressBus.Report(fraction);
+
+            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
+            if (pct == _lastReportedTtsPct) return;
+            _lastReportedTtsPct = pct;
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] TTS init: {pct}%");
         }
 
         /// <summary>Active service (cached decorator or raw).</summary>

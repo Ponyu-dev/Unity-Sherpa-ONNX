@@ -92,13 +92,24 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             if (_cache == null)
                 SetStatus("No cache — service is not CachedTtsService.");
+            else
+            {
+                TtsInitProgressBus.Changed += HandleInitProgressChanged;
+                HandleInitProgressChanged();
+            }
         }
 
         public void Unbind()
         {
+            TtsInitProgressBus.Changed -= HandleInitProgressChanged;
             _statsSchedule?.Pause();
             UnsubscribeAll();
             NullifyAll();
+        }
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(TtsSampleStatusUtil.BuildCurrent(_service));
         }
 
         // ── Query ──

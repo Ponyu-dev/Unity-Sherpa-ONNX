@@ -85,11 +85,15 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             UpdateButtons();
             UpdateActiveLabel();
-            SetStatus(_service != null && _service.IsReady ? "Ready." : "Engine not loaded.");
+
+            TtsInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            TtsInitProgressBus.Changed -= HandleInitProgressChanged;
+
             // Hard-stop everything still in flight before tearing down.
             CancelGeneration();
             for (int i = _handles.Count - 1; i >= 0; i--)
@@ -387,6 +391,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
+        }
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(TtsSampleStatusUtil.BuildCurrent(_service));
         }
 
         private void AppendHistory(string line)

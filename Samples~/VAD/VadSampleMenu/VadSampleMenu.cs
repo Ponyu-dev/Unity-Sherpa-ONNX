@@ -17,6 +17,8 @@ namespace PonyuDev.SherpaOnnx.Samples
         private Button _btnDemo;
         private Label _infoLabel;
         private Action<string> _onNavigate;
+        private IVadService _vadService;
+        private IAsrService _asrService;
 
         // ── IVadSamplePanel ──
 
@@ -42,6 +44,8 @@ namespace PonyuDev.SherpaOnnx.Samples
             Action<string> onNavigate)
         {
             _onNavigate = onNavigate;
+            _vadService = vadService;
+            _asrService = asrService;
 
             _btnDemo = root.Q<Button>("btnDemo");
             _infoLabel = root.Q<Label>("infoLabel");
@@ -49,17 +53,22 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_btnDemo != null)
                 _btnDemo.clicked += HandleDemo;
 
-            UpdateInfo(vadService, asrService);
+            VadInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            VadInitProgressBus.Changed -= HandleInitProgressChanged;
+
             if (_btnDemo != null)
                 _btnDemo.clicked -= HandleDemo;
 
             _btnDemo = null;
             _infoLabel = null;
             _onNavigate = null;
+            _vadService = null;
+            _asrService = null;
         }
 
         // ── Handlers ──
@@ -71,37 +80,14 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         // ── Helpers ──
 
-        private void UpdateInfo(
-            IVadService vadService,
-            IAsrService asrService)
+        private void HandleInitProgressChanged()
         {
             if (_infoLabel == null)
                 return;
 
-            string vadInfo = BuildVadInfo(vadService);
-            string asrInfo = BuildAsrInfo(asrService);
-
-            _infoLabel.text = $"{vadInfo}\n{asrInfo}";
-        }
-
-        private static string BuildVadInfo(IVadService service)
-        {
-            if (service == null || !service.IsReady)
-                return "VAD: not loaded";
-
-            var profile = service.ActiveProfile;
-            return $"VAD: {profile?.profileName ?? "\u2014"} | " +
-                   $"{profile?.modelType}";
-        }
-
-        private static string BuildAsrInfo(IAsrService service)
-        {
-            if (service == null || !service.IsReady)
-                return "ASR: not loaded";
-
-            var profile = service.ActiveProfile;
-            return $"ASR: {profile?.profileName ?? "\u2014"} | " +
-                   $"{profile?.modelType}";
+            string vadLine = VadSampleStatusUtil.BuildVadLine(_vadService);
+            string asrLine = VadSampleStatusUtil.BuildPipelineAsrLine(_asrService);
+            _infoLabel.text = $"{vadLine}\n{asrLine}";
         }
     }
 }

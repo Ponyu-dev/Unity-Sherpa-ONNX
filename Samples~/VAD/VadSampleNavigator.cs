@@ -79,8 +79,13 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             try
             {
-                await _vadService.InitializeAsync();
-                await _asrService.InitializeAsync();
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VAD init: starting…");
+                var vadProgress = new Progress<float>(ReportVadInitProgress);
+                var asrProgress = new Progress<float>(ReportAsrInitProgress);
+                await _vadService.InitializeAsync(vadProgress);
+                VadInitProgressBus.MarkVadFinished();
+                await _asrService.InitializeAsync(asrProgress);
+                VadInitProgressBus.MarkAsrFinished();
 
                 if (_vadService.IsReady)
                 {
@@ -111,6 +116,34 @@ namespace PonyuDev.SherpaOnnx.Samples
                     "[SherpaOnnx] VadSampleNavigator init " +
                     "failed: " + ex.Message);
             }
+            finally
+            {
+                VadInitProgressBus.MarkVadFinished();
+                VadInitProgressBus.MarkAsrFinished();
+            }
+        }
+
+        // Mirror progress into the bus (panels read it live) and the
+        // console (one entry per changed percent so the log doesn't drown).
+        private static int _lastReportedVadPct = -1;
+        private static int _lastReportedVadAsrPct = -1;
+        private static void ReportVadInitProgress(float fraction)
+        {
+            VadInitProgressBus.ReportVad(fraction);
+
+            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
+            if (pct == _lastReportedVadPct) return;
+            _lastReportedVadPct = pct;
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] VAD init: {pct}%");
+        }
+        private static void ReportAsrInitProgress(float fraction)
+        {
+            VadInitProgressBus.ReportAsr(fraction);
+
+            int pct = Mathf.Clamp((int)(fraction * 100f), 0, 100);
+            if (pct == _lastReportedVadAsrPct) return;
+            _lastReportedVadAsrPct = pct;
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] VAD-pipeline ASR init: {pct}%");
         }
 
         // ── Navigation ──
