@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Offline.Engine;
+using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Tests.Stubs
 {
@@ -38,7 +39,7 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         public void Initialize() { }
 
         public UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             return UniTask.CompletedTask;

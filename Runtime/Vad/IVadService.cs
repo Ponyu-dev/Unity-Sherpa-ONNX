@@ -25,11 +25,12 @@ namespace PonyuDev.SherpaOnnx.Vad
         void Initialize();
 
         /// <summary>
-        /// Async initialization: extracts files on Android,
-        /// loads settings, and starts the engine.
+        /// Async initialization: stages files on Android, loads settings,
+        /// and starts the engine. Reports semantic
+        /// <see cref="ProfileReadyEvent"/>s via <paramref name="onEvent"/>.
         /// </summary>
         UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default);
 
         void LoadProfile(VadProfile profile);

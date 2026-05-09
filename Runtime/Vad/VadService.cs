@@ -90,49 +90,42 @@ namespace PonyuDev.SherpaOnnx.Vad
         }
 
         public async UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService async initializing...");
 
-            _settings = await VadSettingsLoader.LoadAsync(progress, ct);
-            var profile = VadSettingsLoader.GetActiveProfile(_settings);
+            _settings = await VadSettingsLoader.LoadAsync(ProfileReadyEvents.AsExtractProgress(onEvent), ct);
 
+            var profile = VadSettingsLoader.GetActiveProfile(_settings);
             if (profile == null)
             {
                 SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] VadService: no active profile found.");
+                ProfileReadyEvents.EmitFailed(onEvent, "No active profile.");
                 return;
             }
 
-            if (profile.modelSource == ModelSource.LocalZip)
-            {
-                string dir = await LocalZipExtractor.EnsureExtractedAsync(VadModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
-                if (dir == null)
-                {
-                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] VadService: LocalZip extraction failed.");
-                    return;
-                }
-            }
-            else
-            {
-                // Local / Remote profiles ship inside StreamingAssets.
-                // On Android the per-profile group is extracted lazily.
-                string subdir = $"{VadModelPathResolver.ModelsSubfolder}/{profile.profileName}";
-                bool ok = await StreamingAssetsCopier.EnsureProfileExtractedAsync(subdir, progress, ct);
-                if (!ok)
-                {
-                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] VadService: profile extraction failed for '{subdir}'.");
-                    return;
-                }
-            }
+            const string serviceName = "VadService";
+            string subfolder = VadModelPathResolver.ModelsSubfolder;
+            if (!await ProfileSourceResolver.EnsureLocalZipReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureRemoteReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureLocalReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
 
-            // Native VAD construction (sherpa-onnx VoiceActivityDetector
-            // ctor) is multi-hundred-ms and pure C/C++ via P/Invoke. Run
-            // it off the main thread so the UI does not freeze while the
-            // detector warms up.
+            ProfileReadyEvents.EmitInit(onEvent, 0);
             _profilePendingLoad = profile;
             await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
 
+            if (!IsReady)
+            {
+                ProfileReadyEvents.EmitFailed(onEvent, "Engine failed to load.");
+                return;
+            }
+
+            ProfileReadyEvents.EmitInit(onEvent, 100);
+            ProfileReadyEvents.EmitReady(onEvent);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService async initialized.");
         }
 

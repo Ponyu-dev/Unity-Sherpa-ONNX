@@ -76,48 +76,42 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
         }
 
         public async UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] OnlineAsrService async initializing...");
-            _settings = await OnlineAsrSettingsLoader.LoadAsync(progress, ct);
-            var profile = OnlineAsrSettingsLoader.GetActiveProfile(_settings);
 
+            _settings = await OnlineAsrSettingsLoader.LoadAsync(ProfileReadyEvents.AsExtractProgress(onEvent), ct);
+
+            var profile = OnlineAsrSettingsLoader.GetActiveProfile(_settings);
             if (profile == null)
             {
                 SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] OnlineAsrService: no active profile.");
+                ProfileReadyEvents.EmitFailed(onEvent, "No active profile.");
                 return;
             }
 
-            if (profile.modelSource == ModelSource.LocalZip)
-            {
-                string dir = await LocalZipExtractor.EnsureExtractedAsync(
-                    AsrModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
-                if (dir == null)
-                {
-                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] OnlineAsrService: LocalZip extraction failed.");
-                    return;
-                }
-            }
-            else
-            {
-                // Local / Remote profiles ship inside StreamingAssets.
-                // On Android the per-profile group is extracted lazily.
-                string subdir = $"{AsrModelPathResolver.ModelsSubfolder}/{profile.profileName}";
-                bool ok = await StreamingAssetsCopier.EnsureProfileExtractedAsync(subdir, progress, ct);
-                if (!ok)
-                {
-                    SherpaOnnxLog.RuntimeError($"[SherpaOnnx] OnlineAsrService: profile extraction failed for '{subdir}'.");
-                    return;
-                }
-            }
+            const string serviceName = "OnlineAsrService";
+            string subfolder = AsrModelPathResolver.ModelsSubfolder;
+            if (!await ProfileSourceResolver.EnsureLocalZipReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureRemoteReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureLocalReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
 
-            // Native recognizer construction (sherpa-onnx OnlineRecognizer
-            // ctor) is multi-second; pure C/C++ via P/Invoke with no Unity
-            // API access. Run it off the main thread so the UI does not
-            // freeze while the streaming engine warms up.
+            ProfileReadyEvents.EmitInit(onEvent, 0);
             _profilePendingLoad = profile;
             await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
+
+            if (!IsReady)
+            {
+                ProfileReadyEvents.EmitFailed(onEvent, "Engine failed to load.");
+                return;
+            }
+
+            ProfileReadyEvents.EmitInit(onEvent, 100);
+            ProfileReadyEvents.EmitReady(onEvent);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] OnlineAsrService async initialized.");
         }
 

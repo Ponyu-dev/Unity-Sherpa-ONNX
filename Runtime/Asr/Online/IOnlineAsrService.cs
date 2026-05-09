@@ -21,7 +21,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
         void Initialize();
 
         UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default);
 
         void LoadProfile(OnlineAsrProfile profile);
