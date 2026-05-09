@@ -68,7 +68,9 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_btnBack != null) _btnBack.clicked += HandleBack;
 
             UpdateButtons();
-            SetStatus(_service != null && _service.IsReady ? "Ready." : "Engine not loaded.");
+
+            TtsInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
 #if ENABLE_IL2CPP
             SetStreamingResult(
                 "Streaming → unavailable on IL2CPP. " +
@@ -82,6 +84,7 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         public void Unbind()
         {
+            TtsInitProgressBus.Changed -= HandleInitProgressChanged;
             CancelAndStop();
 
             if (_btnSpeakStreaming != null) _btnSpeakStreaming.clicked -= HandleSpeakStreaming;
@@ -368,6 +371,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
+        }
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(TtsSampleStatusUtil.BuildCurrent(_service));
         }
 
         private void SetStreamingResult(string text)

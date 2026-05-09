@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 using UnityEngine;
@@ -75,10 +77,10 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         }
 
         public async UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
-            await _inner.InitializeAsync(progress, ct);
+            await _inner.InitializeAsync(onEvent, ct);
         }
 
         public void LoadProfile(TtsProfile profile)
@@ -187,6 +189,20 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         {
             return _inner.GenerateWithConfigAsync(text, config, callback, ct);
         }
+
+        // ── IModelDiskUsage (forwarded to inner) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => _inner.GetExtractedProfiles();
+
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => _inner.GetExtractedProfileSizeBytes(profileName);
+
+        public bool TryDeleteExtractedProfile(string profileName)
+            => _inner.TryDeleteExtractedProfile(profileName);
+
+        public int CleanupUnusedExtractedProfiles()
+            => _inner.CleanupUnusedExtractedProfiles();
 
         // ── ITtsCacheControl: enable/disable ──
 

@@ -22,6 +22,8 @@ namespace PonyuDev.SherpaOnnx.Samples
         private Button _btnCombined;
         private Label _infoLabel;
         private Action<string> _onNavigate;
+        private IAsrService _offlineService;
+        private IOnlineAsrService _onlineService;
 
         // ── IAsrSamplePanel ──
 
@@ -47,6 +49,8 @@ namespace PonyuDev.SherpaOnnx.Samples
             Action<string> onNavigate)
         {
             _onNavigate = onNavigate;
+            _offlineService = offlineService;
+            _onlineService = onlineService;
 
             _btnFile = root.Q<Button>("btnFile");
             _btnStream = root.Q<Button>("btnStream");
@@ -60,11 +64,14 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_btnCombined != null)
                 _btnCombined.clicked += HandleCombined;
 
-            UpdateInfo(offlineService, onlineService);
+            AsrInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            AsrInitProgressBus.Changed -= HandleInitProgressChanged;
+
             if (_btnFile != null)
                 _btnFile.clicked -= HandleFile;
             if (_btnStream != null)
@@ -77,6 +84,8 @@ namespace PonyuDev.SherpaOnnx.Samples
             _btnCombined = null;
             _infoLabel = null;
             _onNavigate = null;
+            _offlineService = null;
+            _onlineService = null;
         }
 
         // ── Handlers ──
@@ -98,41 +107,14 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         // ── Helpers ──
 
-        private void UpdateInfo(
-            IAsrService offlineService,
-            IOnlineAsrService onlineService)
+        private void HandleInitProgressChanged()
         {
             if (_infoLabel == null)
                 return;
 
-            string offlineInfo = BuildProfileInfo("Offline", offlineService);
-            string onlineInfo = BuildProfileInfo("Online", onlineService);
-
-            _infoLabel.text = $"{offlineInfo}\n{onlineInfo}";
-        }
-
-        private static string BuildProfileInfo(
-            string label,
-            IAsrService service)
-        {
-            if (service == null || !service.IsReady)
-                return $"{label}: not loaded";
-
-            var profile = service.ActiveProfile;
-            return $"{label}: {profile?.profileName ?? "—"} | " +
-                   $"{profile?.modelType}";
-        }
-
-        private static string BuildProfileInfo(
-            string label,
-            IOnlineAsrService service)
-        {
-            if (service == null || !service.IsReady)
-                return $"{label}: not loaded";
-
-            var profile = service.ActiveProfile;
-            return $"{label}: {profile?.profileName ?? "—"} | " +
-                   $"{profile?.modelType}";
+            string offlineLine = AsrSampleStatusUtil.BuildOfflineCurrent(_offlineService);
+            string onlineLine = AsrSampleStatusUtil.BuildOnlineCurrent(_onlineService);
+            _infoLabel.text = $"{offlineLine}\n{onlineLine}";
         }
     }
 }

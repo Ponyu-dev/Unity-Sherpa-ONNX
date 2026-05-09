@@ -53,10 +53,15 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _backButton.clicked += HandleBack;
 
             UpdateInfo();
+
+            TtsInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            TtsInitProgressBus.Changed -= HandleInitProgressChanged;
+
             if (_generateButton != null)
                 _generateButton.clicked -= HandleGenerate;
             if (_backButton != null)
@@ -130,6 +135,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         }
 
         private void HandleBack() => _onBack?.Invoke();
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(TtsSampleStatusUtil.BuildCurrent(_service));
+        }
 
         // ── Helpers ──
 

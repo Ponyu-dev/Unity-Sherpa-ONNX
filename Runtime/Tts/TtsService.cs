@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -92,34 +93,62 @@ namespace PonyuDev.SherpaOnnx.Tts
         /// Works on all platforms.
         /// </summary>
         public async UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initializing...");
 
-            _settings = await TtsSettingsLoader.LoadAsync(progress, ct);
-            var profile = TtsSettingsLoader.GetActiveProfile(_settings);
+            // Shared StreamingAssets (settings JSON + anything outside
+            // a per-profile dir) is the first piece to land on disk.
+            // We bridge its IProgress<float> into the Extract phase so
+            // first-launch progress is visible while the manifest gets
+            // staged on Android.
+            _settings = await TtsSettingsLoader.LoadAsync(ProfileReadyEvents.AsExtractProgress(onEvent), ct);
 
+            var profile = TtsSettingsLoader.GetActiveProfile(_settings);
             if (profile == null)
             {
                 SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] TtsService: no active profile found.");
+                ProfileReadyEvents.EmitFailed(onEvent, "No active profile.");
                 return;
             }
 
-            if (profile.modelSource == ModelSource.LocalZip)
+            const string serviceName = "TtsService";
+            string subfolder = TtsModelPathResolver.ModelsSubfolder;
+            if (!await ProfileSourceResolver.EnsureLocalZipReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureRemoteReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureLocalReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+
+            // Native engine construction (sherpa-onnx OfflineTts ctor —
+            // ONNX/lexicon/data parsing) is multi-second per instance and
+            // scales with EnginePoolSize. It is pure C/C++ via P/Invoke
+            // with no Unity API access, so run it off the main thread to
+            // keep the UI responsive while the engines warm up.
+            ProfileReadyEvents.EmitInit(onEvent, 0);
+            _profilePendingLoad = profile;
+            await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
+
+            if (!IsReady)
             {
-                string dir = await LocalZipExtractor.EnsureExtractedAsync(
-                    TtsModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
-                if (dir == null)
-                {
-                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService: LocalZip extraction failed.");
-                    return;
-                }
+                ProfileReadyEvents.EmitFailed(onEvent, "Engine failed to load.");
+                return;
             }
 
-            LoadProfile(profile);
-
+            ProfileReadyEvents.EmitInit(onEvent, 100);
+            ProfileReadyEvents.EmitReady(onEvent);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initialized.");
+        }
+
+        private TtsProfile _profilePendingLoad;
+        private void LoadPendingProfile()
+        {
+            var p = _profilePendingLoad;
+            _profilePendingLoad = null;
+            if (p != null)
+                LoadProfile(p);
         }
 
         /// <summary>
@@ -164,7 +193,7 @@ namespace PonyuDev.SherpaOnnx.Tts
                 return;
             }
 
-            LoadProfile(_settings.profiles[index]);
+            SwitchToProfile(_settings.profiles[index]);
         }
 
         /// <summary>
@@ -189,7 +218,34 @@ namespace PonyuDev.SherpaOnnx.Tts
                 return;
             }
 
-            LoadProfile(profile);
+            SwitchToProfile(profile);
+        }
+
+        // Captures the previously active profile, loads the new one, and —
+        // if the engine reports itself ready and TtsSettingsData.
+        // autoDeletePreviousProfile is set — frees the disk space used by
+        // the previous LocalZip extraction. Failed loads leave the old
+        // extraction intact.
+        private void SwitchToProfile(TtsProfile newProfile)
+        {
+            var previous = _activeProfile;
+            LoadProfile(newProfile);
+
+            if (!IsReady)
+                return;
+
+            if (_settings != null
+                && _settings.autoDeletePreviousProfile
+                && previous != null
+                && !string.IsNullOrEmpty(previous.profileName)
+                && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
+            {
+                // Local / Remote / LocalZip all land in the same per-profile
+                // dir under persistentDataPath on Android — drop it. On
+                // non-Android nothing is extracted, so this is a no-op.
+                LocalZipExtractor.TryDeleteExtractedModel(
+                    TtsModelPathResolver.ModelsSubfolder, previous.profileName);
+            }
         }
 
         // ── Generation ──
@@ -259,6 +315,36 @@ namespace PonyuDev.SherpaOnnx.Tts
 
             using var linked = LinkCt(ct);
             return await engine.GenerateAsync(text, speed, speakerId, linked.Token);
+        }
+
+        // ── Disk usage ──
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => LocalZipExtractor.ListExtractedProfiles(TtsModelPathResolver.ModelsSubfolder);
+
+        /// <inheritdoc />
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => LocalZipExtractor.GetExtractedSizeBytes(TtsModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public bool TryDeleteExtractedProfile(string profileName)
+            => LocalZipExtractor.TryDeleteExtractedModel(TtsModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public int CleanupUnusedExtractedProfiles()
+        {
+            var keep = new List<string>();
+            if (_settings?.profiles != null)
+            {
+                foreach (var p in _settings.profiles)
+                {
+                    if (!string.IsNullOrEmpty(p?.profileName))
+                        keep.Add(p.profileName);
+                }
+            }
+            return LocalZipExtractor.CleanupUnusedProfiles(
+                TtsModelPathResolver.ModelsSubfolder, keep);
         }
 
         // ── Cleanup ──

@@ -79,37 +79,22 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             try
             {
-                await _vadService.InitializeAsync();
-                await _asrService.InitializeAsync();
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VAD init: starting…");
+                await _vadService.InitializeAsync(VadInitProgressBus.PublishVadEvent);
+                await _asrService.InitializeAsync(VadInitProgressBus.PublishAsrEvent);
 
                 if (_vadService.IsReady)
-                {
-                    _pipeline = new VadAsrPipeline(
-                        _vadService, _asrService);
-                }
+                    _pipeline = new VadAsrPipeline(_vadService, _asrService);
 
-                bool ready = _vadService.IsReady &&
-                             _asrService.IsReady;
-
+                bool ready = _vadService.IsReady && _asrService.IsReady;
                 if (ready)
-                {
-                    SherpaOnnxLog.RuntimeLog(
-                        "[SherpaOnnx] VadSampleNavigator: " +
-                        "services ready.");
-                }
+                    SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadSampleNavigator: services ready.");
                 else
-                {
-                    SherpaOnnxLog.RuntimeWarning(
-                        "[SherpaOnnx] VadSampleNavigator: " +
-                        "services initialized but engines " +
-                        "not loaded.");
-                }
+                    SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] VadSampleNavigator: services initialized but engines not loaded.");
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] VadSampleNavigator init " +
-                    "failed: " + ex.Message);
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] VadSampleNavigator init failed: " + ex.Message);
             }
         }
 

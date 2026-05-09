@@ -85,31 +85,21 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             try
             {
-                await _innerService.InitializeAsync();
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS init: starting…");
+                await _innerService.InitializeAsync(TtsInitProgressBus.PublishEvent);
 
                 var cache = _innerService.Settings?.cache;
                 if (cache != null)
-                {
-                    _cachedService = new CachedTtsService(
-                        _innerService, cache, transform);
-                }
+                    _cachedService = new CachedTtsService(_innerService, cache, transform);
 
                 if (Service.IsReady)
-                {
-                    SherpaOnnxLog.RuntimeLog(
-                        "[SherpaOnnx] SampleNavigator: service ready.");
-                }
+                    SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] TTS init: ready • profile '{_innerService.ActiveProfile?.profileName ?? "(none)"}' • {_innerService.SampleRate} Hz");
                 else
-                {
-                    SherpaOnnxLog.RuntimeWarning(
-                        "[SherpaOnnx] SampleNavigator: service initialized " +
-                        "but engine not loaded.");
-                }
+                    SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] SampleNavigator: service initialized but engine not loaded.");
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] SampleNavigator init failed: {ex.Message}");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] SampleNavigator init failed: {ex.Message}");
             }
         }
 

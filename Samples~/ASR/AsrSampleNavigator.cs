@@ -82,31 +82,24 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             try
             {
-                await _offlineService.InitializeAsync();
-                await _onlineService.InitializeAsync();
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] ASR init: starting…");
+                await _offlineService.InitializeAsync(AsrInitProgressBus.PublishOfflineEvent);
+                await _onlineService.InitializeAsync(AsrInitProgressBus.PublishOnlineEvent);
 
-                bool ready = _offlineService.IsReady ||
-                             _onlineService.IsReady;
-
+                bool ready = _offlineService.IsReady || _onlineService.IsReady;
                 if (ready)
                 {
                     await WarmUpServicesAsync();
-                    SherpaOnnxLog.RuntimeLog(
-                        "[SherpaOnnx] AsrSampleNavigator: " +
-                        "services ready.");
+                    SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrSampleNavigator: services ready.");
                 }
                 else
                 {
-                    SherpaOnnxLog.RuntimeWarning(
-                        "[SherpaOnnx] AsrSampleNavigator: " +
-                        "services initialized but engines not loaded.");
+                    SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] AsrSampleNavigator: services initialized but engines not loaded.");
                 }
             }
             catch (Exception ex)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] AsrSampleNavigator init failed: " +
-                    ex.Message);
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrSampleNavigator init failed: " + ex.Message);
             }
         }
 

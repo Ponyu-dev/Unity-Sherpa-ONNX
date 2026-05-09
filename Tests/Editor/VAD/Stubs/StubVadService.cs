@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Vad;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using PonyuDev.SherpaOnnx.Vad.Engine;
@@ -32,7 +33,7 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         public void Initialize() { }
 
         public UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             return UniTask.CompletedTask;
@@ -67,6 +68,13 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         {
             ResetCallCount++;
         }
+
+        // ── IModelDiskUsage (no-op stubs) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles() => Array.Empty<string>();
+        public long GetExtractedProfileSizeBytes(string profileName) => 0L;
+        public bool TryDeleteExtractedProfile(string profileName) => true;
+        public int CleanupUnusedExtractedProfiles() => 0;
 
         public void Dispose() { }
 

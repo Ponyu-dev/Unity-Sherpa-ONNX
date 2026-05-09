@@ -26,6 +26,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private Button _btnStreaming;
         private Label _infoLabel;
         private Action<string> _onNavigate;
+        private ITtsService _service;
 
         public void Bind(
             VisualElement root,
@@ -45,6 +46,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             Action<string> onNavigate)
         {
             _onNavigate = onNavigate;
+            _service = service;
 
             _btnSimple = root.Q<Button>("btnSimple");
             _btnProgress = root.Q<Button>("btnProgress");
@@ -67,11 +69,14 @@ namespace PonyuDev.SherpaOnnx.Samples
             if (_btnStreaming != null)
                 _btnStreaming.clicked += HandleStreaming;
 
-            UpdateInfo(service);
+            TtsInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            TtsInitProgressBus.Changed -= HandleInitProgressChanged;
+
             if (_btnSimple != null)
                 _btnSimple.clicked -= HandleSimple;
             if (_btnProgress != null)
@@ -93,6 +98,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _btnStreaming = null;
             _infoLabel = null;
             _onNavigate = null;
+            _service = null;
         }
 
         private void HandleSimple() => _onNavigate?.Invoke(IdSimple);
@@ -102,21 +108,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         private void HandleControls() => _onNavigate?.Invoke(IdControls);
         private void HandleStreaming() => _onNavigate?.Invoke(IdStreaming);
 
-        private void UpdateInfo(ITtsService service)
+        private void HandleInitProgressChanged()
         {
             if (_infoLabel == null)
                 return;
-
-            if (service == null || !service.IsReady)
-            {
-                _infoLabel.text = "Engine not loaded.";
-                return;
-            }
-
-            var profile = service.ActiveProfile;
-            _infoLabel.text =
-                $"Profile: {profile?.profileName ?? "—"} | " +
-                $"Type: {profile?.modelType}";
+            _infoLabel.text = TtsSampleStatusUtil.BuildCurrent(_service);
         }
     }
 }

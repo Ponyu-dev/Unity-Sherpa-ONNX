@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 
@@ -12,7 +13,7 @@ namespace PonyuDev.SherpaOnnx.Tts
     /// Implement or mock for testing; the default implementation
     /// is <see cref="TtsService"/>.
     /// </summary>
-    public interface ITtsService : IDisposable
+    public interface ITtsService : IDisposable, IModelDiskUsage
     {
         bool IsReady { get; }
         TtsProfile ActiveProfile { get; }
@@ -31,11 +32,17 @@ namespace PonyuDev.SherpaOnnx.Tts
         void Initialize();
 
         /// <summary>
-        /// Async initialization: extracts files on Android,
-        /// loads settings, and starts the engine.
+        /// Async initialization: stages files on Android, loads settings,
+        /// and starts the engine. Reports semantic
+        /// <see cref="ProfileReadyEvent"/>s through <paramref name="onEvent"/>:
+        /// <see cref="ProfileReadyPhase.Download"/> /
+        /// <see cref="ProfileReadyPhase.Extract"/> /
+        /// <see cref="ProfileReadyPhase.Init"/> with their own 0..100
+        /// percent, plus terminal <see cref="ProfileReadyPhase.Ready"/> /
+        /// <see cref="ProfileReadyPhase.Failed"/>.
         /// </summary>
         UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default);
 
         void LoadProfile(TtsProfile profile);

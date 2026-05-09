@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Offline.Engine;
+using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Asr.Offline
 {
@@ -12,7 +13,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
     /// Implement or mock for testing; the default implementation
     /// is <see cref="AsrService"/>.
     /// </summary>
-    public interface IAsrService : IDisposable
+    public interface IAsrService : IDisposable, IModelDiskUsage
     {
         bool IsReady { get; }
         AsrProfile ActiveProfile { get; }
@@ -24,11 +25,12 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         void Initialize();
 
         /// <summary>
-        /// Async initialization: extracts files on Android,
-        /// loads settings, and starts the engine.
+        /// Async initialization: stages files on Android, loads settings,
+        /// and starts the engine. Reports semantic
+        /// <see cref="ProfileReadyEvent"/>s via <paramref name="onEvent"/>.
         /// </summary>
         UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default);
 
         void LoadProfile(AsrProfile profile);

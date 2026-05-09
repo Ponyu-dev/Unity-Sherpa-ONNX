@@ -18,6 +18,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private VadAsrPipeline _pipeline;
         private MicrophoneSource _microphone;
         private Action _onBack;
+        private IVadService _vadServiceForStatus;
 
         private Button _toggleButton;
         private Button _clearButton;
@@ -63,10 +64,17 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             SubscribePipeline();
             UpdateInfo(vadService);
+
+            _vadServiceForStatus = vadService;
+            VadInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            VadInitProgressBus.Changed -= HandleInitProgressChanged;
+            _vadServiceForStatus = null;
+
             StopRecordingIfActive();
             UnsubscribePipeline();
 
@@ -270,6 +278,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
+        }
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(VadSampleStatusUtil.BuildCurrent(_vadServiceForStatus));
         }
 
         private void AppendTranscriptLine(string text)

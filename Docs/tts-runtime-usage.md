@@ -187,6 +187,60 @@ _orchestrator.Service.SwitchProfile(0);
 _orchestrator.GenerateAndPlay("Now using a different voice.");
 ```
 
+### Disk Usage (extracted profile directories)
+
+On Android every active profile lands in
+`Application.persistentDataPath/SherpaOnnx/tts-models/{profileName}/`,
+regardless of `ModelSource`:
+
+| Source   | How it gets there |
+|----------|-------------------|
+| `Local`  | Lazy per-profile extraction from APK on first `LoadProfile` (only that profile's files; the rest stays bundled). |
+| `Remote` | Editor-time import puts files into StreamingAssets; on Android they extract the same way as `Local`. |
+| `LocalZip` | Per-profile zip is unpacked the first time it is loaded. |
+
+As users switch profiles, old extractions stay on disk so a re-switch
+does not pay the re-extract cost. `ITtsService` implements
+`IModelDiskUsage` so the host project can inspect and free that space
+without knowing about `LocalZipExtractor` or path constants.
+
+```csharp
+// What is on disk
+foreach (var name in tts.GetExtractedProfiles())
+{
+    long bytes = tts.GetExtractedProfileSizeBytes(name);
+    Debug.Log($"{name}: {bytes / (1024 * 1024)} MB");
+}
+
+// Delete one stale profile
+tts.TryDeleteExtractedProfile("old-vits-piper");
+
+// Or sweep everything that is no longer in tts-settings.json
+int removed = tts.CleanupUnusedExtractedProfiles();
+Debug.Log($"Freed {removed} unused profile(s).");
+```
+
+`GetExtractedProfiles()` returns every profile that has an extraction
+marker on disk, no matter which source produced it (LocalZip's
+`.zip-extracted` and Local/Remote's `.profile-extracted` are both
+recognised).
+
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → TTS →
+Disk Usage → Auto-delete previous profile on switch** (or set
+`TtsSettingsData.autoDeletePreviousProfile = true`). Then every successful
+`SwitchProfile(...)` to a different profile drops the previous extraction.
+Off by default — leave it off if you alternate between profiles often.
+On non-Android platforms profiles are not extracted (StreamingAssets are
+already on the filesystem), so this toggle is a no-op there.
+
+> ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
+> version**, regenerate the manifest once via
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest`. Old manifests
+> have a flat `files` list and trigger a single full extraction at first
+> launch (the runtime detects this and falls back gracefully); the new
+> manifest format is what enables per-profile lazy extraction and
+> per-profile cleanup.
+
 ### Custom Speed and Speaker
 
 ```csharp
@@ -674,15 +728,109 @@ accessible via `System.IO.File`. The package handles this automatically:
 **You must use `InitializeAsync()` on Android.** The synchronous `Initialize()`
 cannot extract files from the APK.
 
-### Progress Tracking
+### Initialization Progress (`ProfileReadyEvent`)
 
-Monitor extraction progress on Android (useful for loading screens):
+`InitializeAsync` exposes a single semantic callback for the whole
+readiness pipeline:
 
 ```csharp
-var progress = new Progress<float>(p =>
-    Debug.Log($"Extracting: {p:P0}"));
+UniTask InitializeAsync(
+    Action<ProfileReadyEvent> onEvent = null,
+    CancellationToken ct = default);
+```
 
-await tts.InitializeAsync(progress);
+Phases are emitted in order — `Download` (Remote only) → `Extract`
+(Remote / LocalZip / Local-on-Android) → `Init` — each carrying its own
+0..100 percent in `Percent`. Terminal phases are `Ready` (success) and
+`Failed` (retries exhausted or unrecoverable I/O error).
+
+| Phase | When | Notes |
+|-------|------|-------|
+| `Download` | Remote profile, every chunk written to disk | `Url` set; `Percent` 0..100 |
+| `DownloadRetrying` | Network error before retry | `RetryAttempt` 1..N, `Message` = previous error |
+| `Extract` | Decompressing zip / tar.gz | Tar streams report 0% then 100%; zips report per-entry |
+| `Init` | Native engine ctor on the thread pool | Single 0% before, 100% after — opaque native call |
+| `Failed` | Pipeline aborted | `Error` + `Message` describe what |
+| `Ready` | Service is fully usable | Last event on success, `Percent = 100` |
+
+`ProfileReadyEvent` is a `readonly struct`, so the callback fires with
+zero allocations per event.
+
+#### Per-phase status text
+
+Simplest pattern — drive a single status label off the phase:
+
+```csharp
+await tts.InitializeAsync(OnTtsEvent);
+
+void OnTtsEvent(ProfileReadyEvent e)
+{
+    string text = e.Phase switch
+    {
+        ProfileReadyPhase.Download         => $"Downloading model: {e.Percent}%",
+        ProfileReadyPhase.DownloadRetrying => $"Network issue, retrying ({e.RetryAttempt})…",
+        ProfileReadyPhase.Extract          => $"Extracting model: {e.Percent}%",
+        ProfileReadyPhase.Init             => "Initializing engine…",
+        ProfileReadyPhase.Failed           => $"Failed: {e.Message}",
+        ProfileReadyPhase.Ready            => "Ready",
+        _ => null,
+    };
+    _statusLabel.text = text;
+}
+```
+
+#### Single 0..100 unified bar
+
+For a loading screen with one progress bar, weight the phases. Extract
+is the longest step (largest models can take 10+ s to unpack on
+Android), so it gets the heaviest weight:
+
+```csharp
+// Tune weights to match your profile mix. Defaults below assume Remote
+// or LocalZip on Android — Extract dominates total wall time.
+const float DownloadWeight = 0.20f;
+const float ExtractWeight  = 0.70f;
+const float InitWeight     = 0.10f;
+
+float _downloadDone, _extractDone, _initDone;
+
+void OnTtsEvent(ProfileReadyEvent e)
+{
+    switch (e.Phase)
+    {
+        case ProfileReadyPhase.Download: _downloadDone = e.Percent / 100f; break;
+        case ProfileReadyPhase.Extract:  _extractDone  = e.Percent / 100f; break;
+        case ProfileReadyPhase.Init:     _initDone     = e.Percent / 100f; break;
+        case ProfileReadyPhase.Ready:    _downloadDone = _extractDone = _initDone = 1f; break;
+    }
+
+    float total =
+        _downloadDone * DownloadWeight +
+        _extractDone  * ExtractWeight  +
+        _initDone     * InitWeight;
+
+    _progressBar.value = Mathf.Clamp01(total) * 100f;
+}
+```
+
+For `Local` or `LocalZip` profiles where there is no download, drop
+`DownloadWeight` to `0` and rebalance Extract / Init (e.g. `0.85` /
+`0.15`).
+
+#### Failure handling
+
+```csharp
+await tts.InitializeAsync(e =>
+{
+    if (e.Phase == ProfileReadyPhase.Failed)
+        Debug.LogError($"[TTS] {e.Message}\n{e.Error}");
+});
+
+if (!tts.IsReady)
+{
+    // Show a retry button — the service stays alive and InitializeAsync
+    // can be called again once the user reconnects.
+}
 ```
 
 ### Locale Handling
@@ -705,7 +853,7 @@ below for brevity.
 | Category | Method | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific profile |
 | | `SwitchProfile(index)` | Switch by index |
 | | `SwitchProfile(name)` | Switch by name |

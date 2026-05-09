@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using PonyuDev.SherpaOnnx.Vad.Engine;
 
@@ -12,7 +13,7 @@ namespace PonyuDev.SherpaOnnx.Vad
     /// Implement or mock for testing; the default implementation
     /// is <see cref="VadService"/>.
     /// </summary>
-    public interface IVadService : IDisposable
+    public interface IVadService : IDisposable, IModelDiskUsage
     {
         bool IsReady { get; }
         VadProfile ActiveProfile { get; }
@@ -24,11 +25,12 @@ namespace PonyuDev.SherpaOnnx.Vad
         void Initialize();
 
         /// <summary>
-        /// Async initialization: extracts files on Android,
-        /// loads settings, and starts the engine.
+        /// Async initialization: stages files on Android, loads settings,
+        /// and starts the engine. Reports semantic
+        /// <see cref="ProfileReadyEvent"/>s via <paramref name="onEvent"/>.
         /// </summary>
         UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default);
 
         void LoadProfile(VadProfile profile);

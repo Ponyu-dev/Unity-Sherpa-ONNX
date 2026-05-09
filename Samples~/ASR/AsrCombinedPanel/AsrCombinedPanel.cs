@@ -89,7 +89,10 @@ namespace PonyuDev.SherpaOnnx.Samples
 
             BuildAudio();
             SubscribeAsr();
-            SetStatus("Ready. Toggle music, fire SFX, speak, then start STT.");
+            // ASR readiness shown in the status line; TTS readiness is handled
+            // separately by EnsureTtsReadyAsync below (toggles the Speak button).
+            AsrInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
 
             // Eagerly load + warm up TTS so the first Speak click is fast.
             // Cold init is the real "frozen" cost — gating Speak until the
@@ -105,6 +108,7 @@ namespace PonyuDev.SherpaOnnx.Samples
 
         public void Unbind()
         {
+            AsrInitProgressBus.Changed -= HandleInitProgressChanged;
             StopRecordingIfActive();
             UnsubscribeAsr();
 
@@ -459,6 +463,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
+        }
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(AsrSampleStatusUtil.BuildOnlineCurrent(_asr));
         }
 
         private void AppendTranscript(string text)

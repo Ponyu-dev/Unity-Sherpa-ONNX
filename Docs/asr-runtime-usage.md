@@ -279,6 +279,54 @@ _asr.SwitchProfile(0);
 AsrResult result = _asr.Recognize(samples, sampleRate);
 ```
 
+### Disk Usage (extracted profile directories)
+
+On Android every active profile lands in
+`Application.persistentDataPath/SherpaOnnx/asr-models/{profileName}/`
+regardless of `ModelSource`:
+
+| Source   | How it gets there |
+|----------|-------------------|
+| `Local`  | Lazy per-profile extraction from APK on first `LoadProfile` (only that profile's files). |
+| `Remote` | Editor-time import puts files into StreamingAssets; on Android they extract the same way as `Local`. |
+| `LocalZip` | Per-profile zip is unpacked the first time it is loaded. |
+
+Old extractions stay on disk after `SwitchProfile` so a re-switch does
+not pay the re-extract cost. Both `IAsrService` and `IOnlineAsrService`
+implement `IModelDiskUsage` — host code can inspect and free that space
+without knowing about `LocalZipExtractor` or path constants. Offline and
+online ASR each manage their own subfolder.
+
+```csharp
+// What is on disk for offline ASR
+foreach (var name in asr.GetExtractedProfiles())
+    Debug.Log($"{name}: {asr.GetExtractedProfileSizeBytes(name) / (1024 * 1024)} MB");
+
+// Delete one stale profile
+asr.TryDeleteExtractedProfile("old-zipformer");
+
+// Or sweep everything that is no longer in asr-settings.json
+int removed = asr.CleanupUnusedExtractedProfiles();
+```
+
+`GetExtractedProfiles()` returns every profile that has an extraction
+marker on disk regardless of source (LocalZip's `.zip-extracted` and
+Local/Remote's `.profile-extracted` are both recognised).
+
+**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → ASR →
+Disk Usage → Auto-delete previous profile on switch** (separate toggles
+in the Offline and Online tabs). Then every successful `SwitchProfile(...)`
+to a different profile drops the previous extraction. Off by default. On
+non-Android platforms nothing is extracted, so the toggle is a no-op.
+
+> ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
+> version**, regenerate the manifest once via
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest`. Old manifests
+> have a flat `files` list and trigger a single full extraction at first
+> launch (the runtime detects this and falls back gracefully); the new
+> manifest format is what enables per-profile lazy extraction and
+> per-profile cleanup.
+
 ### Engine Pool Size (offline only)
 
 Multiple native recognizer instances allow concurrent recognition:
@@ -662,6 +710,14 @@ accessible via `System.IO.File`. The package handles this automatically:
 2. On first launch, files are extracted from APK to `persistentDataPath`
 3. Subsequent launches skip extraction (version marker check)
 
+Each file is streamed straight to disk via `UnityWebRequest` +
+`DownloadHandlerFile` — no `byte[]` is ever materialized in managed heap
+and no synchronous `File.WriteAllBytes` runs on the main thread. This
+keeps the UI responsive even when extracting hundred-megabyte models,
+and avoids heap spikes that could OOM on low-memory devices. Partial
+files are removed automatically on cancellation (via
+`DownloadHandlerFile.removeFileOnAbort`) and on HTTP errors.
+
 **You must use `InitializeAsync()` on Android.** The synchronous `Initialize()`
 cannot extract files from the APK.
 
@@ -756,15 +812,104 @@ AudioSessionBridge.RestoreForPlayback();
 > permission dialog dismisses before returning, so the AVAudioSession can
 > settle (route changes + reactivation) before capture starts.
 
-### Progress Tracking
+### Initialization Progress (`ProfileReadyEvent`)
 
-Monitor extraction progress on Android (useful for loading screens):
+Both `IAsrService.InitializeAsync` and
+`IOnlineAsrService.InitializeAsync` accept a single semantic callback:
 
 ```csharp
-var progress = new Progress<float>(p =>
-    Debug.Log($"Extracting: {p:P0}"));
+UniTask InitializeAsync(
+    Action<ProfileReadyEvent> onEvent = null,
+    CancellationToken ct = default);
+```
 
-await _asr.InitializeAsync(progress);
+Phases fire in order — `Download` (Remote only) → `Extract` (Remote /
+LocalZip / Local-on-Android) → `Init` — each carrying its own 0..100
+percent in `Percent`. Terminal phases are `Ready` (success) and
+`Failed` (retries exhausted or unrecoverable I/O error).
+
+| Phase | When | Notes |
+|-------|------|-------|
+| `Download` | Remote profile, every chunk written to disk | `Url` set; `Percent` 0..100 |
+| `DownloadRetrying` | Network error before retry | `RetryAttempt` 1..N, `Message` = previous error |
+| `Extract` | Decompressing zip / tar.gz | Tar streams report 0% then 100%; zips report per-entry |
+| `Init` | Native engine ctor on the thread pool | Single 0% before, 100% after |
+| `Failed` | Pipeline aborted | `Error` + `Message` describe what |
+| `Ready` | Service fully usable | `Percent = 100` |
+
+`ProfileReadyEvent` is a `readonly struct` — zero allocation per event.
+
+#### Per-phase status text
+
+```csharp
+await _asr.InitializeAsync(OnAsrEvent);
+
+void OnAsrEvent(ProfileReadyEvent e)
+{
+    string text = e.Phase switch
+    {
+        ProfileReadyPhase.Download         => $"Downloading model: {e.Percent}%",
+        ProfileReadyPhase.DownloadRetrying => $"Network issue, retrying ({e.RetryAttempt})…",
+        ProfileReadyPhase.Extract          => $"Extracting model: {e.Percent}%",
+        ProfileReadyPhase.Init             => "Initializing engine…",
+        ProfileReadyPhase.Failed           => $"Failed: {e.Message}",
+        ProfileReadyPhase.Ready            => "Ready",
+        _ => null,
+    };
+    _statusLabel.text = text;
+}
+```
+
+#### Single 0..100 unified bar
+
+For a loading screen with one progress bar, weight the phases. Extract
+is the longest step (ASR encoder/decoder bundles are typically the
+heaviest unzip step), so it gets the largest weight:
+
+```csharp
+const float DownloadWeight = 0.20f;
+const float ExtractWeight  = 0.70f;
+const float InitWeight     = 0.10f;
+
+float _downloadDone, _extractDone, _initDone;
+
+void OnAsrEvent(ProfileReadyEvent e)
+{
+    switch (e.Phase)
+    {
+        case ProfileReadyPhase.Download: _downloadDone = e.Percent / 100f; break;
+        case ProfileReadyPhase.Extract:  _extractDone  = e.Percent / 100f; break;
+        case ProfileReadyPhase.Init:     _initDone     = e.Percent / 100f; break;
+        case ProfileReadyPhase.Ready:    _downloadDone = _extractDone = _initDone = 1f; break;
+    }
+
+    float total =
+        _downloadDone * DownloadWeight +
+        _extractDone  * ExtractWeight  +
+        _initDone     * InitWeight;
+
+    _progressBar.value = Mathf.Clamp01(total) * 100f;
+}
+```
+
+For `Local` or `LocalZip` profiles where there is no download, drop
+`DownloadWeight` to `0` and rebalance Extract / Init (e.g. `0.85` /
+`0.15`). When initializing offline + online ASR back-to-back, run two
+independent bars or weight each pipeline by half of the total budget.
+
+#### Failure handling
+
+```csharp
+await _asr.InitializeAsync(e =>
+{
+    if (e.Phase == ProfileReadyPhase.Failed)
+        Debug.LogError($"[ASR] {e.Message}\n{e.Error}");
+});
+
+if (!_asr.IsReady)
+{
+    // Show a retry button — InitializeAsync can be called again.
+}
 ```
 
 ---
@@ -776,7 +921,7 @@ await _asr.InitializeAsync(progress);
 | Category | Method | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific profile |
 | | `SwitchProfile(index)` | Switch by index |
 | | `SwitchProfile(name)` | Switch by name |
@@ -792,7 +937,7 @@ await _asr.InitializeAsync(progress);
 | Category | Method | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific profile |
 | | `SwitchProfile(index)` | Switch by index |
 | | `SwitchProfile(name)` | Switch by name |

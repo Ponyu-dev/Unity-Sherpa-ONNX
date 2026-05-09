@@ -75,10 +75,15 @@ namespace PonyuDev.SherpaOnnx.Samples
             }
 
             UpdateInfo();
+
+            AsrInitProgressBus.Changed += HandleInitProgressChanged;
+            HandleInitProgressChanged();
         }
 
         public void Unbind()
         {
+            AsrInitProgressBus.Changed -= HandleInitProgressChanged;
+
             _playCts?.Cancel();
             _playCts?.Dispose();
             _playCts = null;
@@ -244,6 +249,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             if (_statusLabel != null)
                 _statusLabel.text = text;
+        }
+
+        private void HandleInitProgressChanged()
+        {
+            SetStatus(AsrSampleStatusUtil.BuildOfflineCurrent(_service));
         }
 
         private void SetResult(string text)

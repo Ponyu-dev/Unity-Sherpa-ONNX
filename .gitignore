@@ -159,3 +159,4 @@ TestResults*.xml
 # Editor/OS backup files
 *.swp
 *.swo
+DevProject~/.utmp

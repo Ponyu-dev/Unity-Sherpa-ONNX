@@ -24,6 +24,17 @@ namespace PonyuDev.SherpaOnnx.Vad
         private VadSettingsData _settings;
         private IVadEngine _engine;
         private VadProfile _activeProfile;
+        private VadProfile _profilePendingLoad;
+
+        // Method-group target for UniTask.RunOnThreadPool inside
+        // InitializeAsync — keeps the call site lambda-free.
+        private void LoadPendingProfile()
+        {
+            var p = _profilePendingLoad;
+            _profilePendingLoad = null;
+            if (p != null)
+                LoadProfile(p);
+        }
         private bool _wasSpeech;
 
         public event Action<VadSegment> OnSegment;
@@ -79,32 +90,42 @@ namespace PonyuDev.SherpaOnnx.Vad
         }
 
         public async UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService async initializing...");
 
-            _settings = await VadSettingsLoader.LoadAsync(progress, ct);
-            var profile = VadSettingsLoader.GetActiveProfile(_settings);
+            _settings = await VadSettingsLoader.LoadAsync(ProfileReadyEvents.AsExtractProgress(onEvent), ct);
 
+            var profile = VadSettingsLoader.GetActiveProfile(_settings);
             if (profile == null)
             {
                 SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] VadService: no active profile found.");
+                ProfileReadyEvents.EmitFailed(onEvent, "No active profile.");
                 return;
             }
 
-            if (profile.modelSource == ModelSource.LocalZip)
+            const string serviceName = "VadService";
+            string subfolder = VadModelPathResolver.ModelsSubfolder;
+            if (!await ProfileSourceResolver.EnsureLocalZipReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureRemoteReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+            if (!await ProfileSourceResolver.EnsureLocalReadyAsync(profile, subfolder, serviceName, onEvent, ct))
+                return;
+
+            ProfileReadyEvents.EmitInit(onEvent, 0);
+            _profilePendingLoad = profile;
+            await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
+
+            if (!IsReady)
             {
-                string dir = await LocalZipExtractor.EnsureExtractedAsync(VadModelPathResolver.ModelsSubfolder, profile.profileName, progress, ct);
-                if (dir == null)
-                {
-                    SherpaOnnxLog.RuntimeError("[SherpaOnnx] VadService: LocalZip extraction failed.");
-                    return;
-                }
+                ProfileReadyEvents.EmitFailed(onEvent, "Engine failed to load.");
+                return;
             }
 
-            LoadProfile(profile);
-
+            ProfileReadyEvents.EmitInit(onEvent, 100);
+            ProfileReadyEvents.EmitReady(onEvent);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] VadService async initialized.");
         }
 
@@ -142,7 +163,7 @@ namespace PonyuDev.SherpaOnnx.Vad
                 return;
             }
 
-            LoadProfile(_settings.profiles[index]);
+            SwitchToProfile(_settings.profiles[index]);
         }
 
         public void SwitchProfile(string profileName)
@@ -162,7 +183,33 @@ namespace PonyuDev.SherpaOnnx.Vad
                 return;
             }
 
-            LoadProfile(profile);
+            SwitchToProfile(profile);
+        }
+
+        // Captures the previously active profile, loads the new one, and —
+        // if the engine reports itself ready and VadSettingsData.
+        // autoDeletePreviousProfile is set — frees the disk space used by
+        // the previous LocalZip extraction. Failed loads leave the old
+        // extraction intact.
+        private void SwitchToProfile(VadProfile newProfile)
+        {
+            var previous = _activeProfile;
+            LoadProfile(newProfile);
+
+            if (!IsReady)
+                return;
+
+            if (_settings != null
+                && _settings.autoDeletePreviousProfile
+                && previous != null
+                && !string.IsNullOrEmpty(previous.profileName)
+                && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
+            {
+                // Local / Remote / LocalZip all land in the same per-profile
+                // dir under persistentDataPath on Android — drop it.
+                LocalZipExtractor.TryDeleteExtractedModel(
+                    VadModelPathResolver.ModelsSubfolder, previous.profileName);
+            }
         }
 
         // ── Processing ──
@@ -211,6 +258,36 @@ namespace PonyuDev.SherpaOnnx.Vad
         {
             _engine?.Reset();
             _wasSpeech = false;
+        }
+
+        // ── Disk usage ──
+
+        /// <inheritdoc />
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => LocalZipExtractor.ListExtractedProfiles(VadModelPathResolver.ModelsSubfolder);
+
+        /// <inheritdoc />
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => LocalZipExtractor.GetExtractedSizeBytes(VadModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public bool TryDeleteExtractedProfile(string profileName)
+            => LocalZipExtractor.TryDeleteExtractedModel(VadModelPathResolver.ModelsSubfolder, profileName);
+
+        /// <inheritdoc />
+        public int CleanupUnusedExtractedProfiles()
+        {
+            var keep = new List<string>();
+            if (_settings?.profiles != null)
+            {
+                foreach (var p in _settings.profiles)
+                {
+                    if (!string.IsNullOrEmpty(p?.profileName))
+                        keep.Add(p.profileName);
+                }
+            }
+            return LocalZipExtractor.CleanupUnusedProfiles(
+                VadModelPathResolver.ModelsSubfolder, keep);
         }
 
         // ── Cleanup ──

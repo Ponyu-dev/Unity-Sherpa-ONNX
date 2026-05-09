@@ -38,24 +38,51 @@ workarounds, and custom C# bindings. This plugin handles all of that out of the 
 
 ### 🔧 Platform Solutions
 
-The plugin solves real-world platform issues that are not addressed by sherpa-onnx itself:
+The plugin solves real-world platform issues that are not addressed by sherpa-onnx itself. Grouped by where the problem appears:
 
-| Problem | Platform | What the plugin does |
-|---------|----------|----------------------|
-| 📦 **StreamingAssets locked inside APK** | Android | Extracts model files to `persistentDataPath` on first launch with version tracking and progress reporting. Skips re-extraction on subsequent launches. |
-| 🌍 **Non-US locale breaks native code** | Android | Wraps native calls with a locale guard that temporarily sets `LC_NUMERIC` to `"C"`, preventing comma-as-decimal crashes in sherpa-onnx's float parsing. |
-| 🍏 **No dynamic library loading** | iOS | Builds a patched `sherpa-onnx.dll` with `DllImport("__Internal")` and downloads it automatically during install. |
-| ✂️ **Xcframework architecture bloat** | iOS | Filters xcframeworks to only the target architecture (device or simulator) during install. |
-| 🎙️ **Microphone not actually recording** | Unity (all) | Plays a silent AudioSource on the mic clip to force the device to start recording — a known Unity workaround. |
-| ⏳ **Microphone readiness delay** | Unity (all) | Polls `Microphone.GetPosition()` with a configurable timeout before starting capture. |
-| 🎵 **Sample rate mismatch** | All | Built-in resampler converts any input rate to the model's expected rate (typically 16 kHz). |
-| 🔐 **Microphone permission** | Android / iOS | Async permission request with `UniTask` — returns `false` gracefully if denied. iOS waits 1s after the permission dialog so the AVAudioSession can settle before capture starts. |
-| 🎧 **TTS playback breaks mic capture** | iOS / Android | `AudioSessionBridge` switches AVAudioSession between PlayAndRecord/Playback on iOS, and sets `AudioManager.MODE_IN_COMMUNICATION` + speakerphone on Android — engaging the platform AEC/AGC so the mic does not return near-silence after TTS. Public API for projects that want to drive it manually. |
-| 🗣️ **Native TTS callbacks unsupported on IL2CPP** | iOS / Android / IL2CPP Standalone | sherpa-onnx C# bindings wrap user callbacks in closures that IL2CPP cannot marshal to native. The plugin auto-falls-back `GenerateAsync` (and other callback-using paths) to the callback-less `Generate` on IL2CPP so TTS keeps working — and ships a **Sentence Queue** API (`ITtsService.Speak(text, audio, ct, lookAhead)`) that delivers the same low-latency long-text experience as native streaming, but in pure C# with `lookAhead` parallel pre-generation and works on every scripting backend. |
+#### 🤖 Android
+
+| Problem | What the plugin does |
+|---------|----------------------|
+| 📦 **StreamingAssets locked inside APK** | Extracts model files to `persistentDataPath` on first launch with version tracking and progress reporting. Skips re-extraction on subsequent launches. Streams each file via `DownloadHandlerFile` directly into the destination — keeps the UI thread responsive on hundred-megabyte models and avoids a heap spike that could OOM on low-memory devices. |
+| 🌍 **Non-US locale breaks native code** | Wraps native calls with a locale guard that temporarily sets `LC_NUMERIC` to `"C"`, preventing comma-as-decimal crashes in sherpa-onnx's float parsing. |
+
+#### 🍏 iOS
+
+| Problem | What the plugin does |
+|---------|----------------------|
+| 🍏 **No dynamic library loading** | Builds a patched `sherpa-onnx.dll` with `DllImport("__Internal")` and downloads it automatically during install. |
+| ✂️ **Xcframework architecture bloat** | Filters xcframeworks to only the target architecture (device or simulator) during install. |
+
+#### 🤖 Android + 🍏 iOS (mobile)
+
+| Problem | What the plugin does |
+|---------|----------------------|
+| 🔐 **Microphone permission** | Async permission request with `UniTask` — returns `false` gracefully if denied. iOS waits 1s after the permission dialog so the AVAudioSession can settle before capture starts. |
+| 🎧 **TTS playback breaks mic capture** | `AudioSessionBridge` switches AVAudioSession between PlayAndRecord/Playback on iOS, and sets `AudioManager.MODE_IN_COMMUNICATION` + speakerphone on Android — engaging the platform AEC/AGC so the mic does not return near-silence after TTS. Public API for projects that want to drive it manually. |
+| 🗣️ **Native TTS callbacks unsupported on IL2CPP** (also affects IL2CPP Standalone) | sherpa-onnx C# bindings wrap user callbacks in closures that IL2CPP cannot marshal to native. The plugin auto-falls-back `GenerateAsync` (and other callback-using paths) to the callback-less `Generate` on IL2CPP so TTS keeps working — and ships a **Sentence Queue** API (`ITtsService.Speak(text, audio, ct, lookAhead)`) that delivers the same low-latency long-text experience as native streaming, but in pure C# with `lookAhead` parallel pre-generation and works on every scripting backend. |
+| 🗄️ **Disk fills up as users switch profiles** | On Android every active profile (Local, Remote, or LocalZip) is extracted lazily into `persistentDataPath/SherpaOnnx/{type}-models/{profile}/` and stays cached across sessions. Each model service (`ITtsService` / `IAsrService` / `IOnlineAsrService` / `IVadService`) implements `IModelDiskUsage` — host code can `GetExtractedProfiles()`, `GetExtractedProfileSizeBytes(name)`, `TryDeleteExtractedProfile(name)` and `CleanupUnusedExtractedProfiles()` from one place. Optional **Auto-delete previous profile on switch** toggle in Project Settings drops the old extraction right after a successful `SwitchProfile` — applies to all sources, not just LocalZip. |
+
+#### 🪟 All Unity platforms (desktop + mobile)
+
+| Problem | What the plugin does |
+|---------|----------------------|
+| 🎙️ **Microphone not actually recording** | Plays a silent AudioSource on the mic clip to force the device to start recording — a known Unity workaround. |
+| ⏳ **Microphone readiness delay** | Polls `Microphone.GetPosition()` with a configurable timeout before starting capture. |
+| 🎵 **Sample rate mismatch** | Built-in resampler converts any input rate to the model's expected rate (typically 16 kHz). |
 
 > ⚙️ Microphone settings (sample rate, buffer length, start timeout, resampling mode, audio session
 > management) are configurable via `Edit → Project Settings → Sherpa-ONNX → Microphone` or
 > `microphone-settings.json` in StreamingAssets.
+>
+> 🗄️ Disk-usage settings (auto-delete previous profile on switch) are per-service: TTS / ASR / Online
+> ASR / VAD panels in `Edit → Project Settings → Sherpa-ONNX`. Manual API: see "Disk Usage" in the
+> [TTS](Docs/tts-runtime-usage.md) / [ASR](Docs/asr-runtime-usage.md) / [VAD](Docs/vad-runtime-usage.md) docs.
+>
+> ⚠️ After upgrading the plugin from a pre-per-profile-extraction version, run
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest` once. Old manifests have a flat `files`
+> list and trigger a single full extraction at first launch (the runtime falls back gracefully); the
+> new manifest format is what enables per-profile lazy extraction and per-profile cleanup.
 
 ---
 
