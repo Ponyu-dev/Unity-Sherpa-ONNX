@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Samples
@@ -29,9 +30,31 @@ namespace PonyuDev.SherpaOnnx.Samples
         /// <summary>
         /// Method-group target passed straight into
         /// <c>ITtsService.InitializeAsync(PublishEvent, ct)</c> by the
-        /// sample navigator — keeps the call site lambda-free.
+        /// sample navigator — keeps the call site lambda-free. Safe to
+        /// call from any thread; the <see cref="Changed"/> invocation
+        /// is marshaled to Unity's main thread via
+        /// <see cref="MainThreadDispatcher"/> so subscribers can touch
+        /// UI Toolkit elements without checking threading themselves.
         /// </summary>
         public static void PublishEvent(ProfileReadyEvent e)
+        {
+            if (MainThreadDispatcher.IsCurrent)
+            {
+                ApplyAndRaise(e);
+                return;
+            }
+            // Box the struct once so SendOrPostCallback can carry it.
+            MainThreadDispatcher.Post(PostedApplyAndRaise, e);
+        }
+
+        private static readonly SendOrPostCallback PostedApplyAndRaise = PostedApplyAndRaiseImpl;
+
+        private static void PostedApplyAndRaiseImpl(object state)
+        {
+            ApplyAndRaise((ProfileReadyEvent)state);
+        }
+
+        private static void ApplyAndRaise(ProfileReadyEvent e)
         {
             LastEvent = e;
             HasEvent = true;

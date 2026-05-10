@@ -207,6 +207,10 @@ namespace PonyuDev.SherpaOnnx.Vad
             {
                 // Local / Remote / LocalZip all land in the same per-profile
                 // dir under persistentDataPath on Android — drop it.
+                SherpaOnnxLog.RuntimeLog(
+                    $"[SherpaOnnx] VAD auto-delete: switching " +
+                    $"'{previous.profileName}' → '{newProfile.profileName}', " +
+                    $"removing previous extraction…");
                 LocalZipExtractor.TryDeleteExtractedModel(
                     VadModelPathResolver.ModelsSubfolder, previous.profileName);
             }

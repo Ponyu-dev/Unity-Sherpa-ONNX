@@ -206,6 +206,10 @@ namespace PonyuDev.SherpaOnnx.Asr.Online
             {
                 // Local / Remote / LocalZip all land in the same per-profile
                 // dir under persistentDataPath on Android — drop it.
+                SherpaOnnxLog.RuntimeLog(
+                    $"[SherpaOnnx] ASR (online) auto-delete: switching " +
+                    $"'{previous.profileName}' → '{newProfile.profileName}', " +
+                    $"removing previous extraction…");
                 LocalZipExtractor.TryDeleteExtractedModel(
                     AsrModelPathResolver.ModelsSubfolder, previous.profileName);
             }

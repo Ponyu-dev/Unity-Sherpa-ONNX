@@ -98,113 +98,109 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
         private static void CollectTtsExcludes(List<StagingItem> output)
         {
             var data = TtsProjectSettings.instance.data;
-            if (!data.buildOnlyActiveProfile)
-                return;
-
-            int active = data.activeProfileIndex;
-            int count = data.profiles.Count;
-            if (count == 0)
-                return;
-
-            if (!TryGetActiveName(
-                "TTS", active, count,
+            CollectExcludes(
+                "TTS",
+                data.buildOnlyActiveProfile,
+                data.activeProfileIndex,
+                data.profiles.Count,
                 i => data.profiles[i]?.profileName,
-                out string activeName))
-                return;
-
-            for (int i = 0; i < count; i++)
-            {
-                string name = data.profiles[i]?.profileName;
-                if (string.IsNullOrEmpty(name) || name == activeName)
-                    continue;
-
-                AppendExcludedItems(
-                    name, ModelPaths.GetTtsModelDir, "tts-models", output);
-            }
+                ModelPaths.GetTtsModelDir,
+                "tts-models",
+                output);
         }
 
         private static void CollectAsrOfflineExcludes(List<StagingItem> output)
         {
             var data = AsrProjectSettings.instance.offlineData;
-            if (!data.buildOnlyActiveProfile)
-                return;
-
-            int active = data.activeProfileIndex;
-            int count = data.profiles.Count;
-            if (count == 0)
-                return;
-
-            if (!TryGetActiveName(
-                "ASR (offline)", active, count,
+            CollectExcludes(
+                "ASR (offline)",
+                data.buildOnlyActiveProfile,
+                data.activeProfileIndex,
+                data.profiles.Count,
                 i => data.profiles[i]?.profileName,
-                out string activeName))
-                return;
-
-            for (int i = 0; i < count; i++)
-            {
-                string name = data.profiles[i]?.profileName;
-                if (string.IsNullOrEmpty(name) || name == activeName)
-                    continue;
-
-                AppendExcludedItems(
-                    name, ModelPaths.GetAsrModelDir, "asr-models", output);
-            }
+                ModelPaths.GetAsrModelDir,
+                "asr-models",
+                output);
         }
 
         private static void CollectAsrOnlineExcludes(List<StagingItem> output)
         {
             var data = AsrProjectSettings.instance.onlineData;
-            if (!data.buildOnlyActiveProfile)
-                return;
-
-            int active = data.activeProfileIndex;
-            int count = data.profiles.Count;
-            if (count == 0)
-                return;
-
-            if (!TryGetActiveName(
-                "ASR (online)", active, count,
+            CollectExcludes(
+                "ASR (online)",
+                data.buildOnlyActiveProfile,
+                data.activeProfileIndex,
+                data.profiles.Count,
                 i => data.profiles[i]?.profileName,
-                out string activeName))
-                return;
-
-            for (int i = 0; i < count; i++)
-            {
-                string name = data.profiles[i]?.profileName;
-                if (string.IsNullOrEmpty(name) || name == activeName)
-                    continue;
-
-                AppendExcludedItems(
-                    name, ModelPaths.GetAsrModelDir, "asr-models", output);
-            }
+                ModelPaths.GetAsrModelDir,
+                "asr-models",
+                output);
         }
 
         private static void CollectVadExcludes(List<StagingItem> output)
         {
             var data = VadProjectSettings.instance.data;
-            if (!data.buildOnlyActiveProfile)
-                return;
-
-            int active = data.activeProfileIndex;
-            int count = data.profiles.Count;
-            if (count == 0)
-                return;
-
-            if (!TryGetActiveName(
-                "VAD", active, count,
+            CollectExcludes(
+                "VAD",
+                data.buildOnlyActiveProfile,
+                data.activeProfileIndex,
+                data.profiles.Count,
                 i => data.profiles[i]?.profileName,
-                out string activeName))
+                ModelPaths.GetVadModelDir,
+                "vad-models",
+                output);
+        }
+
+        // Shared per-service collect path. Logs:
+        //   • a one-line summary of which profiles will be stripped
+        //     (or that the toggle was off / no active profile);
+        //   • per-item details inside MoveToStaging when the move
+        //     actually happens (some "stripped" profiles have no
+        //     model directory yet — never imported — so they make no
+        //     items at all and a per-name log here would be noise).
+        private static void CollectExcludes(
+            string serviceName,
+            bool flag,
+            int activeIndex,
+            int profileCount,
+            Func<int, string> getName,
+            Func<string, string> getModelDir,
+            string subdirPrefix,
+            List<StagingItem> output)
+        {
+            if (!flag)
                 return;
 
-            for (int i = 0; i < count; i++)
+            if (profileCount == 0)
             {
-                string name = data.profiles[i]?.profileName;
+                Debug.Log(
+                    $"[SherpaOnnx] {serviceName}: 'Only active profile in " +
+                    "build' is ON but the profile list is empty — nothing to strip.");
+                return;
+            }
+
+            if (!TryGetActiveName(serviceName, activeIndex, profileCount, getName, out string activeName))
+                return;
+
+            int initialOutputCount = output.Count;
+            var stripped = new List<string>();
+
+            for (int i = 0; i < profileCount; i++)
+            {
+                string name = getName(i);
                 if (string.IsNullOrEmpty(name) || name == activeName)
                     continue;
 
-                AppendExcludedItems(
-                    name, ModelPaths.GetVadModelDir, "vad-models", output);
+                AppendExcludedItems(name, getModelDir, subdirPrefix, output);
+                stripped.Add(name);
             }
+
+            int itemsAdded = output.Count - initialOutputCount;
+            string list = stripped.Count == 0 ? "(none)" : string.Join(", ", stripped);
+            Debug.Log(
+                $"[SherpaOnnx] {serviceName}: keeping active profile " +
+                $"'{activeName}', stripping {stripped.Count} other profile(s) " +
+                $"from build: {list}. Filesystem items queued: {itemsAdded}.");
         }
 
         private static bool TryGetActiveName(
@@ -305,6 +301,10 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
                     File.Delete(stagingMeta);
                 File.Move(originalMeta, stagingMeta);
             }
+
+            Debug.Log(
+                $"[SherpaOnnx] Stripped {item.kind} '{original}' " +
+                $"→ '{staging}' (will restore after build).");
         }
 
         private static void RestoreItem(StagingItem item)
@@ -343,6 +343,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
                     File.Delete(originalMeta);
                 File.Move(stagingMeta, originalMeta);
             }
+
+            Debug.Log(
+                $"[SherpaOnnx] Restored {item.kind} '{staging}' → '{original}'.");
         }
 
         private static void DiscardItem(StagingItem item)
@@ -357,6 +360,10 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Build
 
             if (File.Exists(stagingMeta))
                 File.Delete(stagingMeta);
+
+            Debug.Log(
+                $"[SherpaOnnx] Discarded staged {item.kind} '{staging}' " +
+                "(LocalZip restores the source folder from its temp-cache backup).");
         }
 
         // Postprocess after a successful build:

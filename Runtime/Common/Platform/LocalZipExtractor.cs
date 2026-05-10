@@ -225,10 +225,14 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         }
 
         /// <summary>
-        /// Deletes the extracted directory for a single LocalZip profile.
-        /// Returns <c>true</c> when the directory existed and was removed
-        /// (or it was already absent). Logs and returns <c>false</c> on
-        /// I/O failure. Safe to call when nothing was extracted.
+        /// Deletes the extracted directory for a single profile,
+        /// regardless of how it got there (bundled <c>Local</c>,
+        /// runtime-downloaded <c>Remote</c>, or unzipped
+        /// <c>LocalZip</c> — all three sources land in the same
+        /// per-profile path under persistentDataPath). Returns
+        /// <c>true</c> when the directory existed and was removed
+        /// (or was already absent). Logs the freed-bytes count on
+        /// success and the I/O exception on failure.
         /// </summary>
         public static bool TryDeleteExtractedModel(
             string modelsSubfolder, string profileName)
@@ -238,21 +242,62 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
 
             string destDir = GetExtractedModelDirectory(modelsSubfolder, profileName);
             if (!Directory.Exists(destDir))
+            {
+                SherpaOnnxLog.RuntimeLog(
+                    $"[SherpaOnnx] {modelsSubfolder} '{profileName}': nothing to delete (no extracted dir).");
                 return true;
+            }
+
+            long freedBytes = SafeMeasureDirectorySize(destDir);
 
             try
             {
                 Directory.Delete(destDir, recursive: true);
                 SherpaOnnxLog.RuntimeLog(
-                    $"[SherpaOnnx] LocalZip '{profileName}' deleted from disk.");
+                    $"[SherpaOnnx] {modelsSubfolder} '{profileName}': " +
+                    $"removed extracted dir {destDir} " +
+                    $"({FormatBytes(freedBytes)} freed).");
                 return true;
             }
             catch (Exception ex)
             {
                 SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] TryDeleteExtractedModel('{profileName}'): {ex.Message}");
+                    $"[SherpaOnnx] {modelsSubfolder} '{profileName}': " +
+                    $"failed to remove {destDir} — {ex.Message}");
                 return false;
             }
+        }
+
+        // Best-effort sum of file sizes under destDir. Errors (a file
+        // disappearing mid-walk, permission denied) collapse to 0 so
+        // a logging helper never explodes the caller's flow.
+        private static long SafeMeasureDirectorySize(string dir)
+        {
+            try
+            {
+                long total = 0;
+                string[] files = Directory.GetFiles(dir, "*", SearchOption.AllDirectories);
+                for (int i = 0; i < files.Length; i++)
+                {
+                    try { total += new FileInfo(files[i]).Length; }
+                    catch { /* skip vanished / unreadable */ }
+                }
+                return total;
+            }
+            catch
+            {
+                return 0;
+            }
+        }
+
+        private static string FormatBytes(long bytes)
+        {
+            if (bytes <= 0) return "0 B";
+            const long mb = 1024L * 1024L;
+            const long kb = 1024L;
+            if (bytes >= mb) return $"{bytes / (double)mb:F1} MB";
+            if (bytes >= kb) return $"{bytes / (double)kb:F1} KB";
+            return $"{bytes} B";
         }
 
         /// <summary>
