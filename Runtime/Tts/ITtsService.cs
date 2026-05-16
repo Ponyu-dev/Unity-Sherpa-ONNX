@@ -49,6 +49,41 @@ namespace PonyuDev.SherpaOnnx.Tts
         void SwitchProfile(int index);
         void SwitchProfile(string profileName);
 
+        /// <summary>
+        /// Same as <see cref="SwitchProfile(int)"/> but runs the
+        /// native engine load on the thread pool so the UI thread is
+        /// not blocked. Re-fires <c>ProfileReadyEvent</c> through the
+        /// callback that was passed to the most recent
+        /// <see cref="InitializeAsync"/> — bus subscribers see Init
+        /// 0 → 100, then Ready (or Failed on engine load failure).
+        /// </summary>
+        UniTask SwitchProfileAsync(int index, CancellationToken ct = default);
+
+        /// <summary>
+        /// Same as <see cref="SwitchProfile(string)"/> but runs the
+        /// native engine load on the thread pool so the UI thread is
+        /// not blocked.
+        /// </summary>
+        UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default);
+
+        /// <summary>
+        /// True when <paramref name="profileName"/> can be switched to
+        /// without breaking — its model files are reachable on the
+        /// current platform. Cheap (a single
+        /// <c>Directory.Exists</c> per profile), suitable for filtering
+        /// a runtime profile-picker UI. Always returns <c>true</c> for
+        /// the currently-active profile and for
+        /// <see cref="Common.Data.ModelSource.Remote"/> profiles with a
+        /// non-empty source URL (they download on switch). Returns
+        /// <c>false</c> for <see cref="Common.Data.ModelSource.Local"/>
+        /// / <see cref="Common.Data.ModelSource.LocalZip"/> profiles
+        /// whose model directory is missing — typically because the
+        /// build was produced with "Only active profile in build" on,
+        /// or because the runtime swept them under "Keep only active
+        /// profile on disk".
+        /// </summary>
+        bool IsProfileAvailable(string profileName);
+
         // ── Simple generation (sync — no cancellation) ──
 
         TtsResult Generate(string text);

@@ -101,6 +101,21 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
             _resultCache.Clear();
         }
 
+        public async UniTask SwitchProfileAsync(int index, CancellationToken ct = default)
+        {
+            await _inner.SwitchProfileAsync(index, ct);
+            _resultCache.Clear();
+        }
+
+        public async UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default)
+        {
+            await _inner.SwitchProfileAsync(profileName, ct);
+            _resultCache.Clear();
+        }
+
+        public bool IsProfileAvailable(string profileName)
+            => _inner.IsProfileAvailable(profileName);
+
         // ── Cached generation ──
 
         public TtsResult Generate(string text)

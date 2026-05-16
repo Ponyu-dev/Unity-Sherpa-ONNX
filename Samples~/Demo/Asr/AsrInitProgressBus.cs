@@ -70,14 +70,14 @@ namespace PonyuDev.SherpaOnnx.Samples
             ApplyOnline((ProfileReadyEvent)state);
         }
 
+        // Track CURRENT phase, not sticky highest-water-mark — see the
+        // note in TtsInitProgressBus.
         private static void ApplyOffline(ProfileReadyEvent e)
         {
             LastOfflineEvent = e;
             OfflineHasEvent = true;
-            if (e.Phase == ProfileReadyPhase.Ready)
-                OfflineReady = true;
-            else if (e.Phase == ProfileReadyPhase.Failed)
-                OfflineFailed = true;
+            OfflineReady = e.Phase == ProfileReadyPhase.Ready;
+            OfflineFailed = e.Phase == ProfileReadyPhase.Failed;
             Changed?.Invoke();
         }
 
@@ -85,10 +85,8 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             LastOnlineEvent = e;
             OnlineHasEvent = true;
-            if (e.Phase == ProfileReadyPhase.Ready)
-                OnlineReady = true;
-            else if (e.Phase == ProfileReadyPhase.Failed)
-                OnlineFailed = true;
+            OnlineReady = e.Phase == ProfileReadyPhase.Ready;
+            OnlineFailed = e.Phase == ProfileReadyPhase.Failed;
             Changed?.Invoke();
         }
     }

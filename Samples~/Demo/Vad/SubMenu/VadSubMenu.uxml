@@ -5,7 +5,12 @@
         <ui:Button name="backButton" text="← Back" class="sample-back-btn"/>
         <ui:Label text="VAD + ASR Samples" class="sample-title"/>
         <ui:Label text="Choose an example to run:" class="sample-info"
-                  style="margin-bottom: 32px;"/>
+                  style="margin-bottom: 16px;"/>
+
+        <ui:VisualElement class="profile-picker-card">
+            <ui:Label text="Active VAD profile" class="profile-picker-card-label"/>
+            <ui:DropdownField name="profilePicker" class="profile-picker-card-dropdown"/>
+        </ui:VisualElement>
 
         <ui:Button name="btnDemo" class="menu-card">
             <ui:Label text="VAD + ASR Demo" class="menu-card-title"/>

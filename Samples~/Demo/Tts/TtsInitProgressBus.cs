@@ -58,10 +58,11 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             LastEvent = e;
             HasEvent = true;
-            if (e.Phase == ProfileReadyPhase.Ready)
-                IsReady = true;
-            else if (e.Phase == ProfileReadyPhase.Failed)
-                IsFailed = true;
+            // Track CURRENT phase, not sticky highest-water-mark.
+            // SwitchProfile re-fires Ready/Failed so a recovered switch
+            // must clear the previous Failed state and vice-versa.
+            IsReady = e.Phase == ProfileReadyPhase.Ready;
+            IsFailed = e.Phase == ProfileReadyPhase.Failed;
             Changed?.Invoke();
         }
     }

@@ -24,6 +24,10 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.UI
             "crashes or cancellations. The active profile is taken " +
             "from \"Active Profile\" — if none is set the toggle is a " +
             "no-op and a warning is logged. Default OFF: every profile " +
-            "ships into the build.";
+            "ships into the build.\n\n" +
+            "Implies \"Keep only active profile on disk\" at runtime — " +
+            "since the build only ships one profile, services treat " +
+            "this flag as if both were checked and sweep stale " +
+            "extractions on init / switch.";
     }
 }

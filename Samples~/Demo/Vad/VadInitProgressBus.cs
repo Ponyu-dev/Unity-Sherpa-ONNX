@@ -69,14 +69,14 @@ namespace PonyuDev.SherpaOnnx.Samples
             ApplyAsr((ProfileReadyEvent)state);
         }
 
+        // Track CURRENT phase, not sticky highest-water-mark — see the
+        // note in TtsInitProgressBus.
         private static void ApplyVad(ProfileReadyEvent e)
         {
             LastVadEvent = e;
             VadHasEvent = true;
-            if (e.Phase == ProfileReadyPhase.Ready)
-                VadReady = true;
-            else if (e.Phase == ProfileReadyPhase.Failed)
-                VadFailed = true;
+            VadReady = e.Phase == ProfileReadyPhase.Ready;
+            VadFailed = e.Phase == ProfileReadyPhase.Failed;
             Changed?.Invoke();
         }
 
@@ -84,10 +84,8 @@ namespace PonyuDev.SherpaOnnx.Samples
         {
             LastAsrEvent = e;
             AsrHasEvent = true;
-            if (e.Phase == ProfileReadyPhase.Ready)
-                AsrReady = true;
-            else if (e.Phase == ProfileReadyPhase.Failed)
-                AsrFailed = true;
+            AsrReady = e.Phase == ProfileReadyPhase.Ready;
+            AsrFailed = e.Phase == ProfileReadyPhase.Failed;
             Changed?.Invoke();
         }
     }

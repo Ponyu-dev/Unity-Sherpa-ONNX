@@ -313,11 +313,15 @@ int removed = asr.CleanupUnusedExtractedProfiles();
 marker on disk regardless of source (LocalZip's `.zip-extracted` and
 Local/Remote's `.profile-extracted` are both recognised).
 
-**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → ASR →
-Disk Usage → Auto-delete previous profile on switch** (separate toggles
-in the Offline and Online tabs). Then every successful `SwitchProfile(...)`
-to a different profile drops the previous extraction. Off by default. On
-non-Android platforms nothing is extracted, so the toggle is a no-op.
+**Keep only active on disk.** Toggle **Project Settings → Sherpa-ONNX → ASR
+→ Disk Usage → Keep only active profile on disk** (separate toggles in the
+Offline and Online tabs — each only sweeps its own profile list, so
+offline + online never delete each other's active model from the shared
+`asr-models/` directory). On every successful `InitializeAsync` and on
+every `SwitchProfile(...)` the runtime removes every registered profile's
+extraction except the active one. Off by default. Implied automatically
+when **Only active profile in build** is on. On non-Android platforms
+nothing is extracted, so the toggle is a no-op.
 
 > ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
 > version**, regenerate the manifest once via

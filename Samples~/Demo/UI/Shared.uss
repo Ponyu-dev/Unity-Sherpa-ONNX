@@ -102,3 +102,53 @@
 .sample-status {
     white-space: normal;
 }
+
+/* ── Profile picker (sub-menu dropdown) ──
+ * Matches the menu-card visual — rounded card with the same
+ * background / border, plus a styled DropdownField inside. The
+ * Label above the field gives the picker breathing room without
+ * Unity's wide built-in field-label that hugs the input. */
+.profile-picker-card {
+    padding: 18px 24px;
+    margin-bottom: 16px;
+    border-radius: 12px;
+    background-color: rgba(60, 60, 60, 0.8);
+    border-width: 1px;
+    border-color: rgba(100, 100, 100, 0.5);
+    flex-direction: column;
+}
+
+.profile-picker-card-label {
+    font-size: 22px;
+    color: rgb(160, 160, 160);
+    margin-bottom: 8px;
+    -unity-text-align: middle-left;
+}
+
+.profile-picker-card-dropdown {
+    height: 60px;
+    font-size: 26px;
+}
+
+/* DropdownField renders its content inside an inner element with
+ * the unity-base-popup-field__input class — we have to reach into
+ * it to override the default flat box look. */
+.profile-picker-card-dropdown .unity-base-popup-field__input {
+    background-color: rgba(40, 40, 40, 0.85);
+    border-radius: 10px;
+    border-width: 1px;
+    border-color: rgba(110, 110, 110, 0.5);
+    padding-left: 14px;
+    padding-right: 14px;
+}
+
+.profile-picker-card-dropdown .unity-base-popup-field__input:hover {
+    background-color: rgba(55, 55, 55, 0.9);
+    border-color: rgba(150, 150, 150, 0.7);
+}
+
+.profile-picker-card-dropdown .unity-base-popup-field__text {
+    font-size: 26px;
+    -unity-text-align: middle-left;
+    color: rgb(220, 220, 220);
+}

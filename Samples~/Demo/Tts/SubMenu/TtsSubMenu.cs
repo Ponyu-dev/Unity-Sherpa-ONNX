@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using PonyuDev.SherpaOnnx.Tts;
 using UnityEngine.UIElements;
 
@@ -5,6 +6,9 @@ namespace PonyuDev.SherpaOnnx.Samples
 {
     /// <summary>
     /// TTS module sub-menu — six TTS demo cards plus a back button.
+    /// Hosts a profile picker dropdown listing every TTS profile;
+    /// changing the selection calls <see cref="ITtsService.SwitchProfile(string)"/>
+    /// so the user can flip between models without leaving the menu.
     /// Subscribes to <see cref="TtsInitProgressBus"/> so the status
     /// label keeps reflecting init progress while the user browses.
     /// </summary>
@@ -17,6 +21,7 @@ namespace PonyuDev.SherpaOnnx.Samples
         private Button _btnControls;
         private Button _btnStreaming;
         private Button _backButton;
+        private DropdownField _profilePicker;
         private Label _infoLabel;
 
         private IDemoNavigator _nav;
@@ -34,6 +39,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _btnControls = root.Q<Button>("btnControls");
             _btnStreaming = root.Q<Button>("btnStreaming");
             _backButton = root.Q<Button>("backButton");
+            _profilePicker = root.Q<DropdownField>("profilePicker");
             _infoLabel = root.Q<Label>("infoLabel");
 
             if (_btnSimple != null)
@@ -50,6 +56,10 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnStreaming.clicked += HandleStreaming;
             if (_backButton != null)
                 _backButton.clicked += HandleBack;
+
+            PopulateProfilePicker();
+            if (_profilePicker != null)
+                _profilePicker.RegisterValueChangedCallback(HandleProfilePicked);
 
             TtsInitProgressBus.Changed += HandleInitProgressChanged;
             HandleInitProgressChanged();
@@ -73,6 +83,8 @@ namespace PonyuDev.SherpaOnnx.Samples
                 _btnStreaming.clicked -= HandleStreaming;
             if (_backButton != null)
                 _backButton.clicked -= HandleBack;
+            if (_profilePicker != null)
+                _profilePicker.UnregisterValueChangedCallback(HandleProfilePicked);
 
             _btnSimple = null;
             _btnProgress = null;
@@ -81,6 +93,7 @@ namespace PonyuDev.SherpaOnnx.Samples
             _btnControls = null;
             _btnStreaming = null;
             _backButton = null;
+            _profilePicker = null;
             _infoLabel = null;
             _nav = null;
             _service = null;
@@ -94,11 +107,65 @@ namespace PonyuDev.SherpaOnnx.Samples
         private void HandleStreaming() => _nav?.NavigateTo(DemoNavigator.IdTtsStreaming);
         private void HandleBack() => _nav?.Back();
 
+        // Initial population: only profiles whose model files are
+        // actually reachable (active + Remote-with-URL + Local/LocalZip
+        // with disk presence). Hides profiles that were stripped at
+        // build time or swept by Keep-only-active so the user never
+        // sees options that would fail on switch.
+        // SetValueWithoutNotify avoids re-triggering HandleProfilePicked
+        // during bind.
+        private void PopulateProfilePicker()
+        {
+            if (_profilePicker == null || _service?.Settings?.profiles == null)
+                return;
+
+            var names = new List<string>(_service.Settings.profiles.Count);
+            for (int i = 0; i < _service.Settings.profiles.Count; i++)
+            {
+                var p = _service.Settings.profiles[i];
+                if (p == null || string.IsNullOrEmpty(p.profileName))
+                    continue;
+                if (!_service.IsProfileAvailable(p.profileName))
+                    continue;
+                names.Add(p.profileName);
+            }
+            _profilePicker.choices = names;
+
+            string active = _service.ActiveProfile?.profileName;
+            if (!string.IsNullOrEmpty(active) && names.Contains(active))
+                _profilePicker.SetValueWithoutNotify(active);
+            else if (names.Count > 0)
+                _profilePicker.SetValueWithoutNotify(names[0]);
+        }
+
+        // async void is the standard pattern for UI Toolkit value-
+        // change callbacks. The native engine ctor inside SwitchProfile
+        // is multi-second on Android — running it through the async
+        // overload keeps the dropdown responsive while the bus emits
+        // Init 0 → 100 → Ready and the status label re-renders.
+        private async void HandleProfilePicked(ChangeEvent<string> evt)
+        {
+            if (_service == null || string.IsNullOrEmpty(evt.newValue))
+                return;
+            string current = _service.ActiveProfile?.profileName;
+            if (string.Equals(current, evt.newValue))
+                return;
+            await _service.SwitchProfileAsync(evt.newValue);
+        }
+
         private void HandleInitProgressChanged()
         {
             if (_infoLabel == null)
                 return;
             _infoLabel.text = TtsSampleStatusUtil.BuildCurrent(_service);
+
+            // After every successful switch the keep-only-active sweep
+            // may have deleted other profiles' on-disk files — rebuild
+            // the dropdown's choices so the user can not pick an entry
+            // that would now fail. PopulateProfilePicker preserves the
+            // active selection internally.
+            if (TtsInitProgressBus.IsReady)
+                PopulateProfilePicker();
         }
     }
 }

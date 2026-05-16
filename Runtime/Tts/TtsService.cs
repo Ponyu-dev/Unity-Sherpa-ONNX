@@ -24,14 +24,31 @@ namespace PonyuDev.SherpaOnnx.Tts
         private TtsSettingsData _settings;
         private ITtsEngine _engine;
         private TtsProfile _activeProfile;
+        // Last InitializeAsync's onEvent — re-fired by SwitchProfile so
+        // bus subscribers see profile changes after the initial load.
+        private Action<ProfileReadyEvent> _onEvent;
 
         /// <summary>
         /// Service-level cancellation source. Cancelled in <see cref="Dispose"/>
         /// so any in-flight async generation aborts cleanly when the service
         /// goes away. Linked into every async method via
         /// <see cref="CancellationTokenSource.CreateLinkedTokenSource(CancellationToken, CancellationToken)"/>.
+        /// Also cancelled-and-replaced at the start of every profile switch
+        /// so worker-thread generations exit before the native engine is
+        /// torn down on another worker by SwitchToProfileAsync.
         /// </summary>
         private CancellationTokenSource _serviceCts = new();
+
+        /// <summary>
+        /// True while a profile switch (sync or async) is mid-flight.
+        /// Read by <see cref="CheckReady"/> so every API entry point
+        /// (Generate, GenerateAsync, callbacks, …) bails with a warning
+        /// instead of racing against a half-loaded native engine.
+        /// <c>volatile</c> because the flag is written from the worker
+        /// thread that owns the switch and read from the main thread
+        /// (and other workers running async generations).
+        /// </summary>
+        private volatile bool _isSwitching;
 
         /// <summary>True when the engine is loaded and ready to generate.</summary>
         public bool IsReady => _engine?.IsLoaded ?? false;
@@ -41,6 +58,28 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         /// <summary>All loaded profiles (available after Initialize).</summary>
         public TtsSettingsData Settings => _settings;
+
+        /// <inheritdoc />
+        public bool IsProfileAvailable(string profileName)
+        {
+            if (_settings?.profiles == null || string.IsNullOrEmpty(profileName))
+                return false;
+
+            // Currently-active profile stays in memory even if a sweep
+            // just deleted its files — switching to itself is a no-op,
+            // so we always report it as available.
+            if (_activeProfile != null
+                && string.Equals(_activeProfile.profileName, profileName, StringComparison.Ordinal))
+                return true;
+
+            var profile = _settings.profiles.FirstOrDefault(p => p.profileName == profileName);
+            if (profile == null)
+                return false;
+
+            string modelDir = TtsModelPathResolver.GetModelDirectory(
+                profile.profileName, profile.modelSource);
+            return ProfileAvailability.IsAvailable(profile, modelDir);
+        }
 
         /// <summary>Sample rate of the loaded engine in Hz, or 0 if not loaded.</summary>
         public int SampleRate => _engine?.SampleRate ?? 0;
@@ -98,6 +137,12 @@ namespace PonyuDev.SherpaOnnx.Tts
         {
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initializing...");
 
+            // Cache the callback so SwitchProfile can republish Ready /
+            // Failed when the user picks a different profile at runtime
+            // — without that, status subscribers wired up through the
+            // bus stay frozen on the original Ready snapshot.
+            _onEvent = onEvent;
+
             // Shared StreamingAssets (settings JSON + anything outside
             // a per-profile dir) is the first piece to land on disk.
             // We bridge its IProgress<float> into the Extract phase so
@@ -138,6 +183,13 @@ namespace PonyuDev.SherpaOnnx.Tts
             }
 
             ProfileReadyEvents.EmitInit(onEvent, 100);
+
+            // Sweep stale extractions (from previous switches or
+            // cancelled imports) once we have a confirmed-loaded
+            // active profile. SwitchToProfile re-runs the same sweep
+            // every time the user picks a different profile.
+            EnforceKeepOnlyActive();
+
             ProfileReadyEvents.EmitReady(onEvent);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TtsService async initialized.");
         }
@@ -221,34 +273,171 @@ namespace PonyuDev.SherpaOnnx.Tts
             SwitchToProfile(profile);
         }
 
-        // Captures the previously active profile, loads the new one, and —
-        // if the engine reports itself ready and TtsSettingsData.
-        // autoDeletePreviousProfile is set — frees the disk space used by
-        // the previous LocalZip extraction. Failed loads leave the old
-        // extraction intact.
+        /// <summary>
+        /// Async profile switch — native engine load runs on the
+        /// thread pool so the UI thread is free during the multi-
+        /// second sherpa-onnx OfflineTts ctor. Re-fires the cached
+        /// <c>onEvent</c> with Init 0 → 100 → Ready (or Failed on
+        /// engine load failure) so bus subscribers see the same
+        /// progress phases as during InitializeAsync.
+        /// </summary>
+        public async UniTask SwitchProfileAsync(int index, CancellationToken ct = default)
+        {
+            if (_settings?.profiles == null || _settings.profiles.Count == 0)
+            {
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService.SwitchProfileAsync: no profiles loaded.");
+                return;
+            }
+            if (index < 0 || index >= _settings.profiles.Count)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] TtsService.SwitchProfileAsync: " +
+                    $"index {index} out of range (0..{_settings.profiles.Count - 1}).");
+                return;
+            }
+            await SwitchToProfileAsync(_settings.profiles[index], ct);
+        }
+
+        /// <summary>Async profile switch by name.</summary>
+        public async UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default)
+        {
+            if (_settings?.profiles == null)
+            {
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService.SwitchProfileAsync: no profiles loaded.");
+                return;
+            }
+            var profile = _settings.profiles.FirstOrDefault(p => p.profileName == profileName);
+            if (profile == null)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] TtsService.SwitchProfileAsync: profile '{profileName}' not found.");
+                return;
+            }
+            await SwitchToProfileAsync(profile, ct);
+        }
+
+        // Loads the new profile and, on success, runs the keep-only-
+        // active sweep + re-fires the cached onEvent with Ready so
+        // status-line subscribers (e.g. TtsInitProgressBus.Changed)
+        // re-render with the new ActiveProfile name. On failure
+        // re-fires Failed so the UI can switch to the red error path.
+        // Sync overload — blocks the calling thread for the duration of
+        // the native engine ctor, but uses the same busy-flag + cancel
+        // pattern as the async overload to keep concurrent worker-thread
+        // generations from racing against the load.
         private void SwitchToProfile(TtsProfile newProfile)
         {
-            var previous = _activeProfile;
-            LoadProfile(newProfile);
+            BeginSwitch();
+            try
+            {
+                LoadProfile(newProfile);
 
-            if (!IsReady)
+                if (!IsReady)
+                {
+                    ProfileReadyEvents.EmitFailed(_onEvent, "Switch failed.");
+                    return;
+                }
+
+                EnforceKeepOnlyActive();
+                ProfileReadyEvents.EmitReady(_onEvent);
+            }
+            finally
+            {
+                EndSwitch();
+            }
+        }
+
+        // Async variant — offloads the native engine ctor to the thread
+        // pool through the same _profilePendingLoad / LoadPendingProfile
+        // path InitializeAsync uses, so the multi-second sherpa-onnx
+        // OfflineTts ctor never runs on the main thread.
+        private async UniTask SwitchToProfileAsync(TtsProfile newProfile, CancellationToken ct)
+        {
+            BeginSwitch();
+            try
+            {
+                ProfileReadyEvents.EmitInit(_onEvent, 0);
+
+                _profilePendingLoad = newProfile;
+                await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
+
+                if (!IsReady)
+                {
+                    ProfileReadyEvents.EmitFailed(_onEvent, "Switch failed.");
+                    return;
+                }
+
+                ProfileReadyEvents.EmitInit(_onEvent, 100);
+                EnforceKeepOnlyActive();
+                ProfileReadyEvents.EmitReady(_onEvent);
+            }
+            finally
+            {
+                EndSwitch();
+            }
+        }
+
+        // Sets the busy flag and rotates the service-level CTS so any
+        // in-flight async generation (LinkCt-bound to the previous CTS)
+        // gets cancelled and exits its worker thread before the native
+        // engine is torn down on another worker by LoadProfile. Paired
+        // with EndSwitch in the finally block.
+        private void BeginSwitch()
+        {
+            try { _serviceCts?.Cancel(); } catch { /* swallow */ }
+            _serviceCts?.Dispose();
+            _serviceCts = new CancellationTokenSource();
+            _isSwitching = true;
+        }
+
+        private void EndSwitch()
+        {
+            _isSwitching = false;
+        }
+
+        // When keepOnlyActiveProfile (or its build-time alias
+        // buildOnlyActiveProfile) is set, removes every extracted
+        // profile dir registered in this service's profile list
+        // except the currently-active one. Covers all three sources
+        // (Local / Remote / LocalZip) — they share the same per-profile
+        // path on disk and TryDeleteExtractedModel is source-agnostic.
+        // Iterates the service's own settings.profiles rather than
+        // sweeping the whole models directory so we never touch
+        // extractions owned by other services that share the parent
+        // (offline + online ASR both use asr-models/, for example).
+        // Safe on the main thread; on non-Android desktop nothing is
+        // extracted to persistentDataPath, so this is a no-op.
+        private void EnforceKeepOnlyActive()
+        {
+            if (_settings == null || _settings.profiles == null)
+                return;
+            if (!_settings.keepOnlyActiveProfile && !_settings.buildOnlyActiveProfile)
+                return;
+            if (_activeProfile == null || string.IsNullOrEmpty(_activeProfile.profileName))
                 return;
 
-            if (_settings != null
-                && _settings.autoDeletePreviousProfile
-                && previous != null
-                && !string.IsNullOrEmpty(previous.profileName)
-                && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
+            string keep = _activeProfile.profileName;
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] TTS keep-only-active: keeping '{keep}', " +
+                $"sweeping {_settings.profiles.Count - 1} other profile(s)…");
+
+            int removed = 0;
+            for (int i = 0; i < _settings.profiles.Count; i++)
             {
-                // Local / Remote / LocalZip all land in the same per-profile
-                // dir under persistentDataPath on Android — drop it. On
-                // non-Android nothing is extracted, so this is a no-op.
+                var p = _settings.profiles[i];
+                if (p == null || string.IsNullOrEmpty(p.profileName))
+                    continue;
+                if (string.Equals(p.profileName, keep, StringComparison.Ordinal))
+                    continue;
+                if (LocalZipExtractor.TryDeleteExtractedModel(
+                    TtsModelPathResolver.ModelsSubfolder, p.profileName))
+                    removed++;
+            }
+
+            if (removed == 0)
+            {
                 SherpaOnnxLog.RuntimeLog(
-                    $"[SherpaOnnx] TTS auto-delete: switching " +
-                    $"'{previous.profileName}' → '{newProfile.profileName}', " +
-                    $"removing previous extraction…");
-                LocalZipExtractor.TryDeleteExtractedModel(
-                    TtsModelPathResolver.ModelsSubfolder, previous.profileName);
+                    "[SherpaOnnx] TTS keep-only-active: nothing on disk to remove.");
             }
         }
 
@@ -363,6 +552,9 @@ namespace PonyuDev.SherpaOnnx.Tts
             _engine = null;
             _activeProfile = null;
             _settings = null;
+            // Drop the cached InitializeAsync callback so we don't
+            // hold the reference past the service's lifetime.
+            _onEvent = null;
 
             _serviceCts?.Dispose();
             _serviceCts = null;
@@ -397,12 +589,18 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         private bool CheckReady()
         {
+            if (_isSwitching)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] TtsService is busy switching profile — request ignored. " +
+                    "Wait for the next ProfileReadyPhase.Ready event before retrying.");
+                return false;
+            }
             if (_engine != null && _engine.IsLoaded)
                 return true;
-            
+
             SherpaOnnxLog.RuntimeError("[SherpaOnnx] TtsService is not initialized. Call Initialize() first.");
             return false;
-
         }
     }
 }

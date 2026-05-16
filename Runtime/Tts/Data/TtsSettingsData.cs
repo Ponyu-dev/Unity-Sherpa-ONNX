@@ -14,17 +14,21 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         public int activeProfileIndex = -1;
 
         /// <summary>
-        /// When <c>true</c>, switching to a different profile via
+        /// When <c>true</c>, the runtime keeps only the active TTS
+        /// profile's extracted directory under
+        /// <see cref="UnityEngine.Application.persistentDataPath"/>.
+        /// Every other extraction (left over from previous switches or
+        /// abandoned imports) is removed after a successful
+        /// <c>InitializeAsync</c> and after every successful
         /// <see cref="ITtsService.SwitchProfile(int)"/> /
-        /// <see cref="ITtsService.SwitchProfile(string)"/> deletes the
-        /// extracted directory of the previously active profile if it was
-        /// a <see cref="Common.Data.ModelSource.LocalZip"/> source. Only
-        /// runs after the new profile is successfully loaded — a failed
-        /// switch leaves the previous extraction intact. Default
-        /// <c>false</c>: keep older models on disk so re-switching does
-        /// not pay the re-extract cost.
+        /// <see cref="ITtsService.SwitchProfile(string)"/>. Failed
+        /// loads leave the previous on-disk state untouched so the
+        /// user can recover. Implied automatically when
+        /// <see cref="buildOnlyActiveProfile"/> is on — the build only
+        /// ships one profile, so keeping more than one extracted at
+        /// runtime makes no sense.
         /// </summary>
-        public bool autoDeletePreviousProfile;
+        public bool keepOnlyActiveProfile;
 
         /// <summary>
         /// When <c>true</c>, the Editor build pipeline temporarily moves
@@ -35,7 +39,9 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         /// content is restored after the build finishes; a defensive
         /// restore on Editor reload covers crashes / cancellations.
         /// Default <c>false</c>: every profile listed in
-        /// <see cref="profiles"/> ships into the build.
+        /// <see cref="profiles"/> ships into the build. Implies
+        /// <see cref="keepOnlyActiveProfile"/> at runtime — services
+        /// treat this flag as if both were checked.
         /// </summary>
         public bool buildOnlyActiveProfile;
 

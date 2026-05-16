@@ -225,13 +225,19 @@ marker on disk, no matter which source produced it (LocalZip's
 `.zip-extracted` and Local/Remote's `.profile-extracted` are both
 recognised).
 
-**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → TTS →
-Disk Usage → Auto-delete previous profile on switch** (or set
-`TtsSettingsData.autoDeletePreviousProfile = true`). Then every successful
-`SwitchProfile(...)` to a different profile drops the previous extraction.
-Off by default — leave it off if you alternate between profiles often.
-On non-Android platforms profiles are not extracted (StreamingAssets are
-already on the filesystem), so this toggle is a no-op there.
+**Keep only active on disk.** Toggle **Project Settings → Sherpa-ONNX → TTS →
+Disk Usage → Keep only active profile on disk** (or set
+`TtsSettingsData.keepOnlyActiveProfile = true`). On every successful
+`InitializeAsync` and on every successful `SwitchProfile(...)`, the runtime
+sweeps `persistentDataPath/SherpaOnnx/tts-models/` and removes every
+extracted profile registered in TTS settings except the currently active
+one. Off by default — leave it off when you alternate between profiles
+often, on when ship-size or device-storage matters more than re-switch
+latency. Implied automatically when **Only active profile in build** is on
+(the build only ships one profile, so keeping more than one extracted
+makes no sense). On non-Android platforms profiles are not extracted
+(StreamingAssets are already on the filesystem), so this toggle is a no-op
+there.
 
 > ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
 > version**, regenerate the manifest once via
