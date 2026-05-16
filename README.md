@@ -113,7 +113,7 @@ The plugin solves real-world platform issues that are not addressed by sherpa-on
       }
     ],
     "dependencies": {
-      "com.ponyudev.sherpa-onnx": "0.1.0"
+      "com.ponyudev.sherpa-onnx": "0.2.0"
     }
   }
   ```
