@@ -694,8 +694,11 @@ if (!_vad.IsReady)
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
 | | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific VAD profile |
-| | `SwitchProfile(index)` | Switch by index |
-| | `SwitchProfile(name)` | Switch by name |
+| | `SwitchProfile(index)` | Switch by index (sync). |
+| | `SwitchProfile(name)` | Switch by name (sync). |
+| | `SwitchProfileAsync(index, ct)` | Async switch — native engine ctor on the thread pool, UI thread stays free. Re-emits `ProfileReadyEvent` (Init / Ready / Failed). |
+| | `SwitchProfileAsync(name, ct)` | Async switch by name. |
+| | `IsProfileAvailable(name)` | `true` when the profile is reachable on disk (or downloadable for Remote with a URL). |
 | **Properties** | `IsReady` | `true` when engine is loaded |
 | | `ActiveProfile` | Current `VadProfile` |
 | | `Settings` | All loaded `VadSettingsData` |

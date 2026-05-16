@@ -861,8 +861,11 @@ below for brevity.
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
 | | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific profile |
-| | `SwitchProfile(index)` | Switch by index |
-| | `SwitchProfile(name)` | Switch by name |
+| | `SwitchProfile(index)` | Switch by index (sync — blocks the calling thread for the native engine ctor). |
+| | `SwitchProfile(name)` | Switch by name (sync). |
+| | `SwitchProfileAsync(index, ct)` | Async switch — native engine ctor runs on the thread pool, UI thread stays free. Re-emits `ProfileReadyEvent` (Init / Ready / Failed) through the callback that was passed to the most recent `InitializeAsync`. |
+| | `SwitchProfileAsync(name, ct)` | Async switch by name. |
+| | `IsProfileAvailable(name)` | `true` when the profile is reachable on disk (or downloadable for Remote with a URL). Picker UIs can filter with this. |
 | **Properties** | `IsReady` | `true` when engine is loaded |
 | | `ActiveProfile` | Current `TtsProfile` |
 | | `Settings` | All loaded `TtsSettingsData` |
