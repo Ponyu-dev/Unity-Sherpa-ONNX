@@ -1,5 +1,13 @@
 # Unity-Sherpa-ONNX
 
+[![OpenUPM](https://img.shields.io/badge/available_on-OpenUPM-1abc9c)](https://openupm.com/packages/com.ponyudev.sherpa-onnx/)
+[![Unity 2022.3+](https://img.shields.io/badge/Unity-2022.3%2B-black?logo=unity)](https://unity.com/releases/2022-lts)
+[![Platforms](https://img.shields.io/badge/platforms-Windows%20%7C%20macOS%20%7C%20Linux%20%7C%20Android%20%7C%20iOS-lightgrey)](#)
+[![Last commit](https://img.shields.io/github/last-commit/Ponyu-dev/Unity-Sherpa-ONNX)](https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/commits)
+[![GitHub downloads](https://img.shields.io/github/downloads/Ponyu-dev/Unity-Sherpa-ONNX/total?label=installer%20downloads)](https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/releases)
+[![GitHub stars](https://img.shields.io/github/stars/Ponyu-dev/Unity-Sherpa-ONNX?style=flat&logo=github)](https://github.com/Ponyu-dev/Unity-Sherpa-ONNX/stargazers)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
 Unity integration plugin for [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) — an open-source speech toolkit powered by ONNX Runtime.
 
 ## 🗺️ Feature Roadmap
