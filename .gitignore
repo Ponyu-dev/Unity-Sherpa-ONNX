@@ -136,3 +136,27 @@ DevProject~/.idea/
 Tools~/output/
 Tools~/.build-ios/
 **/.DS_Store
+Tools~/.build-ios-lib
+
+# AI assistants — local session data, not for repo
+.claude/
+
+# Unity 6 Bee build system cache
+*/[Bb]ee/
+DevProject~/[Bb]ee/
+
+# Memory Profiler snapshots (large)
+**/[Mm]emory[Pp]rofiler[Dd]ata/
+
+# Code Coverage output
+**/[Cc]ode[Cc]overage/
+*.coveragexml
+
+# Test Runner result XML
+TestResults*.xml
+*/TestResults*.xml
+
+# Editor/OS backup files
+*.swp
+*.swo
+DevProject~/.utmp

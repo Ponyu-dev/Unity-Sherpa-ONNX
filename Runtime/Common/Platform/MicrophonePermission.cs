@@ -113,6 +113,12 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
         // ── iOS ──
 
 #if UNITY_IOS && !UNITY_EDITOR
+        // Settle delay after the iOS permission dialog dismisses. The
+        // dialog interrupts the AVAudioSession (route changes, session
+        // deactivation/reactivation); starting capture immediately
+        // afterwards races those events and often yields silent audio.
+        private const int IosPermissionSettleMs = 1000;
+
         private static async UniTask<bool> RequestIosAsync()
         {
             if (Application.HasUserAuthorization(UserAuthorization.Microphone))
@@ -132,6 +138,7 @@ namespace PonyuDev.SherpaOnnx.Common.Platform
             {
                 SherpaOnnxLog.RuntimeLog(
                     "[SherpaOnnx] Microphone permission granted (iOS).");
+                await UniTask.Delay(IosPermissionSettleMs);
             }
             else
             {

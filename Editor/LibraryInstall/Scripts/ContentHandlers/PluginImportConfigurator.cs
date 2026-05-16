@@ -25,8 +25,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.ContentHandlers
             ["armeabi-v7a"] = (BuildTarget.Android, "ARMv7"),
             ["x86"] = (BuildTarget.Android, "x86"),
             ["x86_64"] = (BuildTarget.Android, "x86_64"),
-            ["arm64"] = (BuildTarget.iOS, "ARM64"),
-            ["x86_64-simulator"] = (BuildTarget.iOS, "x86_64"),
+            ["iOS"] = (BuildTarget.iOS, "AnyCPU"),
         };
 
         /// <summary>

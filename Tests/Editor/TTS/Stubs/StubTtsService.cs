@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
@@ -30,12 +32,14 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
 
         public TtsSettingsData Settings { get; set; } = new TtsSettingsData();
 
+        public int SampleRate { get; set; } = 22050;
+
         public int EnginePoolSize { get; set; } = 1;
 
         public void Initialize() { }
 
         public UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             return UniTask.CompletedTask;
@@ -48,6 +52,9 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
 
         public void SwitchProfile(int index) { }
         public void SwitchProfile(string profileName) { }
+        public UniTask SwitchProfileAsync(int index, CancellationToken ct = default) => UniTask.CompletedTask;
+        public UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default) => UniTask.CompletedTask;
+        public bool IsProfileAvailable(string profileName) => true;
 
         // ── Generation ──
 
@@ -70,14 +77,16 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
             return ResultFactory(text);
         }
 
-        public Task<TtsResult> GenerateAsync(string text)
+        public Task<TtsResult> GenerateAsync(
+            string text, CancellationToken ct = default)
         {
             GenerateAsyncCallCount++;
             return Task.FromResult(ResultFactory(text));
         }
 
         public Task<TtsResult> GenerateAsync(
-            string text, float speed, int speakerId)
+            string text, float speed, int speakerId,
+            CancellationToken ct = default)
         {
             GenerateAsyncCallCount++;
             return Task.FromResult(ResultFactory(text));
@@ -106,24 +115,34 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         }
 
         public Task<TtsResult> GenerateWithCallbackAsync(
-            string text, float speed, int speakerId, TtsCallback callback)
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct = default)
         {
             return Task.FromResult(ResultFactory(text));
         }
 
         public Task<TtsResult> GenerateWithCallbackProgressAsync(
             string text, float speed, int speakerId,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             return Task.FromResult(ResultFactory(text));
         }
 
         public Task<TtsResult> GenerateWithConfigAsync(
             string text, TtsGenerationConfig config,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             return Task.FromResult(ResultFactory(text));
         }
+
+        // ── IModelDiskUsage (no-op stubs) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles() => Array.Empty<string>();
+        public long GetExtractedProfileSizeBytes(string profileName) => 0L;
+        public bool TryDeleteExtractedProfile(string profileName) => true;
+        public int CleanupUnusedExtractedProfiles() => 0;
 
         public void Dispose()
         {

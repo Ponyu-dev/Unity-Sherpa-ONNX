@@ -1,5 +1,8 @@
 using System;
+using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
+using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Tts.Cache;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 using UnityEngine;
@@ -19,6 +22,11 @@ namespace PonyuDev.SherpaOnnx.Tts
     {
         [SerializeField]
         private bool _initializeOnAwake = true;
+
+        [SerializeField]
+        [Tooltip("Playback mode for the non-pooled fallback path " +
+                 "(when no cache is configured). Pooled playback ignores this.")]
+        private TtsPlaybackMode _defaultPlaybackMode = TtsPlaybackMode.Overlap;
 
         private TtsService _innerService;
         private CachedTtsService _cachedService;
@@ -46,7 +54,8 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         /// <summary>
         /// Generates speech and plays it using pooled objects if cache
-        /// is available, otherwise creates a new AudioClip each time.
+        /// is available, otherwise creates a new AudioClip each time
+        /// (auto-disposed after playback per <see cref="DefaultPlaybackMode"/>).
         /// </summary>
         public TtsResult GenerateAndPlay(string text)
         {
@@ -55,7 +64,7 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (cache != null)
                 return svc.GenerateAndPlay(text, cache, this);
 
-            return svc.GenerateAndPlay(text, GetOrCreateSource());
+            return svc.GenerateAndPlay(text, GetOrCreateSource(), _defaultPlaybackMode);
         }
 
         /// <summary>
@@ -69,7 +78,143 @@ namespace PonyuDev.SherpaOnnx.Tts
             if (cache != null)
                 return svc.GenerateAndPlayAsync(text, cache, this);
 
-            return svc.GenerateAndPlayAsync(text, GetOrCreateSource());
+            return svc.GenerateAndPlayAsync(text, GetOrCreateSource(), _defaultPlaybackMode);
+        }
+
+        /// <summary>
+        /// Mode used by the non-pooled fallback (when no cache is configured).
+        /// Set in inspector or at runtime before calling GenerateAndPlay.
+        /// </summary>
+        public TtsPlaybackMode DefaultPlaybackMode
+        {
+            get => _defaultPlaybackMode;
+            set => _defaultPlaybackMode = value;
+        }
+
+        // ── Handle-based playback ──
+
+        private readonly List<TtsPlaybackHandle> _activeHandles = new();
+
+        /// <summary>
+        /// Generates speech and starts playback, returning a handle for
+        /// stop / fade / completion observation. Uses pooled AudioSource
+        /// when cache is available, otherwise the fallback source.
+        /// <para/>
+        /// The handle is auto-tracked by this orchestrator and disposed
+        /// in <c>OnDestroy</c>; <see cref="StopAll"/> can fade them out
+        /// at any time.
+        /// </summary>
+        public async Task<TtsPlaybackHandle> GenerateAndPlayWithHandleAsync(
+            string text, CancellationToken ct = default)
+        {
+            var svc = Service;
+            var cache = CacheControl;
+
+            TtsPlaybackHandle handle = cache != null
+                ? await svc.GenerateAndPlayWithHandleAsync(text, cache, ct)
+                : await svc.GenerateAndPlayWithHandleAsync(text, GetOrCreateSource(), ct);
+
+            if (handle != null)
+                Track(handle);
+
+            return handle;
+        }
+
+        /// <summary>
+        /// Streaming variant of <see cref="GenerateAndPlayWithHandleAsync"/>.
+        /// First audio plays as soon as the first sherpa-onnx chunk is
+        /// produced — typically a few hundred milliseconds, regardless of
+        /// total text length. Use for long phrases where waiting for the
+        /// full generation feels sluggish.
+        /// </summary>
+        public async UniTask<TtsPlaybackHandle> SpeakStreamingAsync(
+            string text, CancellationToken ct = default)
+        {
+            var svc = Service;
+            var cache = CacheControl;
+
+            TtsPlaybackHandle handle = cache != null
+                ? await svc.SpeakStreamingAsync(text, cache, ct)
+                : await svc.SpeakStreamingAsync(text, GetOrCreateSource(), ct);
+
+            if (handle != null)
+                Track(handle);
+
+            return handle;
+        }
+
+        /// <summary>
+        /// Speaks a long text by splitting it into sentences and queuing
+        /// generation+playback per sentence. A sliding window of
+        /// <paramref name="lookAhead"/> sentence-generations runs ahead of
+        /// playback for seamless transitions.
+        /// <para/>
+        /// Compared to <see cref="GenerateAndPlayWithHandleAsync"/>: first
+        /// audio plays after sentence 1's gen instead of after the full text's
+        /// gen — a major latency win for paragraphs. Compared to
+        /// <see cref="SpeakStreamingAsync"/>: works the same regardless of
+        /// whether the underlying model emits per-chunk callbacks, because we
+        /// control sentence boundaries in C#.
+        /// <para/>
+        /// <paramref name="lookAhead"/> = 1 (default) is enough for fast
+        /// models / fast hardware. Bump to 2-4 for heavier models or slower
+        /// hardware (and set <c>EnginePoolSize</c> to match for real
+        /// parallelism).
+        /// <para/>
+        /// Per-sentence handles are auto-tracked, so <see cref="StopAll"/>
+        /// affects the in-flight sentence too. Cancelling <paramref name="ct"/>
+        /// also stops cleanly.
+        /// </summary>
+        public UniTask Speak(
+            string text,
+            CancellationToken ct = default,
+            int lookAhead = 1)
+        {
+            var svc = Service;
+            if (svc == null || !svc.IsReady)
+                return UniTask.CompletedTask;
+
+            return svc.Speak(
+                text, GetOrCreateSource(), ct,
+                onHandleStarted: Track,
+                lookAhead: lookAhead);
+        }
+
+        /// <summary>
+        /// Stops all currently-playing handles. If <paramref name="fadeSeconds"/>
+        /// is &gt; 0, fades each one out over that duration in parallel.
+        /// </summary>
+        public async UniTask StopAll(float fadeSeconds = 0f)
+        {
+            // Snapshot to avoid mutation during iteration (handle.Stopped
+            // event removes itself from _activeHandles).
+            var snapshot = _activeHandles.ToArray();
+            if (snapshot.Length == 0)
+                return;
+
+            var tasks = new UniTask[snapshot.Length];
+            for (int i = 0; i < snapshot.Length; i++)
+                tasks[i] = snapshot[i].StopAsync(fadeSeconds);
+
+            await UniTask.WhenAll(tasks);
+        }
+
+        /// <summary>Number of currently tracked playback handles.</summary>
+        public int ActivePlaybackCount => _activeHandles.Count;
+
+        private void Track(TtsPlaybackHandle handle)
+        {
+            _activeHandles.Add(handle);
+
+            void OnEnd()
+            {
+                handle.Completed -= OnEnd;
+                handle.Stopped -= OnEnd;
+                _activeHandles.Remove(handle);
+            }
+
+            handle.Completed += OnEnd;
+            handle.Stopped += OnEnd;
         }
 
         // ── Lifecycle ──
@@ -94,6 +239,13 @@ namespace PonyuDev.SherpaOnnx.Tts
 
         private void OnDestroy()
         {
+            // Dispose any in-flight playbacks first so their cleanup
+            // (clip destroy / pool return) runs before we dispose the
+            // service (which cancels the service-level CTS).
+            for (int i = _activeHandles.Count - 1; i >= 0; i--)
+                _activeHandles[i]?.Dispose();
+            _activeHandles.Clear();
+
             if (_cachedService != null)
             {
                 _cachedService.Dispose();

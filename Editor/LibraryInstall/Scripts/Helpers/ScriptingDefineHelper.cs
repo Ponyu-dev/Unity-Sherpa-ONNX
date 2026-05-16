@@ -22,12 +22,15 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         }
 
         /// <summary>
-        /// Checks whether any library is installed and syncs the define accordingly.
+        /// Syncs the define with the standard managed DLL presence.
+        /// The define must match whether <c>SherpaOnnx</c> types are
+        /// available in the Editor — only the standard managed DLL
+        /// provides them (the iOS DLL cannot load in Editor).
         /// Called on every domain reload (compilation, project open).
         /// </summary>
         internal static void SyncDefineWithInstallState()
         {
-            if (LibraryInstallStatus.HasAnyInstalled())
+            if (LibraryInstallStatus.IsManagedDllPresent())
                 EnsureDefine();
             else
                 RemoveDefine();
@@ -36,26 +39,34 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
         internal static void EnsureDefine()
         {
             foreach (var target in GetActiveTargets())
-            {
-                List<string> defines = GetDefines(target);
-                if (defines.Contains(Define))
-                    continue;
-
-                defines.Add(Define);
-                SetDefines(target, defines);
-            }
+                EnsureDefineForTarget(target);
         }
 
         internal static void RemoveDefine()
         {
             foreach (var target in GetActiveTargets())
-            {
-                List<string> defines = GetDefines(target);
-                if (!defines.Remove(Define))
-                    continue;
+                RemoveDefineForTarget(target);
+        }
 
-                SetDefines(target, defines);
-            }
+        internal static void EnsureDefineForTarget(
+            NamedBuildTarget target)
+        {
+            List<string> defines = GetDefines(target);
+            if (defines.Contains(Define))
+                return;
+
+            defines.Add(Define);
+            SetDefines(target, defines);
+        }
+
+        internal static void RemoveDefineForTarget(
+            NamedBuildTarget target)
+        {
+            List<string> defines = GetDefines(target);
+            if (!defines.Remove(Define))
+                return;
+
+            SetDefines(target, defines);
         }
 
         private static List<string> GetDefines(NamedBuildTarget target)

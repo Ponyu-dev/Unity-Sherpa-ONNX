@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
     /// Mirrors sherpa-onnx OfflineTtsModelConfig + per-architecture configs.
     /// </summary>
     [Serializable]
-    public sealed class TtsProfile : IProfileData
+    public sealed class TtsProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -21,12 +21,33 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
 
         public string profileName = "New Profile";
         public TtsModelType modelType = TtsModelType.Vits;
-        public TtsModelSource modelSource = TtsModelSource.Local;
+        public ModelSource modelSource = ModelSource.Local;
+        public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common (OfflineTtsModelConfig) ──
 
         public int numThreads = 1;
         public string provider = "cpu";
+
+        // ── Safety ──
+
+        /// <summary>
+        /// Allow loading INT8 quantized models. Disabled by default
+        /// because INT8 models crash on devices without INT8 ONNX
+        /// operator support (segfault inside the native constructor).
+        /// Enable only if you are certain your target platform
+        /// supports INT8 inference.
+        /// </summary>
+        public bool allowInt8;
 
         // ── Generation parameters (OfflineTtsConfig) ──
 
@@ -100,6 +121,16 @@ namespace PonyuDev.SherpaOnnx.Tts.Data
         public string pocketTextConditioner = "";
         public string pocketVocabJson = "";
         public string pocketTokenScoresJson = "";
+
+        // ── Supertonic ──
+
+        public string supertonicDurationPredictor = "";
+        public string supertonicTextEncoder = "";
+        public string supertonicVectorEstimator = "";
+        public string supertonicVocoder = "";
+        public string supertonicTtsJson = "";
+        public string supertonicUnicodeIndexer = "";
+        public string supertonicVoiceStyle = "";
 
         // ── Remote ──
 

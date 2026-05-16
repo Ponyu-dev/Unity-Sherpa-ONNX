@@ -6,7 +6,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
     /// <summary>
     /// Scans a model directory and fills <see cref="TtsProfile"/> path fields.
     /// Stores only file names / folder names — full paths are assembled at runtime
-    /// from <see cref="TtsModelPaths.TtsModelsRelative"/> + profile name + entry name.
+    /// from <see cref="ModelPaths.TtsModelsDir"/> + profile name + entry name.
     /// </summary>
     internal static class TtsProfileAutoFiller
     {
@@ -15,6 +15,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         {
             FillCommonFields(profile, modelDir);
             FillByModelType(profile, modelDir, useInt8);
+
+            // If the archive ships only INT8 variants (e.g. Supertonic), the
+            // int8 toggle is hidden by the UI and the user has no way to opt
+            // in. Treat the import itself as implicit consent so the runtime
+            // guard does not block loading.
+            if (TtsInt8Switcher.IsUsingInt8(profile))
+                profile.allowInt8 = true;
         }
 
         // ── Common fields (shared across model types) ──
@@ -49,6 +56,9 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                     break;
                 case TtsModelType.Pocket:
                     FillPocket(profile, dir, useInt8);
+                    break;
+                case TtsModelType.Supertonic:
+                    FillSupertonic(profile, dir, useInt8);
                     break;
             }
         }
@@ -117,6 +127,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             profile.pocketTextConditioner = ModelFileScanner.FindFileByPattern(dir, "*text_conditioner*.onnx");
             profile.pocketVocabJson = ModelFileScanner.FindFileByPattern(dir, "*vocab*.json");
             profile.pocketTokenScoresJson = ModelFileScanner.FindFileByPattern(dir, "*token_scores*.json");
+        }
+
+        private static void FillSupertonic(TtsProfile profile, string dir,
+            bool useInt8)
+        {
+            profile.supertonicDurationPredictor = ModelFileScanner.FindEncoderOrDecoder(dir, "duration_predictor", useInt8);
+            profile.supertonicTextEncoder = ModelFileScanner.FindEncoderOrDecoder(dir, "text_encoder", useInt8);
+            profile.supertonicVectorEstimator = ModelFileScanner.FindEncoderOrDecoder(dir, "vector_estimator", useInt8);
+            profile.supertonicVocoder = ModelFileScanner.FindEncoderOrDecoder(dir, "vocoder", useInt8);
+            profile.supertonicTtsJson = ModelFileScanner.FindFileByPattern(dir, "tts*.json");
+            profile.supertonicUnicodeIndexer = ModelFileScanner.FindFileByPattern(dir, "unicode_indexer*.bin");
+            profile.supertonicVoiceStyle = ModelFileScanner.FindFileByPattern(dir, "voice*.bin");
         }
 
         // ── Rule files ──

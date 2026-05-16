@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Vad.Config;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using SherpaOnnx;
@@ -47,6 +48,8 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
             if (!ValidateModelDirectory(modelDir, profile))
                 return;
 
+            ModelFileValidator.LogIfInt8(modelDir, "VAD");
+
             var config = VadConfigBuilder.Build(profile, modelDir);
 
             try
@@ -75,6 +78,8 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
                 _windowSize = profile.windowSize;
                 _sampleRate = profile.sampleRate;
 
+                EngineRegistry.Register(this);
+
                 SherpaOnnxLog.RuntimeLog(
                     $"[SherpaOnnx] VAD engine loaded: " +
                     $"{profile.profileName} " +
@@ -92,6 +97,8 @@ namespace PonyuDev.SherpaOnnx.Vad.Engine
         {
             if (_detector == null)
                 return;
+
+            EngineRegistry.Unregister(this);
 
             _detector.Dispose();
             _detector = null;

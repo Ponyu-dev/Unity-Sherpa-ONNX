@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
     /// Mirrors sherpa-onnx <c>VadModelConfig</c> sub-configs.
     /// </summary>
     [Serializable]
-    public sealed class VadProfile : IProfileData
+    public sealed class VadProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -21,12 +21,34 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
 
         public string profileName = "New VAD Profile";
         public VadModelType modelType = VadModelType.SileroVad;
+        public ModelSource modelSource = ModelSource.Local;
+        public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common ──
 
         public int sampleRate = 16000;
         public int numThreads = 1;
         public string provider = "cpu";
+
+        // ── Safety ──
+
+        /// <summary>
+        /// Allow loading INT8 quantized models. Disabled by default
+        /// because INT8 models crash on devices without INT8 ONNX
+        /// operator support (segfault inside the native constructor).
+        /// Enable only if you are certain your target platform
+        /// supports INT8 inference.
+        /// </summary>
+        public bool allowInt8;
 
         // ── VAD thresholds ──
 
@@ -46,5 +68,9 @@ namespace PonyuDev.SherpaOnnx.Vad.Data
         // ── Buffer ──
 
         public float bufferSizeInSeconds = 60f;
+
+        // ── Remote ──
+
+        public string remoteBaseUrl = "";
     }
 }

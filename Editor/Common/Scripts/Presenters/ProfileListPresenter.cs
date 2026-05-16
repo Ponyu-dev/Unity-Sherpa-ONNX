@@ -15,6 +15,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
         private readonly ISettingsData<TProfile> _data;
         private readonly ISaveableSettings _settings;
         private readonly Func<string, string> _getModelDir;
+        private readonly Func<TProfile, bool> _hasMissingFields;
         private readonly string _itemCssClass;
 
         private ListView _listView;
@@ -27,11 +28,13 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
             ISettingsData<TProfile> data,
             ISaveableSettings settings,
             Func<string, string> getModelDir,
-            string itemCssClass)
+            string itemCssClass,
+            Func<TProfile, bool> hasMissingFields = null)
         {
             _data = data;
             _settings = settings;
             _getModelDir = getModelDir;
+            _hasMissingFields = hasMissingFields;
             _itemCssClass = itemCssClass;
         }
 
@@ -122,13 +125,34 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Presenters
             return label;
         }
 
+        private const string MissingClass = "model-list-item--missing";
+
         private void BindItem(VisualElement element, int index)
         {
             var label = (Label)element;
             List<TProfile> profiles = _data.Profiles;
 
-            label.text = index < profiles.Count
-                ? profiles[index].ProfileName : "\u2014";
+            if (index >= profiles.Count)
+            {
+                label.text = "\u2014";
+                label.RemoveFromClassList(MissingClass);
+                return;
+            }
+
+            TProfile profile = profiles[index];
+            string name = profile.ProfileName;
+            bool missing = ModelFileService.IsProfileMissing(name, _getModelDir);
+            bool incomplete = !missing && (_hasMissingFields?.Invoke(profile) == true);
+
+            if (missing)
+                label.text = $"{name} (missing files)";
+            else if (incomplete)
+                label.text = $"{name} (incomplete)";
+            else
+                label.text = name;
+
+            if (missing || incomplete) label.AddToClassList(MissingClass);
+            else label.RemoveFromClassList(MissingClass);
         }
 
         private void PingSelectedProfile(int index)

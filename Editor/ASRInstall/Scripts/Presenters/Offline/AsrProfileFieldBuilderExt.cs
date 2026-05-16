@@ -11,8 +11,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         internal static void BuildCanary(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Encoder", b.Profile.canaryEncoder, AsrProfileField.CanaryEncoder));
-            root.Add(b.BindText("Decoder", b.Profile.canaryDecoder, AsrProfileField.CanaryDecoder));
+            root.Add(b.BindFile("Encoder", b.Profile.canaryEncoder, AsrProfileField.CanaryEncoder, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("Decoder", b.Profile.canaryDecoder, AsrProfileField.CanaryDecoder, keyword: "decoder", isRequired: true));
             root.Add(b.BindText("Source language", b.Profile.canarySrcLang, AsrProfileField.CanarySrcLang));
             root.Add(b.BindText("Target language", b.Profile.canaryTgtLang, AsrProfileField.CanaryTgtLang));
         }
@@ -20,28 +20,28 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
         internal static void BuildWenetCtc(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.wenetCtcModel, AsrProfileField.WenetCtcModel));
+            root.Add(b.BindFile("Model", b.Profile.wenetCtcModel, AsrProfileField.WenetCtcModel, isRequired: true));
         }
 
         internal static void BuildOmnilingual(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.omnilingualModel, AsrProfileField.OmnilingualModel));
+            root.Add(b.BindFile("Model", b.Profile.omnilingualModel, AsrProfileField.OmnilingualModel, isRequired: true));
         }
 
         internal static void BuildMedAsr(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Model", b.Profile.medAsrModel, AsrProfileField.MedAsrModel));
+            root.Add(b.BindFile("Model", b.Profile.medAsrModel, AsrProfileField.MedAsrModel, isRequired: true));
         }
 
         internal static void BuildFunAsrNano(
             VisualElement root, AsrProfileFieldBinder b)
         {
-            root.Add(b.BindText("Encoder adaptor", b.Profile.funAsrNanoEncoderAdaptor, AsrProfileField.FunAsrNanoEncoderAdaptor));
-            root.Add(b.BindText("LLM", b.Profile.funAsrNanoLlm, AsrProfileField.FunAsrNanoLlm));
-            root.Add(b.BindText("Embedding", b.Profile.funAsrNanoEmbedding, AsrProfileField.FunAsrNanoEmbedding));
-            root.Add(b.BindText("Tokenizer", b.Profile.funAsrNanoTokenizer, AsrProfileField.FunAsrNanoTokenizer));
+            root.Add(b.BindFile("Encoder adaptor", b.Profile.funAsrNanoEncoderAdaptor, AsrProfileField.FunAsrNanoEncoderAdaptor, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("LLM", b.Profile.funAsrNanoLlm, AsrProfileField.FunAsrNanoLlm, keyword: "llm", isRequired: true));
+            root.Add(b.BindFile("Embedding", b.Profile.funAsrNanoEmbedding, AsrProfileField.FunAsrNanoEmbedding, keyword: "embedding", isRequired: true));
+            root.Add(b.BindFile("Tokenizer", b.Profile.funAsrNanoTokenizer, AsrProfileField.FunAsrNanoTokenizer, "json", "tokenizer", isRequired: true));
             root.Add(b.BindText("System prompt", b.Profile.funAsrNanoSystemPrompt, AsrProfileField.FunAsrNanoSystemPrompt));
             root.Add(b.BindText("User prompt", b.Profile.funAsrNanoUserPrompt, AsrProfileField.FunAsrNanoUserPrompt));
             root.Add(b.BindInt("Max new tokens", b.Profile.funAsrNanoMaxNewTokens, AsrProfileField.FunAsrNanoMaxNewTokens));
@@ -50,6 +50,31 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             root.Add(b.BindInt("Seed", b.Profile.funAsrNanoSeed, AsrProfileField.FunAsrNanoSeed));
             root.Add(b.BindText("Language", b.Profile.funAsrNanoLanguage, AsrProfileField.FunAsrNanoLanguage));
             root.Add(b.BindText("Hotwords", b.Profile.funAsrNanoHotwords, AsrProfileField.FunAsrNanoHotwords));
+        }
+
+        internal static void BuildQwen3Asr(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindFile("Conv frontend", b.Profile.qwen3ConvFrontend, AsrProfileField.Qwen3ConvFrontend, keyword: "conv_frontend", isRequired: true));
+            root.Add(b.BindFile("Encoder", b.Profile.qwen3Encoder, AsrProfileField.Qwen3Encoder, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("Decoder", b.Profile.qwen3Decoder, AsrProfileField.Qwen3Decoder, keyword: "decoder", isRequired: true));
+            root.Add(b.BindFolder("Tokenizer dir", b.Profile.qwen3Tokenizer, AsrProfileField.Qwen3Tokenizer, keyword: "tokenizer", isRequired: true));
+            root.Add(b.BindInt("Max total len", b.Profile.qwen3MaxTotalLen, AsrProfileField.Qwen3MaxTotalLen));
+            root.Add(b.BindInt("Max new tokens", b.Profile.qwen3MaxNewTokens, AsrProfileField.Qwen3MaxNewTokens));
+            root.Add(b.BindFloat("Temperature", b.Profile.qwen3Temperature, AsrProfileField.Qwen3Temperature));
+            root.Add(b.BindFloat("Top P", b.Profile.qwen3TopP, AsrProfileField.Qwen3TopP));
+            root.Add(b.BindInt("Seed", b.Profile.qwen3Seed, AsrProfileField.Qwen3Seed));
+            root.Add(b.BindText("Hotwords", b.Profile.qwen3Hotwords, AsrProfileField.Qwen3Hotwords));
+        }
+
+        internal static void BuildCohereTranscribe(
+            VisualElement root, AsrProfileFieldBinder b)
+        {
+            root.Add(b.BindFile("Encoder", b.Profile.cohereEncoder, AsrProfileField.CohereEncoder, keyword: "encoder", isRequired: true));
+            root.Add(b.BindFile("Decoder", b.Profile.cohereDecoder, AsrProfileField.CohereDecoder, keyword: "decoder", isRequired: true));
+            root.Add(b.BindText("Language", b.Profile.cohereLanguage, AsrProfileField.CohereLanguage));
+            root.Add(b.BindBool("Use punctuation", b.Profile.cohereUsePunct, AsrProfileField.CohereUsePunct));
+            root.Add(b.BindBool("Use ITN", b.Profile.cohereUseItn, AsrProfileField.CohereUseItn));
         }
     }
 }

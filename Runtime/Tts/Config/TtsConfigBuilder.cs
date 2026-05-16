@@ -62,6 +62,9 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
                 case TtsModelType.Pocket:
                     BuildPocket(ref config.Model.Pocket, profile, modelDir);
                     break;
+                case TtsModelType.Supertonic:
+                    BuildSupertonic(ref config.Model.Supertonic, profile, modelDir);
+                    break;
             }
 
             return config;
@@ -200,6 +203,29 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
                 $"TextConditioner='{c.TextConditioner}', " +
                 $"VocabJson='{c.VocabJson}', " +
                 $"TokenScoresJson='{c.TokenScoresJson}'");
+        }
+
+        private static void BuildSupertonic(
+            ref OfflineTtsSupertonicModelConfig c,
+            TtsProfile p,
+            string dir)
+        {
+            c.DurationPredictor = R(dir, p.supertonicDurationPredictor);
+            c.TextEncoder = R(dir, p.supertonicTextEncoder);
+            c.VectorEstimator = R(dir, p.supertonicVectorEstimator);
+            c.Vocoder = R(dir, p.supertonicVocoder);
+            c.TtsJson = R(dir, p.supertonicTtsJson);
+            c.UnicodeIndexer = R(dir, p.supertonicUnicodeIndexer);
+            c.VoiceStyle = R(dir, p.supertonicVoiceStyle);
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] Supertonic config: " +
+                $"DurationPredictor='{c.DurationPredictor}', " +
+                $"TextEncoder='{c.TextEncoder}', " +
+                $"VectorEstimator='{c.VectorEstimator}', " +
+                $"Vocoder='{c.Vocoder}', TtsJson='{c.TtsJson}', " +
+                $"UnicodeIndexer='{c.UnicodeIndexer}', " +
+                $"VoiceStyle='{c.VoiceStyle}'");
         }
 
         // ── Shorthand ──

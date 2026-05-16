@@ -19,6 +19,12 @@ namespace PonyuDev.SherpaOnnx.Editor.Common
             return Directory.Exists(modelDir);
         }
 
+        internal static bool IsProfileMissing(string profileName, Func<string, string> getModelDir)
+        {
+            if (string.IsNullOrEmpty(profileName)) return false;
+            return !ModelDirExists(getModelDir(profileName));
+        }
+
         internal static void DeleteModelDirectory(string modelDir)
         {
             if (!Directory.Exists(modelDir)) return;

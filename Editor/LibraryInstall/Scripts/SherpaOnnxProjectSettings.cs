@@ -6,13 +6,14 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall
     [FilePath("ProjectSettings/SherpaOnnxSettings.asset", FilePathAttribute.Location.ProjectFolder)]
     internal sealed class SherpaOnnxProjectSettings : ScriptableSingleton<SherpaOnnxProjectSettings>
     {
-        internal const string MinVersion = "1.12.25";
-        public string version = MinVersion;
+        public string version = "1.13.0";
         public string installedVersion = "";
         public bool strictValidation = true;
         public bool macPostprocess = true;
         public bool debugLogEditor = true;
         public bool debugLogRuntime = true;
+        public bool iosIncludeSimulator = false;
+        public bool iosIncludeMac = false;
 
         internal void SaveSettings()
         {

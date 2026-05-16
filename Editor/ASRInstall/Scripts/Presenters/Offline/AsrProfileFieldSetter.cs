@@ -14,6 +14,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             switch (f)
             {
                 case AsrProfileField.ProfileName: p.profileName = v; break;
+                case AsrProfileField.SourceUrl: p.sourceUrl = v; break;
                 case AsrProfileField.Provider: p.provider = v; break;
                 case AsrProfileField.Tokens: p.tokens = v; break;
                 case AsrProfileField.DecodingMethod: p.decodingMethod = v; break;
@@ -74,6 +75,21 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrProfileField.FunAsrNanoUserPrompt: p.funAsrNanoUserPrompt = v; break;
                 case AsrProfileField.FunAsrNanoLanguage: p.funAsrNanoLanguage = v; break;
                 case AsrProfileField.FunAsrNanoHotwords: p.funAsrNanoHotwords = v; break;
+
+                // Qwen3-ASR
+                case AsrProfileField.Qwen3ConvFrontend: p.qwen3ConvFrontend = v; break;
+                case AsrProfileField.Qwen3Encoder: p.qwen3Encoder = v; break;
+                case AsrProfileField.Qwen3Decoder: p.qwen3Decoder = v; break;
+                case AsrProfileField.Qwen3Tokenizer: p.qwen3Tokenizer = v; break;
+                case AsrProfileField.Qwen3Hotwords: p.qwen3Hotwords = v; break;
+
+                // Cohere Transcribe
+                case AsrProfileField.CohereEncoder: p.cohereEncoder = v; break;
+                case AsrProfileField.CohereDecoder: p.cohereDecoder = v; break;
+                case AsrProfileField.CohereLanguage: p.cohereLanguage = v; break;
+
+                // Remote
+                case AsrProfileField.RemoteBaseUrl: p.remoteBaseUrl = v; break;
             }
         }
 
@@ -87,6 +103,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrProfileField.LmScale: p.lmScale = v; break;
                 case AsrProfileField.FunAsrNanoTemperature: p.funAsrNanoTemperature = v; break;
                 case AsrProfileField.FunAsrNanoTopP: p.funAsrNanoTopP = v; break;
+                case AsrProfileField.Qwen3Temperature: p.qwen3Temperature = v; break;
+                case AsrProfileField.Qwen3TopP: p.qwen3TopP = v; break;
             }
         }
 
@@ -102,6 +120,19 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
                 case AsrProfileField.WhisperTailPaddings: p.whisperTailPaddings = v; break;
                 case AsrProfileField.FunAsrNanoMaxNewTokens: p.funAsrNanoMaxNewTokens = v; break;
                 case AsrProfileField.FunAsrNanoSeed: p.funAsrNanoSeed = v; break;
+                case AsrProfileField.Qwen3MaxTotalLen: p.qwen3MaxTotalLen = v; break;
+                case AsrProfileField.Qwen3MaxNewTokens: p.qwen3MaxNewTokens = v; break;
+                case AsrProfileField.Qwen3Seed: p.qwen3Seed = v; break;
+            }
+        }
+
+        internal static void SetBool(
+            AsrProfile p, AsrProfileField f, bool v)
+        {
+            switch (f)
+            {
+                case AsrProfileField.CohereUsePunct: p.cohereUsePunct = v; break;
+                case AsrProfileField.CohereUseItn: p.cohereUseItn = v; break;
             }
         }
     }

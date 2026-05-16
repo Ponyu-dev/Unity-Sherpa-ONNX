@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
     /// Mirrors sherpa-onnx OfflineRecognizerConfig + OfflineModelConfig sub-configs.
     /// </summary>
     [Serializable]
-    public sealed class AsrProfile : IProfileData
+    public sealed class AsrProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -21,12 +21,34 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
 
         public string profileName = "New Profile";
         public AsrModelType modelType = AsrModelType.Whisper;
+        public ModelSource modelSource = ModelSource.Local;
+        public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common (OfflineModelConfig) ──
 
         public int numThreads = 1;
         public string provider = "cpu";
         public string tokens = "";
+
+        // ── Safety ──
+
+        /// <summary>
+        /// Allow loading INT8 quantized models. Disabled by default
+        /// because INT8 models crash on devices without INT8 ONNX
+        /// operator support (segfault inside the native constructor).
+        /// Enable only if you are certain your target platform
+        /// supports INT8 inference.
+        /// </summary>
+        public bool allowInt8;
 
         // ── FeatureConfig ──
 
@@ -137,5 +159,30 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline.Data
         public string funAsrNanoLanguage = "";
         public bool funAsrNanoItn;
         public string funAsrNanoHotwords = "";
+
+        // ── Qwen3-ASR ──
+
+        public string qwen3ConvFrontend = "";
+        public string qwen3Encoder = "";
+        public string qwen3Decoder = "";
+        public string qwen3Tokenizer = "";
+        public int qwen3MaxTotalLen = 512;
+        public int qwen3MaxNewTokens = 128;
+        public float qwen3Temperature = 1e-6f;
+        public float qwen3TopP = 0.8f;
+        public int qwen3Seed = 42;
+        public string qwen3Hotwords = "";
+
+        // ── Cohere Transcribe ──
+
+        public string cohereEncoder = "";
+        public string cohereDecoder = "";
+        public string cohereLanguage = "";
+        public bool cohereUsePunct = true;
+        public bool cohereUseItn = true;
+
+        // ── Remote ──
+
+        public string remoteBaseUrl = "";
     }
 }

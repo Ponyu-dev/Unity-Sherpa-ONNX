@@ -15,6 +15,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         {
             FillCommonFields(profile, modelDir);
             FillByModelType(profile, modelDir, useInt8);
+
+            // If the archive ships only INT8 variants (e.g. Qwen3-ASR,
+            // Cohere Transcribe), the int8 toggle is hidden by the UI and
+            // the user has no way to opt in. Treat the import itself as
+            // implicit consent so the runtime guard does not block loading.
+            if (AsrInt8Switcher.IsUsingInt8(profile))
+                profile.allowInt8 = true;
         }
 
         private static void FillCommonFields(
@@ -54,6 +61,8 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 case AsrModelType.FireRedAsr: FillFireRedAsr(profile, dir, useInt8); break;
                 case AsrModelType.Canary: FillCanary(profile, dir, useInt8); break;
                 case AsrModelType.FunAsrNano: FillFunAsrNano(profile, dir, useInt8); break;
+                case AsrModelType.Qwen3Asr: FillQwen3Asr(profile, dir, useInt8); break;
+                case AsrModelType.CohereTranscribe: FillCohereTranscribe(profile, dir, useInt8); break;
             }
         }
 
@@ -102,6 +111,25 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             p.funAsrNanoLlm = ModelFileScanner.FindOnnxContaining(dir, "llm", useInt8);
             p.funAsrNanoEmbedding = ModelFileScanner.FindOnnxContaining(dir, "embedding", useInt8);
             p.funAsrNanoTokenizer = ModelFileScanner.FindFileByPattern(dir, "*tokenizer*.json");
+        }
+
+        private static void FillQwen3Asr(
+            AsrProfile p, string dir, bool useInt8)
+        {
+            p.qwen3ConvFrontend = ModelFileScanner.FindOnnxContaining(dir, "conv_frontend", useInt8);
+            p.qwen3Encoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.qwen3Decoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
+            p.qwen3Tokenizer = ModelFileScanner.FindSubDir(dir, "tokenizer");
+
+            // Qwen3-ASR uses 128-dim mel features (not 80).
+            p.featureDim = 128;
+        }
+
+        private static void FillCohereTranscribe(
+            AsrProfile p, string dir, bool useInt8)
+        {
+            p.cohereEncoder = ModelFileScanner.FindOnnxContaining(dir, "encoder", useInt8);
+            p.cohereDecoder = ModelFileScanner.FindOnnxContaining(dir, "decoder", useInt8);
         }
 
         private static void FillSingleModel(

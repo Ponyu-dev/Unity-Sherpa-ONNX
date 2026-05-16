@@ -3,6 +3,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Online.Data;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
 using PonyuDev.SherpaOnnx.Editor.Common;
@@ -33,8 +34,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         private PackageInstallPipeline _pipeline;
         private bool _isBusy;
 
-        internal OnlineAsrImportPresenter(
-            AsrProjectSettings settings, Action onImportCompleted)
+        internal OnlineAsrImportPresenter(AsrProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -42,25 +42,20 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         internal void Build(VisualElement parent)
         {
-            _urlField = parent.Q<TextField>("onlineImportUrlField");
+            _urlField = parent.Q<TextField>("importUrlField");
             _urlField.RegisterValueChangedCallback(HandleUrlChanged);
 
-            _optionsRow = parent.Q<VisualElement>(
-                "onlineImportOptionsRow");
-            _int8Toggle = parent.Q<Toggle>(
-                "onlineImportInt8Toggle");
+            _optionsRow = parent.Q<VisualElement>("importOptionsRow");
+            _int8Toggle = parent.Q<Toggle>("importInt8Toggle");
 
-            _importButton = parent.Q<Button>("onlineImportButton");
+            _importButton = parent.Q<Button>("importButton");
             _importButton.clicked += HandleImportClicked;
 
-            _cancelButton = parent.Q<Button>(
-                "onlineImportCancelButton");
+            _cancelButton = parent.Q<Button>("importCancelButton");
             _cancelButton.clicked += HandleCancelClicked;
 
-            _progressBar = parent.Q<ProgressBar>(
-                "onlineImportProgressBar");
-            _statusLabel = parent.Q<Label>(
-                "onlineImportStatusLabel");
+            _progressBar = parent.Q<ProgressBar>("importProgressBar");
+            _statusLabel = parent.Q<Label>("importStatusLabel");
         }
 
         public void Dispose()
@@ -92,30 +87,41 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 SetStatus("Please enter a URL.");
                 return;
             }
+
+            string urlError = UrlValidator.Validate(url);
+            if (urlError != null)
+            {
+                SetStatus(urlError, true);
+                return;
+            }
+
+            string archiveName = ArchiveNameParser.GetArchiveName(url);
+            if (!AsrImportMismatchValidator.ConfirmOnlineImport(archiveName))
+            {
+                SetStatus("Import canceled: model type mismatch.");
+                return;
+            }
+
             if (_isBusy) return;
 
             _cts = new CancellationTokenSource();
             SetBusy(true);
-            SherpaOnnxLog.EditorLog(
-                $"[SherpaOnnx] Online ASR import started: {url}");
+            SherpaOnnxLog.EditorLog($"[SherpaOnnx] Online ASR import started: {url}");
 
             try
             {
                 await ImportAsync(url, _cts.Token);
-                SherpaOnnxLog.EditorLog(
-                    "[SherpaOnnx] Online ASR import completed.");
+                SherpaOnnxLog.EditorLog("[SherpaOnnx] Online ASR import completed.");
             }
             catch (OperationCanceledException)
             {
                 SetStatus("Import canceled.");
-                SherpaOnnxLog.EditorWarning(
-                    "[SherpaOnnx] Online ASR import canceled.");
+                SherpaOnnxLog.EditorWarning("[SherpaOnnx] Online ASR import canceled.");
             }
             catch (Exception ex)
             {
-                SetStatus($"Error: {ex.Message}");
-                SherpaOnnxLog.EditorError(
-                    $"[SherpaOnnx] Online ASR import failed: {ex}");
+                SetStatus($"Error: {ex.Message}", true);
+                SherpaOnnxLog.EditorError($"[SherpaOnnx] Online ASR import failed: {ex}");
             }
             finally
             {
@@ -134,9 +140,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             string url = evt.newValue?.Trim() ?? "";
             bool hasUrl = !string.IsNullOrEmpty(url);
 
-            if (_optionsRow != null)
-                _optionsRow.style.display = hasUrl
-                    ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_optionsRow == null)
+                return;
+            
+            _optionsRow.style.display = hasUrl ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void HandlePipelineProgress(float progress01)
@@ -152,21 +159,19 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         private void HandlePipelineError(string error)
         {
-            SetStatus($"Error: {error}");
+            SetStatus($"Error: {error}", true);
         }
 
         // ── Import flow ──
 
-        private async Task ImportAsync(
-            string url, CancellationToken ct)
+        private async Task ImportAsync(string url, CancellationToken ct)
         {
             string archiveName = ArchiveNameParser.GetArchiveName(url);
             string fileName = ArchiveNameParser.GetFileName(url);
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new ModelContentHandler(
-                archiveName, AsrModelPaths.GetModelDir);
+            var handler = new ModelContentHandler(archiveName, ModelPaths.GetAsrModelDir);
             _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
@@ -176,34 +181,28 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             await _pipeline.RunAsync(url, fileName, ct);
             ct.ThrowIfCancellationRequested();
 
-            OnlineAsrModelType? detected =
-                OnlineAsrModelTypeDetector.Detect(archiveName);
-
-            if (!detected.HasValue)
-                detected = OnlineAsrModelTypeDetector.DetectFromFiles(
-                    handler.DestinationDirectory);
+            OnlineAsrModelType? detected = OnlineAsrModelTypeDetector.Detect(archiveName) ?? OnlineAsrModelTypeDetector.DetectFromFiles(handler.DestinationDirectory);
 
             var profile = new OnlineAsrProfile
             {
-                profileName = archiveName
+                profileName = archiveName,
+                sourceUrl = url,
+                modelSource = ModelSource.Local
             };
 
             if (detected.HasValue)
                 profile.modelType = detected.Value;
 
             bool useInt8 = _int8Toggle != null && _int8Toggle.value;
-            OnlineAsrProfileAutoFiller.Fill(
-                profile, handler.DestinationDirectory, useInt8);
+            OnlineAsrProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
 
             _settings.onlineData.profiles.Add(profile);
             _settings.SaveSettings();
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detected.HasValue
-                ? detected.Value.ToString() : "Unknown";
-            SetStatus(
-                $"Import complete: {archiveName} ({typeLabel})");
+            string typeLabel = detected.HasValue ? detected.Value.ToString() : "Unknown";
+            SetStatus($"Import complete: {archiveName} ({typeLabel})");
 
             if (_urlField != null) _urlField.value = "";
             _onImportCompleted?.Invoke();
@@ -211,11 +210,19 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
 
         // ── Helpers ──
 
-        private void SetStatus(string text)
+        private const string ErrorClass = "model-import-status--error";
+
+        private void SetStatus(string text, bool isError = false)
         {
-            if (_statusLabel == null) return;
+            if (_statusLabel == null)
+                return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
+
+            if (isError)
+                _statusLabel.AddToClassList(ErrorClass);
+            else
+                _statusLabel.RemoveFromClassList(ErrorClass);
         }
 
         private void SetBusy(bool busy)
@@ -224,11 +231,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
             _importButton?.SetEnabled(!busy);
             _urlField?.SetEnabled(!busy);
             if (_cancelButton != null)
-                _cancelButton.style.display = busy
-                    ? DisplayStyle.Flex : DisplayStyle.None;
-            if (_progressBar == null) return;
-            _progressBar.style.display = busy
-                ? DisplayStyle.Flex : DisplayStyle.None;
+                _cancelButton.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
+            if (_progressBar == null)
+                return;
+            _progressBar.style.display = busy ? DisplayStyle.Flex : DisplayStyle.None;
             _progressBar.value = 0f;
         }
 

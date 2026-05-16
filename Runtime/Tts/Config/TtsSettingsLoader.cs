@@ -23,24 +23,20 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
         /// </summary>
         public static TtsSettingsData Load()
         {
-            string path = Path.Combine(
-                Application.streamingAssetsPath, SettingsRelativePath);
+            string path = Path.Combine(Application.streamingAssetsPath, SettingsRelativePath);
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] Loading TTS settings: {path}");
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Loading TTS settings: {path}");
 
             if (!File.Exists(path))
             {
-                SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] TTS settings not found: {path}");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] TTS settings not found: {path}");
                 return new TtsSettingsData();
             }
 
             string json = File.ReadAllText(path);
             var data = JsonUtility.FromJson<TtsSettingsData>(json);
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] TTS settings loaded: {data.profiles?.Count ?? 0} profiles");
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] TTS settings loaded: {data.profiles?.Count ?? 0} profiles");
 
             return data ?? new TtsSettingsData();
         }
@@ -58,8 +54,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
 
             if (!ready)
             {
-                SherpaOnnxLog.RuntimeError(
-                    "[SherpaOnnx] StreamingAssets extraction failed.");
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] StreamingAssets extraction failed.");
                 return new TtsSettingsData();
             }
 
@@ -67,13 +62,11 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
                 StreamingAssetsCopier.GetResolvedStreamingAssetsPath(),
                 SettingsRelativePath);
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] Loading TTS settings: {path}");
+            SherpaOnnxLog.RuntimeLog($"[SherpaOnnx] Loading TTS settings: {path}");
 
             if (!File.Exists(path))
             {
-                SherpaOnnxLog.RuntimeError(
-                    $"[SherpaOnnx] TTS settings not found: {path}");
+                SherpaOnnxLog.RuntimeError($"[SherpaOnnx] TTS settings not found: {path}");
                 return new TtsSettingsData();
             }
 

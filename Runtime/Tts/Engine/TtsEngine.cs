@@ -3,8 +3,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Runtime.InteropServices;
 using System.Threading;
+using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Common.Platform;
+using PonyuDev.SherpaOnnx.Common.Validation;
 using PonyuDev.SherpaOnnx.Tts.Config;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using SherpaOnnx;
@@ -19,7 +21,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
     public sealed class TtsEngine : ITtsEngine
     {
         private readonly ConcurrentQueue<OfflineTts> _available = new();
-        private readonly object _resizeLock = new();
+        private readonly ReaderWriterLockSlim _lifecycleLock = new();
 
         private OfflineTts[] _pool;
         private SemaphoreSlim _semaphore;
@@ -49,6 +51,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loading: {profile.profileName}" +
                 $" (pool={poolSize})");
+
+            ModelFileValidator.LogIfInt8(modelDir, "TTS");
 
             _lastConfig = TtsConfigBuilder.Build(profile, modelDir);
 
@@ -88,6 +92,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             SampleRate = first.SampleRate;
             NumSpeakers = first.NumSpeakers;
 
+            EngineRegistry.Register(this);
+
             SherpaOnnxLog.RuntimeLog(
                 $"[SherpaOnnx] TTS engine loaded: {profile.profileName} " +
                 $"(sampleRate={SampleRate}, speakers={NumSpeakers}, " +
@@ -100,7 +106,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
             if (newPoolSize == _poolSize || !IsLoaded)
                 return;
 
-            lock (_resizeLock)
+            _lifecycleLock.EnterWriteLock();
+            try
             {
                 if (newPoolSize > _poolSize)
                     GrowPool(newPoolSize);
@@ -116,34 +123,49 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 SherpaOnnxLog.RuntimeLog(
                     $"[SherpaOnnx] TtsEngine resized to {newPoolSize}.");
             }
+            finally
+            {
+                _lifecycleLock.ExitWriteLock();
+            }
         }
 
         public void Unload()
         {
-            if (_pool == null)
-                return;
+            EngineRegistry.Unregister(this);
 
-            // Drain and dispose all instances.
-            while (_available.TryDequeue(out _)) { }
+            _lifecycleLock.EnterWriteLock();
+            try
+            {
+                if (_pool == null)
+                    return;
 
-            foreach (var tts in _pool)
-                tts?.Dispose();
+                // Drain and dispose all instances.
+                while (_available.TryDequeue(out _)) { }
 
-            _pool = null;
-            _poolSize = 0;
+                foreach (var tts in _pool)
+                    tts?.Dispose();
 
-            _semaphore?.Dispose();
-            _semaphore = null;
+                _pool = null;
+                _poolSize = 0;
 
-            SampleRate = 0;
-            NumSpeakers = 0;
+                _semaphore?.Dispose();
+                _semaphore = null;
 
-            SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS engine unloaded.");
+                SampleRate = 0;
+                NumSpeakers = 0;
+
+                SherpaOnnxLog.RuntimeLog("[SherpaOnnx] TTS engine unloaded.");
+            }
+            finally
+            {
+                _lifecycleLock.ExitWriteLock();
+            }
         }
 
         public void Dispose()
         {
             Unload();
+            _lifecycleLock.Dispose();
         }
 
         // ── Simple generation ──
@@ -155,11 +177,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             LogGenerationStart(text, speed, speakerId);
 
-            return RentAndGenerate(tts =>
-            {
-                var audio = tts.Generate(text, speed, speakerId);
-                return WrapAudio(audio);
-            });
+            return RentAndGenerate(tts => RunGenerate(tts, text, speed, speakerId));
         }
 
         // ── Callback generation ──
@@ -172,19 +190,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             LogGenerationStart(text, speed, speakerId);
 
-            return RentAndGenerate(tts =>
-            {
-                OfflineTtsCallback nativeCallback = (IntPtr samples, int n) =>
-                {
-                    var managed = CopySamplesFromNative(samples, n);
-                    return callback(managed, n);
-                };
-
-                var audio = tts.GenerateWithCallback(
-                    text, speed, speakerId, nativeCallback);
-                GC.KeepAlive(nativeCallback);
-                return WrapAudio(audio);
-            });
+            return RentAndGenerate(
+                tts => RunGenerateWithCallback(tts, text, speed, speakerId, callback));
         }
 
         public TtsResult GenerateWithCallbackProgress(
@@ -196,20 +203,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             LogGenerationStart(text, speed, speakerId);
 
-            return RentAndGenerate(tts =>
-            {
-                OfflineTtsCallbackProgress nativeCallback =
-                    (IntPtr samples, int n, float progress) =>
-                    {
-                        var managed = CopySamplesFromNative(samples, n);
-                        return callback(managed, n, progress);
-                    };
-
-                var audio = tts.GenerateWithCallbackProgress(
-                    text, speed, speakerId, nativeCallback);
-                GC.KeepAlive(nativeCallback);
-                return WrapAudio(audio);
-            });
+            return RentAndGenerate(
+                tts => RunGenerateWithCallbackProgress(tts, text, speed, speakerId, callback));
         }
 
         public TtsResult GenerateWithConfig(
@@ -233,20 +228,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
 
             var nativeConfig = TtsGenerationConfigMapper.ToNative(config);
 
-            var result = RentAndGenerate(tts =>
-            {
-                OfflineTtsCallbackProgressWithArg nativeCallback =
-                    (IntPtr samples, int n, float progress, IntPtr arg) =>
-                    {
-                        var managed = CopySamplesFromNative(samples, n);
-                        return callback(managed, n, progress);
-                    };
-
-                var audio = tts.GenerateWithConfig(
-                    text, nativeConfig, nativeCallback);
-                GC.KeepAlive(nativeCallback);
-                return WrapAudio(audio);
-            });
+            var result = RentAndGenerate(
+                tts => RunGenerateWithConfig(tts, text, nativeConfig, callback));
 
             if (result != null)
                 return result;
@@ -260,12 +243,374 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 text, config.Speed, config.SpeakerId, callback);
         }
 
+        // ── Async generation (cancellable) ──
+
+        public Task<TtsResult> GenerateAsync(
+            string text, float speed, int speakerId, CancellationToken ct)
+        {
+            if (!ValidateBeforeGenerate(text))
+                return Task.FromResult<TtsResult>(null);
+
+            LogGenerationStart(text, speed, speakerId);
+
+            return RentAndGenerateAsync(
+                tts => RunGenerate(tts, text, speed, speakerId, ct),
+                ct);
+        }
+
+        public Task<TtsResult> GenerateWithCallbackAsync(
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct)
+        {
+            if (!ValidateBeforeGenerate(text))
+                return Task.FromResult<TtsResult>(null);
+
+            LogGenerationStart(text, speed, speakerId);
+
+            return RentAndGenerateAsync(
+                tts => RunGenerateWithCallback(tts, text, speed, speakerId, callback, ct),
+                ct);
+        }
+
+        public Task<TtsResult> GenerateWithCallbackProgressAsync(
+            string text, float speed, int speakerId, TtsCallbackProgress callback,
+            CancellationToken ct)
+        {
+            if (!ValidateBeforeGenerate(text))
+                return Task.FromResult<TtsResult>(null);
+
+            LogGenerationStart(text, speed, speakerId);
+
+            return RentAndGenerateAsync(
+                tts => RunGenerateWithCallbackProgress(tts, text, speed, speakerId, callback, ct),
+                ct);
+        }
+
+        public Task<TtsResult> GenerateWithConfigAsync(
+            string text, TtsGenerationConfig config, TtsCallbackProgress callback,
+            CancellationToken ct)
+        {
+            if (!ValidateBeforeGenerate(text))
+                return Task.FromResult<TtsResult>(null);
+
+            if (config == null)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    "[SherpaOnnx] TtsEngine.GenerateWithConfigAsync: config is null.");
+                return Task.FromResult<TtsResult>(null);
+            }
+
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] TTS generating async with config: " +
+                $"\"{Truncate(text, 60)}\" " +
+                $"(speed={config.Speed}, sid={config.SpeakerId})");
+
+            var nativeConfig = TtsGenerationConfigMapper.ToNative(config);
+
+            return RentAndGenerateAsync(
+                tts => RunGenerateWithConfig(tts, text, nativeConfig, callback, ct),
+                ct);
+        }
+
+        // ── Sync generation bodies (named for debug stack traces) ──
+
+        /// <summary>Body of sync <see cref="Generate(string, float, int)"/>.</summary>
+        private static TtsResult RunGenerate(
+            OfflineTts tts, string text, float speed, int speakerId)
+        {
+            var audio = tts.Generate(text, speed, speakerId);
+            return WrapAudio(audio);
+        }
+
+        /// <summary>Body of sync <see cref="GenerateWithCallback"/>.</summary>
+        private static TtsResult RunGenerateWithCallback(
+            OfflineTts tts, string text, float speed, int speakerId, TtsCallback callback)
+        {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallback));
+            var audio = tts.Generate(text, speed, speakerId);
+            return WrapAudio(audio);
+#else
+            var bridge = MakeCallback(callback);
+            var audio = tts.GenerateWithCallback(text, speed, speakerId, bridge);
+            GC.KeepAlive(bridge);
+            return WrapAudio(audio);
+#endif
+        }
+
+        /// <summary>Body of sync <see cref="GenerateWithCallbackProgress"/>.</summary>
+        private static TtsResult RunGenerateWithCallbackProgress(
+            OfflineTts tts, string text, float speed, int speakerId,
+            TtsCallbackProgress callback)
+        {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallbackProgress));
+            var audio = tts.Generate(text, speed, speakerId);
+            return WrapAudio(audio);
+#else
+            var bridge = MakeProgressCallback(callback);
+            var audio = tts.GenerateWithCallbackProgress(text, speed, speakerId, bridge);
+            GC.KeepAlive(bridge);
+            return WrapAudio(audio);
+#endif
+        }
+
+        /// <summary>Body of sync <see cref="GenerateWithConfig"/>.</summary>
+        private static TtsResult RunGenerateWithConfig(
+            OfflineTts tts, string text, OfflineTtsGenerationConfig nativeConfig,
+            TtsCallbackProgress callback)
+        {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithConfig));
+            var audio = tts.Generate(text, nativeConfig.Speed, nativeConfig.Sid);
+            return WrapAudio(audio);
+#else
+            var bridge = MakeProgressWithArgCallback(callback);
+            var audio = tts.GenerateWithConfig(text, nativeConfig, bridge);
+            GC.KeepAlive(bridge);
+            return WrapAudio(audio);
+#endif
+        }
+
+        // ── Async generation bodies (named for debug stack traces) ──
+        //
+        // IL2CPP note: sherpa-onnx C# bindings wrap user callbacks in a
+        // compiler-generated closure (instance method) before passing the
+        // delegate into native code via P/Invoke. IL2CPP cannot marshal
+        // delegates that point to instance methods to native, so any path
+        // through tts.GenerateWithCallback / GenerateWithCallbackProgress /
+        // GenerateWithConfig throws NotSupportedException at runtime on
+        // iOS / Android / any IL2CPP build. We fall back to the
+        // callback-less tts.Generate(...) when ENABLE_IL2CPP is set.
+        // Cancellation becomes "soft": the awaiting Task observes the CT,
+        // but the native generation runs to completion (no mid-stream
+        // abort and no streaming progress callbacks).
+
+        /// <summary>
+        /// Body of <see cref="GenerateAsync"/> — runs on a worker thread via Task.Run.
+        /// </summary>
+        private static TtsResult RunGenerate(
+            OfflineTts tts, string text, float speed, int speakerId, CancellationToken ct)
+        {
+#if ENABLE_IL2CPP
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, speed, speakerId);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
+            var cancelCheck = MakeCancellationCallback(ct);
+            var audio = tts.GenerateWithCallback(text, speed, speakerId, cancelCheck);
+            GC.KeepAlive(cancelCheck);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#endif
+        }
+
+        /// <summary>Body of <see cref="GenerateWithCallbackAsync"/>.</summary>
+        private static TtsResult RunGenerateWithCallback(
+            OfflineTts tts, string text, float speed, int speakerId,
+            TtsCallback callback, CancellationToken ct)
+        {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallbackAsync));
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, speed, speakerId);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
+            var bridge = MakeCancellableCallback(callback, ct);
+            var audio = tts.GenerateWithCallback(text, speed, speakerId, bridge);
+            GC.KeepAlive(bridge);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#endif
+        }
+
+        /// <summary>Body of <see cref="GenerateWithCallbackProgressAsync"/>.</summary>
+        private static TtsResult RunGenerateWithCallbackProgress(
+            OfflineTts tts, string text, float speed, int speakerId,
+            TtsCallbackProgress callback, CancellationToken ct)
+        {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithCallbackProgressAsync));
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, speed, speakerId);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
+            var bridge = MakeCancellableProgressCallback(callback, ct);
+            var audio = tts.GenerateWithCallbackProgress(text, speed, speakerId, bridge);
+            GC.KeepAlive(bridge);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#endif
+        }
+
+        /// <summary>Body of <see cref="GenerateWithConfigAsync"/>.</summary>
+        private static TtsResult RunGenerateWithConfig(
+            OfflineTts tts, string text, OfflineTtsGenerationConfig nativeConfig,
+            TtsCallbackProgress callback, CancellationToken ct)
+        {
+#if ENABLE_IL2CPP
+            WarnCallbacksUnsupportedOnIl2cpp(nameof(GenerateWithConfigAsync));
+            ct.ThrowIfCancellationRequested();
+            var audio = tts.Generate(text, nativeConfig.Speed, nativeConfig.Sid);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#else
+            var bridge = MakeCancellableProgressWithArgCallback(callback, ct);
+            var audio = tts.GenerateWithConfig(text, nativeConfig, bridge);
+            GC.KeepAlive(bridge);
+            ct.ThrowIfCancellationRequested();
+            return WrapAudio(audio);
+#endif
+        }
+
+#if ENABLE_IL2CPP
+        // Logged at most once per process so we don't spam the log on every
+        // generation call.
+        private static int _il2cppCallbackWarningsLogged;
+
+        private static void WarnCallbacksUnsupportedOnIl2cpp(string apiName)
+        {
+            if (System.Threading.Interlocked.Exchange(ref _il2cppCallbackWarningsLogged, 1) != 0)
+                return;
+
+            SherpaOnnxLog.RuntimeWarning(
+                $"[SherpaOnnx] TtsEngine.{apiName}: progress/streaming callbacks are " +
+                "ignored on IL2CPP (sherpa-onnx C# bindings use closure delegates that " +
+                "IL2CPP cannot marshal to native). Falling back to non-streaming Generate. " +
+                "Use GenerateAsync if you don't need progress callbacks.");
+        }
+#endif
+
+        // ── Callback factories (encapsulate the native-bridge lambdas) ──
+
+        /// <summary>
+        /// Wraps a user <see cref="TtsCallback"/> into a native callback.
+        /// Defensive: returns 1 (continue) if user callback is null.
+        /// </summary>
+        private static OfflineTtsCallback MakeCallback(TtsCallback userCallback)
+        {
+            return (IntPtr samples, int n) =>
+            {
+                var managed = CopySamplesFromNative(samples, n);
+                return userCallback != null ? userCallback(managed, n) : 1;
+            };
+        }
+
+        /// <summary>
+        /// Wraps a user <see cref="TtsCallbackProgress"/> into a native callback.
+        /// </summary>
+        private static OfflineTtsCallbackProgress MakeProgressCallback(
+            TtsCallbackProgress userCallback)
+        {
+            return (IntPtr samples, int n, float progress) =>
+            {
+                var managed = CopySamplesFromNative(samples, n);
+                return userCallback != null ? userCallback(managed, n, progress) : 1;
+            };
+        }
+
+        /// <summary>
+        /// Wraps a user <see cref="TtsCallbackProgress"/> into a native callback
+        /// using the variant that carries an arg pointer (unused).
+        /// </summary>
+        private static OfflineTtsCallbackProgressWithArg MakeProgressWithArgCallback(
+            TtsCallbackProgress userCallback)
+        {
+            return (IntPtr samples, int n, float progress, IntPtr arg) =>
+            {
+                var managed = CopySamplesFromNative(samples, n);
+                return userCallback != null ? userCallback(managed, n, progress) : 1;
+            };
+        }
+
+        /// <summary>
+        /// Builds a no-op-but-cancellable native callback. Returns 0 (abort)
+        /// when <paramref name="ct"/> is triggered, else 1 (continue).
+        /// Used by <see cref="GenerateAsync"/> when there's no user callback.
+        /// </summary>
+        private static OfflineTtsCallback MakeCancellationCallback(CancellationToken ct)
+            => (samples, n) => ct.IsCancellationRequested ? 0 : 1;
+
+        /// <summary>
+        /// Wraps a user <see cref="TtsCallback"/> so it runs alongside the
+        /// cancellation check. Marshals samples from native and dispatches.
+        /// </summary>
+        private static OfflineTtsCallback MakeCancellableCallback(
+            TtsCallback userCallback, CancellationToken ct)
+        {
+            return (IntPtr samples, int n) =>
+            {
+                if (ct.IsCancellationRequested)
+                    return 0;
+                var managed = CopySamplesFromNative(samples, n);
+                return userCallback != null ? userCallback(managed, n) : 1;
+            };
+        }
+
+        /// <summary>
+        /// Wraps a user <see cref="TtsCallbackProgress"/> with cancellation.
+        /// </summary>
+        private static OfflineTtsCallbackProgress MakeCancellableProgressCallback(
+            TtsCallbackProgress userCallback, CancellationToken ct)
+        {
+            return (IntPtr samples, int n, float progress) =>
+            {
+                if (ct.IsCancellationRequested)
+                    return 0;
+                var managed = CopySamplesFromNative(samples, n);
+                return userCallback != null ? userCallback(managed, n, progress) : 1;
+            };
+        }
+
+        /// <summary>
+        /// Wraps a user <see cref="TtsCallbackProgress"/> with cancellation
+        /// using the variant that carries a native arg pointer (unused).
+        /// </summary>
+        private static OfflineTtsCallbackProgressWithArg MakeCancellableProgressWithArgCallback(
+            TtsCallbackProgress userCallback, CancellationToken ct)
+        {
+            return (IntPtr samples, int n, float progress, IntPtr arg) =>
+            {
+                if (ct.IsCancellationRequested)
+                    return 0;
+                var managed = CopySamplesFromNative(samples, n);
+                return userCallback != null ? userCallback(managed, n, progress) : 1;
+            };
+        }
+
         // ── Pool core ──
 
-        private TtsResult RentAndGenerate(Func<OfflineTts, TtsResult> action)
+        /// <summary>
+        /// Async-friendly counterpart of <see cref="RentAndGenerate"/>. Uses
+        /// <see cref="SemaphoreSlim.WaitAsync(CancellationToken)"/> so a
+        /// caller waiting for a free engine instance can be cancelled.
+        /// <para/>
+        /// Important: does NOT hold <see cref="_lifecycleLock"/> across the
+        /// await, because <see cref="ReaderWriterLockSlim"/> is thread-affine
+        /// and would deadlock. Callers must not <c>Unload</c>/<c>Resize</c>
+        /// while async generations are in flight; cancel them first via CT.
+        /// </summary>
+        private async Task<TtsResult> RentAndGenerateAsync(
+            Func<OfflineTts, TtsResult> action, CancellationToken ct)
         {
-            _semaphore.Wait();
+            if (!IsLoaded)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    "[SherpaOnnx] TtsEngine: engine not loaded.");
+                return null;
+            }
+
+            var semaphore = _semaphore;
+            if (semaphore == null)
+                return null;
+
+            await semaphore.WaitAsync(ct).ConfigureAwait(false);
+
             OfflineTts tts = null;
+            bool dequeued = false;
             try
             {
                 if (!_available.TryDequeue(out tts))
@@ -274,13 +619,54 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                         "[SherpaOnnx] TtsEngine: no engine available.");
                     return null;
                 }
-                return action(tts);
+                dequeued = true;
+
+                ct.ThrowIfCancellationRequested();
+
+                return await Task.Run(() => action(tts), ct).ConfigureAwait(false);
             }
             finally
             {
-                if (tts != null)
+                if (dequeued && tts != null)
                     _available.Enqueue(tts);
-                _semaphore.Release();
+                semaphore.Release();
+            }
+        }
+
+        private TtsResult RentAndGenerate(Func<OfflineTts, TtsResult> action)
+        {
+            _lifecycleLock.EnterReadLock();
+            try
+            {
+                if (!IsLoaded)
+                {
+                    SherpaOnnxLog.RuntimeError(
+                        "[SherpaOnnx] TtsEngine: engine not loaded.");
+                    return null;
+                }
+
+                _semaphore.Wait();
+                OfflineTts tts = null;
+                try
+                {
+                    if (!_available.TryDequeue(out tts))
+                    {
+                        SherpaOnnxLog.RuntimeError(
+                            "[SherpaOnnx] TtsEngine: no engine available.");
+                        return null;
+                    }
+                    return action(tts);
+                }
+                finally
+                {
+                    if (tts != null)
+                        _available.Enqueue(tts);
+                    _semaphore.Release();
+                }
+            }
+            finally
+            {
+                _lifecycleLock.ExitReadLock();
             }
         }
 
@@ -414,9 +800,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Engine
                 return null;
             }
 
-            SherpaOnnxLog.RuntimeLog(
-                $"[SherpaOnnx] TTS generated: {samples.Length} samples, " +
-                $"{sampleRate}Hz, {samples.Length / (float)sampleRate:F2}s");
+            SherpaOnnxLog.RuntimeLog(FormattableString.Invariant(
+                $"[SherpaOnnx] TTS generated: {samples.Length} samples, {sampleRate}Hz, {samples.Length / (float)sampleRate:F2}s"));
 
             return new TtsResult(samples, sampleRate);
         }

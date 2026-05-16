@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Asr.Offline;
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Asr.Offline.Engine;
+using PonyuDev.SherpaOnnx.Common.Platform;
 
 namespace PonyuDev.SherpaOnnx.Tests.Stubs
 {
@@ -37,7 +39,7 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
         public void Initialize() { }
 
         public UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
             return UniTask.CompletedTask;
@@ -50,6 +52,9 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
 
         public void SwitchProfile(int index) { }
         public void SwitchProfile(string profileName) { }
+        public UniTask SwitchProfileAsync(int index, CancellationToken ct = default) => UniTask.CompletedTask;
+        public UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default) => UniTask.CompletedTask;
+        public bool IsProfileAvailable(string profileName) => true;
 
         public AsrResult Recognize(float[] samples, int sampleRate)
         {
@@ -65,6 +70,13 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
             var result = Recognize(samples, sampleRate);
             return Task.FromResult(result);
         }
+
+        // ── IModelDiskUsage (no-op stubs) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles() => Array.Empty<string>();
+        public long GetExtractedProfileSizeBytes(string profileName) => 0L;
+        public bool TryDeleteExtractedProfile(string profileName) => true;
+        public int CleanupUnusedExtractedProfiles() => 0;
 
         public void Dispose() { }
     }

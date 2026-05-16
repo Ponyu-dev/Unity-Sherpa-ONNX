@@ -3,7 +3,10 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Networking;
+using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.VadInstall.Settings;
 using PonyuDev.SherpaOnnx.Vad.Data;
 using UnityEditor;
@@ -32,9 +35,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
         private UnityWebRequestFileDownloader _downloader;
         private bool _isBusy;
 
-        internal VadImportPresenter(
-            VadProjectSettings settings,
-            Action onImportCompleted)
+        internal VadImportPresenter(VadProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -82,6 +83,13 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
                 return;
             }
 
+            string urlError = UrlValidator.Validate(url);
+            if (urlError != null)
+            {
+                SetStatus(urlError, true);
+                return;
+            }
+
             if (_isBusy)
                 return;
 
@@ -101,7 +109,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             }
             catch (Exception ex)
             {
-                SetStatus($"Error: {ex.Message}");
+                SetStatus($"Error: {ex.Message}", true);
                 SherpaOnnxLog.EditorError($"[SherpaOnnx] VAD import failed: {ex}");
             }
             finally
@@ -116,8 +124,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             CancelIfBusy();
         }
 
-        private void HandleDownloadProgress(
-            string url, float progress01, ulong downloadedBytes, long totalBytes)
+        private void HandleDownloadProgress(string url, float progress01, ulong downloadedBytes, long totalBytes)
         {
             if (_progressBar == null) return;
             _progressBar.value = progress01 * 100f;
@@ -130,7 +137,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
 
         private void HandleDownloadError(string url, string message)
         {
-            SetStatus($"Error: {message}");
+            SetStatus($"Error: {message}", true);
         }
 
         // ── Import flow ──
@@ -142,7 +149,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
 
             SetStatus($"Downloading {fileName}...");
 
-            string modelDir = VadModelPaths.GetModelDir(profileName);
+            string modelDir = ModelPaths.GetVadModelDir(profileName);
             Directory.CreateDirectory(modelDir);
 
             _downloader = new UnityWebRequestFileDownloader();
@@ -158,6 +165,8 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             var profile = new VadProfile
             {
                 profileName = profileName,
+                sourceUrl = url,
+                modelSource = ModelSource.Local,
                 model = fileName
             };
 
@@ -172,9 +181,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detectedType.HasValue
-                ? detectedType.Value.ToString()
-                : "Unknown";
+            string typeLabel = detectedType.HasValue ? detectedType.Value.ToString() : "Unknown";
 
             SetStatus($"Import complete: {profileName} ({typeLabel})");
 
@@ -207,11 +214,18 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Import
             }
         }
 
-        private void SetStatus(string text)
+        private const string ErrorClass = "model-import-status--error";
+
+        private void SetStatus(string text, bool isError = false)
         {
             if (_statusLabel == null) return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
+
+            if (isError)
+                _statusLabel.AddToClassList(ErrorClass);
+            else
+                _statusLabel.RemoveFromClassList(ErrorClass);
         }
 
         private void SetBusy(bool busy)

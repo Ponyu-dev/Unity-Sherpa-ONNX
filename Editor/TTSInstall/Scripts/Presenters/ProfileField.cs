@@ -8,6 +8,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
     {
         // Identity
         ProfileName,
+        SourceUrl,
 
         // Generation
         SpeakerId,
@@ -76,6 +77,15 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         PocketTextConditioner,
         PocketVocabJson,
         PocketTokenScoresJson,
+
+        // Supertonic
+        SupertonicDurationPredictor,
+        SupertonicTextEncoder,
+        SupertonicVectorEstimator,
+        SupertonicVocoder,
+        SupertonicTtsJson,
+        SupertonicUnicodeIndexer,
+        SupertonicVoiceStyle,
 
         // Remote
         RemoteBaseUrl

@@ -1,0 +1,56 @@
+/* ── TtsStreamingPanel-specific styles ── */
+
+.streaming-hint {
+    margin-bottom: 24px;
+    white-space: normal;
+    -unity-text-align: upper-left;
+}
+
+.streaming-row {
+    flex-direction: row;
+    margin-bottom: 0;
+}
+
+.streaming-btn {
+    flex-grow: 1;
+    margin-right: 12px;
+}
+
+.streaming-btn:last-child {
+    margin-right: 0;
+}
+
+.streaming-btn-stop {
+    background-color: rgba(120, 60, 60, 0.6);
+}
+
+.streaming-result-label {
+    margin-top: 8px;
+    font-size: 24px;
+    color: rgb(140, 200, 255);
+    -unity-font-style: bold;
+    white-space: normal;
+}
+
+.streaming-result-blocking {
+    color: rgb(255, 180, 140);
+}
+
+.streaming-result-queue {
+    color: rgb(170, 230, 160);
+}
+
+.streaming-slider {
+    flex-grow: 1;
+    margin-bottom: 16px;
+}
+
+.streaming-slider .unity-base-slider__label,
+.streaming-slider .unity-slider-int__label {
+    font-size: 26px;
+    min-width: 280px;
+}
+
+.streaming-slider .unity-base-slider {
+    min-height: 60px;
+}

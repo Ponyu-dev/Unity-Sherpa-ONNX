@@ -1,3 +1,4 @@
+using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
@@ -45,43 +46,59 @@ namespace PonyuDev.SherpaOnnx.Tts
             return _engine.GenerateWithConfig(text, config, callback);
         }
 
-        // ── Async callback generation ──
+        // ── Async callback generation (cancellable) ──
 
         /// <inheritdoc />
-        public Task<TtsResult> GenerateWithCallbackAsync(
-            string text, float speed, int speakerId, TtsCallback callback)
+        public async Task<TtsResult> GenerateWithCallbackAsync(
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct = default)
         {
             if (!CheckReady())
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
-            return Task.Run(
-                () => _engine.GenerateWithCallback(
-                    text, speed, speakerId, callback));
+            var engine = _engine;
+            if (engine == null)
+                return null;
+
+            using var linked = LinkCt(ct);
+            return await engine.GenerateWithCallbackAsync(
+                text, speed, speakerId, callback, linked.Token);
         }
 
         /// <inheritdoc />
-        public Task<TtsResult> GenerateWithCallbackProgressAsync(
+        public async Task<TtsResult> GenerateWithCallbackProgressAsync(
             string text, float speed, int speakerId,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             if (!CheckReady())
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
-            return Task.Run(
-                () => _engine.GenerateWithCallbackProgress(
-                    text, speed, speakerId, callback));
+            var engine = _engine;
+            if (engine == null)
+                return null;
+
+            using var linked = LinkCt(ct);
+            return await engine.GenerateWithCallbackProgressAsync(
+                text, speed, speakerId, callback, linked.Token);
         }
 
         /// <inheritdoc />
-        public Task<TtsResult> GenerateWithConfigAsync(
+        public async Task<TtsResult> GenerateWithConfigAsync(
             string text, TtsGenerationConfig config,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             if (!CheckReady())
-                return Task.FromResult<TtsResult>(null);
+                return null;
 
-            return Task.Run(
-                () => _engine.GenerateWithConfig(text, config, callback));
+            var engine = _engine;
+            if (engine == null)
+                return null;
+
+            using var linked = LinkCt(ct);
+            return await engine.GenerateWithConfigAsync(
+                text, config, callback, linked.Token);
         }
     }
 }

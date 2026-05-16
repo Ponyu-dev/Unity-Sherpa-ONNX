@@ -2,6 +2,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.InstallPipeline;
 using PonyuDev.SherpaOnnx.Editor.Common;
 using PonyuDev.SherpaOnnx.Editor.Common.Import;
@@ -35,9 +36,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
         private PackageInstallPipeline _pipeline;
         private bool _isBusy;
 
-        internal TtsImportPresenter(
-            TtsProjectSettings settings,
-            Action onImportCompleted)
+        internal TtsImportPresenter(TtsProjectSettings settings, Action onImportCompleted)
         {
             _settings = settings;
             _onImportCompleted = onImportCompleted;
@@ -94,6 +93,13 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
                 return;
             }
 
+            string urlError = UrlValidator.Validate(url);
+            if (urlError != null)
+            {
+                SetStatus(urlError, true);
+                return;
+            }
+
             if (_isBusy)
                 return;
 
@@ -113,7 +119,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             }
             catch (Exception ex)
             {
-                SetStatus($"Error: {ex.Message}");
+                SetStatus($"Error: {ex.Message}", true);
                 SherpaOnnxLog.EditorError($"[SherpaOnnx] TTS import failed: {ex}");
             }
             finally
@@ -166,7 +172,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         private void HandlePipelineError(string error)
         {
-            SetStatus($"Error: {error}");
+            SetStatus($"Error: {error}", true);
         }
 
         // ── Import flow ──
@@ -178,8 +184,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
             SetStatus($"Starting import of {archiveName}...");
 
-            var handler = new ModelContentHandler(
-                archiveName, TtsModelPaths.GetModelDir);
+            var handler = new ModelContentHandler(archiveName, ModelPaths.GetTtsModelDir);
             _pipeline = ImportPipelineFactory.Create(handler);
 
             _pipeline.OnProgress01 += HandlePipelineProgress;
@@ -194,7 +199,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             var profile = new TtsProfile
             {
                 profileName = archiveName,
-                modelSource = TtsModelSource.Local
+                sourceUrl = url,
+                modelSource = ModelSource.Local
             };
 
             if (detectedType.HasValue)
@@ -204,20 +210,14 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
             TtsProfileAutoFiller.Fill(profile, handler.DestinationDirectory, useInt8);
 
             if (detectedType == TtsModelType.Matcha)
-            {
-                await _vocoderField.DownloadAsync(
-                    profile, handler.DestinationDirectory,
-                    HandlePipelineProgress, HandlePipelineStatus, ct);
-            }
+                await _vocoderField.DownloadAsync(profile, handler.DestinationDirectory, HandlePipelineProgress, HandlePipelineStatus, ct);
 
             _settings.data.profiles.Add(profile);
             _settings.SaveSettings();
 
             AssetDatabase.Refresh();
 
-            string typeLabel = detectedType.HasValue
-                ? detectedType.Value.ToString()
-                : "Unknown";
+            string typeLabel = detectedType.HasValue ? detectedType.Value.ToString() : "Unknown";
 
             SetStatus($"Import complete: {archiveName} ({typeLabel})");
 
@@ -229,11 +229,18 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Import
 
         // ── Helpers ──
 
-        private void SetStatus(string text)
+        private const string ErrorClass = "model-import-status--error";
+
+        private void SetStatus(string text, bool isError = false)
         {
             if (_statusLabel == null) return;
             _statusLabel.text = text;
             _statusLabel.style.display = DisplayStyle.Flex;
+
+            if (isError)
+                _statusLabel.AddToClassList(ErrorClass);
+            else
+                _statusLabel.RemoveFromClassList(ErrorClass);
         }
 
         private void SetBusy(bool busy)

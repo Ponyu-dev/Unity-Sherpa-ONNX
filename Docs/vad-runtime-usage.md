@@ -268,6 +268,54 @@ _vad.SwitchProfile("silero_vad");
 _vad.SwitchProfile(0);
 ```
 
+## Disk Usage (extracted profile directories)
+
+On Android every active profile lands in
+`Application.persistentDataPath/SherpaOnnx/vad-models/{profileName}/`
+regardless of `ModelSource`:
+
+| Source   | How it gets there |
+|----------|-------------------|
+| `Local`  | Lazy per-profile extraction from APK on first `LoadProfile` (only that profile's files). |
+| `Remote` | Editor-time import puts files into StreamingAssets; on Android they extract the same way as `Local`. |
+| `LocalZip` | Per-profile zip is unpacked the first time it is loaded. |
+
+Old extractions stay on disk after `SwitchProfile` so a re-switch does
+not pay the re-extract cost. `IVadService` implements `IModelDiskUsage`
+— host code can inspect and free that space without knowing about
+`LocalZipExtractor` or path constants.
+
+```csharp
+// What is on disk
+foreach (var name in vad.GetExtractedProfiles())
+    Debug.Log($"{name}: {vad.GetExtractedProfileSizeBytes(name) / (1024 * 1024)} MB");
+
+// Delete one stale profile
+vad.TryDeleteExtractedProfile("old-silero");
+
+// Or sweep everything that is no longer in vad-settings.json
+int removed = vad.CleanupUnusedExtractedProfiles();
+```
+
+`GetExtractedProfiles()` returns every profile that has an extraction
+marker on disk regardless of source (LocalZip's `.zip-extracted` and
+Local/Remote's `.profile-extracted` are both recognised).
+
+**Keep only active on disk.** Toggle **Project Settings → Sherpa-ONNX → VAD
+→ Disk Usage → Keep only active profile on disk**. On every successful
+`InitializeAsync` and on every `SwitchProfile(...)` the runtime removes
+every registered profile's extraction except the active one. Off by
+default. Implied automatically when **Only active profile in build** is on.
+On non-Android platforms nothing is extracted, so the toggle is a no-op.
+
+> ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
+> version**, regenerate the manifest once via
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest`. Old manifests
+> have a flat `files` list and trigger a single full extraction at first
+> launch (the runtime detects this and falls back gracefully); the new
+> manifest format is what enables per-profile lazy extraction and
+> per-profile cleanup.
+
 ---
 
 ## VContainer Integration
@@ -339,9 +387,7 @@ public class VadAsrInitializer : IAsyncStartable
         _micSettings.sampleRate = loaded.sampleRate;
         _micSettings.clipLengthSec = loaded.clipLengthSec;
         _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
-        _micSettings.silenceThreshold = loaded.silenceThreshold;
-        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
-        _micSettings.diagFrameCount = loaded.diagFrameCount;
+        _micSettings.resamplingMode = loaded.resamplingMode;
 
         await _vad.InitializeAsync(ct: ct);
         await _asr.InitializeAsync(ct: ct);
@@ -501,9 +547,7 @@ public class VadAsrInitializer : IInitializable, IDisposable
         _micSettings.sampleRate = loaded.sampleRate;
         _micSettings.clipLengthSec = loaded.clipLengthSec;
         _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
-        _micSettings.silenceThreshold = loaded.silenceThreshold;
-        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
-        _micSettings.diagFrameCount = loaded.diagFrameCount;
+        _micSettings.resamplingMode = loaded.resamplingMode;
 
         await _vad.InitializeAsync();
         await _asr.InitializeAsync();
@@ -538,15 +582,105 @@ cannot extract files from the APK.
 Ensure `RECORD_AUDIO` permission is in your `AndroidManifest.xml`.
 The build validator checks this when ASR is enabled.
 
-### Progress Tracking
+### Initialization Progress (`ProfileReadyEvent`)
 
-Monitor extraction progress on Android:
+`IVadService.InitializeAsync` exposes a single semantic callback:
 
 ```csharp
-var progress = new Progress<float>(p =>
-    Debug.Log($"Extracting: {p:P0}"));
+UniTask InitializeAsync(
+    Action<ProfileReadyEvent> onEvent = null,
+    CancellationToken ct = default);
+```
 
-await _vad.InitializeAsync(progress);
+Phases fire in order — `Download` (Remote only) → `Extract` (Remote /
+LocalZip / Local-on-Android) → `Init` — each carrying its own 0..100
+percent in `Percent`. Terminal phases are `Ready` (success) and
+`Failed` (retries exhausted or unrecoverable I/O error).
+
+| Phase | When | Notes |
+|-------|------|-------|
+| `Download` | Remote profile, every chunk written to disk | `Url` set; `Percent` 0..100 |
+| `DownloadRetrying` | Network error before retry | `RetryAttempt` 1..N, `Message` = previous error |
+| `Extract` | Decompressing zip / tar.gz | Tar streams report 0% then 100%; zips report per-entry |
+| `Init` | Native engine ctor on the thread pool | Single 0% before, 100% after |
+| `Failed` | Pipeline aborted | `Error` + `Message` describe what |
+| `Ready` | Service fully usable | `Percent = 100` |
+
+VAD models are tiny (Silero ≈ 2 MB, TEN-VAD ≈ 1 MB), so for a VAD-only
+loading screen `Extract` and `Download` finish almost instantly. The
+single-bar weighting still works — just expect `Init` to dominate
+visually for VAD.
+
+#### Per-phase status text
+
+```csharp
+await _vad.InitializeAsync(OnVadEvent);
+
+void OnVadEvent(ProfileReadyEvent e)
+{
+    string text = e.Phase switch
+    {
+        ProfileReadyPhase.Download         => $"Downloading model: {e.Percent}%",
+        ProfileReadyPhase.DownloadRetrying => $"Network issue, retrying ({e.RetryAttempt})…",
+        ProfileReadyPhase.Extract          => $"Extracting model: {e.Percent}%",
+        ProfileReadyPhase.Init             => "Initializing engine…",
+        ProfileReadyPhase.Failed           => $"Failed: {e.Message}",
+        ProfileReadyPhase.Ready            => "Ready",
+        _ => null,
+    };
+    _statusLabel.text = text;
+}
+```
+
+#### Single 0..100 unified bar (VAD + ASR pipeline)
+
+When initializing the `VadAsrPipeline`, run both services through the
+same bar with `Extract` weighted heaviest (ASR archives are larger):
+
+```csharp
+const float DownloadWeight = 0.20f;
+const float ExtractWeight  = 0.70f;
+const float InitWeight     = 0.10f;
+
+float _vadDl, _vadEx, _vadInit;
+float _asrDl, _asrEx, _asrInit;
+
+await _vad.InitializeAsync(e => Track(e, ref _vadDl, ref _vadEx, ref _vadInit));
+await _asr.InitializeAsync(e => Track(e, ref _asrDl, ref _asrEx, ref _asrInit));
+
+void Track(ProfileReadyEvent e, ref float dl, ref float ex, ref float init)
+{
+    switch (e.Phase)
+    {
+        case ProfileReadyPhase.Download: dl = e.Percent / 100f; break;
+        case ProfileReadyPhase.Extract:  ex = e.Percent / 100f; break;
+        case ProfileReadyPhase.Init:     init = e.Percent / 100f; break;
+        case ProfileReadyPhase.Ready:    dl = ex = init = 1f; break;
+    }
+    UpdateBar();
+}
+
+void UpdateBar()
+{
+    float vad = _vadDl * DownloadWeight + _vadEx * ExtractWeight + _vadInit * InitWeight;
+    float asr = _asrDl * DownloadWeight + _asrEx * ExtractWeight + _asrInit * InitWeight;
+    _progressBar.value = Mathf.Clamp01((vad + asr) * 0.5f) * 100f;
+}
+```
+
+#### Failure handling
+
+```csharp
+await _vad.InitializeAsync(e =>
+{
+    if (e.Phase == ProfileReadyPhase.Failed)
+        Debug.LogError($"[VAD] {e.Message}\n{e.Error}");
+});
+
+if (!_vad.IsReady)
+{
+    // Show a retry button — InitializeAsync can be called again.
+}
 ```
 
 ---
@@ -558,10 +692,13 @@ await _vad.InitializeAsync(progress);
 | Category | Member | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific VAD profile |
-| | `SwitchProfile(index)` | Switch by index |
-| | `SwitchProfile(name)` | Switch by name |
+| | `SwitchProfile(index)` | Switch by index (sync). |
+| | `SwitchProfile(name)` | Switch by name (sync). |
+| | `SwitchProfileAsync(index, ct)` | Async switch — native engine ctor on the thread pool, UI thread stays free. Re-emits `ProfileReadyEvent` (Init / Ready / Failed). |
+| | `SwitchProfileAsync(name, ct)` | Async switch by name. |
+| | `IsProfileAvailable(name)` | `true` when the profile is reachable on disk (or downloadable for Remote with a URL). |
 | **Properties** | `IsReady` | `true` when engine is loaded |
 | | `ActiveProfile` | Current `VadProfile` |
 | | `Settings` | All loaded `VadSettingsData` |

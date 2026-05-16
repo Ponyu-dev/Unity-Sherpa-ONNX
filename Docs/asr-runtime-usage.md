@@ -152,7 +152,6 @@ public class StreamingAsrExample : MonoBehaviour
     {
         var micSettings = await MicrophoneSettingsLoader.LoadAsync();
         _mic = new MicrophoneSource(micSettings);
-        _mic.SilenceDetected += OnSilenceDetected;
         bool started = await _mic.StartRecordingAsync();
 
         if (started)
@@ -180,26 +179,12 @@ public class StreamingAsrExample : MonoBehaviour
         Debug.Log("Endpoint detected — stream reset.");
     }
 
-    private void OnSilenceDetected(string diagnosis)
-    {
-        // Microphone returned silence on all available paths.
-        // Stop recording and notify the user.
-        _orchestrator.DisconnectMicrophone();
-        _mic?.StopRecording();
-        Debug.LogWarning(
-            "Voice capture unavailable on this device. " +
-            "Diag: " + diagnosis);
-    }
-
     private void OnDestroy()
     {
         _orchestrator.Initialized -= SetupMicrophone;
         _orchestrator.PartialResultReady -= OnPartial;
         _orchestrator.FinalResultReady -= OnFinal;
         _orchestrator.EndpointDetected -= OnEndpoint;
-
-        if (_mic != null)
-            _mic.SilenceDetected -= OnSilenceDetected;
 
         _orchestrator.DisconnectMicrophone();
         _mic?.Dispose();
@@ -238,7 +223,6 @@ public class ManualStreamingExample : MonoBehaviour
 
         var micSettings = await MicrophoneSettingsLoader.LoadAsync();
         _mic = new MicrophoneSource(micSettings);
-        _mic.SilenceDetected += OnSilenceDetected;
         bool started = await _mic.StartRecordingAsync();
 
         if (started)
@@ -265,19 +249,9 @@ public class ManualStreamingExample : MonoBehaviour
         _asr.ResetStream();
     }
 
-    private void OnSilenceDetected(string diagnosis)
-    {
-        _mic.SamplesAvailable -= OnMicSamples;
-        _mic.StopRecording();
-        _asr.StopSession();
-        Debug.LogWarning(
-            "Voice capture unavailable. Diag: " + diagnosis);
-    }
-
     private void OnDestroy()
     {
         _mic.SamplesAvailable -= OnMicSamples;
-        _mic.SilenceDetected -= OnSilenceDetected;
         _asr.PartialResultReady -= OnPartial;
         _asr.FinalResultReady -= OnFinal;
         _asr.EndpointDetected -= OnEndpoint;
@@ -304,6 +278,58 @@ _asr.SwitchProfile(0);
 // Recognize with new profile
 AsrResult result = _asr.Recognize(samples, sampleRate);
 ```
+
+### Disk Usage (extracted profile directories)
+
+On Android every active profile lands in
+`Application.persistentDataPath/SherpaOnnx/asr-models/{profileName}/`
+regardless of `ModelSource`:
+
+| Source   | How it gets there |
+|----------|-------------------|
+| `Local`  | Lazy per-profile extraction from APK on first `LoadProfile` (only that profile's files). |
+| `Remote` | Editor-time import puts files into StreamingAssets; on Android they extract the same way as `Local`. |
+| `LocalZip` | Per-profile zip is unpacked the first time it is loaded. |
+
+Old extractions stay on disk after `SwitchProfile` so a re-switch does
+not pay the re-extract cost. Both `IAsrService` and `IOnlineAsrService`
+implement `IModelDiskUsage` — host code can inspect and free that space
+without knowing about `LocalZipExtractor` or path constants. Offline and
+online ASR each manage their own subfolder.
+
+```csharp
+// What is on disk for offline ASR
+foreach (var name in asr.GetExtractedProfiles())
+    Debug.Log($"{name}: {asr.GetExtractedProfileSizeBytes(name) / (1024 * 1024)} MB");
+
+// Delete one stale profile
+asr.TryDeleteExtractedProfile("old-zipformer");
+
+// Or sweep everything that is no longer in asr-settings.json
+int removed = asr.CleanupUnusedExtractedProfiles();
+```
+
+`GetExtractedProfiles()` returns every profile that has an extraction
+marker on disk regardless of source (LocalZip's `.zip-extracted` and
+Local/Remote's `.profile-extracted` are both recognised).
+
+**Keep only active on disk.** Toggle **Project Settings → Sherpa-ONNX → ASR
+→ Disk Usage → Keep only active profile on disk** (separate toggles in the
+Offline and Online tabs — each only sweeps its own profile list, so
+offline + online never delete each other's active model from the shared
+`asr-models/` directory). On every successful `InitializeAsync` and on
+every `SwitchProfile(...)` the runtime removes every registered profile's
+extraction except the active one. Off by default. Implied automatically
+when **Only active profile in build** is on. On non-Android platforms
+nothing is extracted, so the toggle is a no-op.
+
+> ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
+> version**, regenerate the manifest once via
+> `Tools → SherpaOnnx → Rebuild StreamingAssets Manifest`. Old manifests
+> have a flat `files` list and trigger a single full extraction at first
+> launch (the runtime detects this and falls back gracefully); the new
+> manifest format is what enables per-profile lazy extraction and
+> per-profile cleanup.
 
 ### Engine Pool Size (offline only)
 
@@ -399,9 +425,7 @@ public class AsrInitializer : IAsyncStartable
         _micSettings.sampleRate = loaded.sampleRate;
         _micSettings.clipLengthSec = loaded.clipLengthSec;
         _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
-        _micSettings.silenceThreshold = loaded.silenceThreshold;
-        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
-        _micSettings.diagFrameCount = loaded.diagFrameCount;
+        _micSettings.resamplingMode = loaded.resamplingMode;
 
         await _offline.InitializeAsync(ct: ct);
         await _online.InitializeAsync(ct: ct);
@@ -603,9 +627,7 @@ public class AsrInitializer : IInitializable, IDisposable
         _micSettings.sampleRate = loaded.sampleRate;
         _micSettings.clipLengthSec = loaded.clipLengthSec;
         _micSettings.micStartTimeoutSec = loaded.micStartTimeoutSec;
-        _micSettings.silenceThreshold = loaded.silenceThreshold;
-        _micSettings.silenceFrameLimit = loaded.silenceFrameLimit;
-        _micSettings.diagFrameCount = loaded.diagFrameCount;
+        _micSettings.resamplingMode = loaded.resamplingMode;
 
         await _offline.InitializeAsync();
         await _online.InitializeAsync();
@@ -692,6 +714,14 @@ accessible via `System.IO.File`. The package handles this automatically:
 2. On first launch, files are extracted from APK to `persistentDataPath`
 3. Subsequent launches skip extraction (version marker check)
 
+Each file is streamed straight to disk via `UnityWebRequest` +
+`DownloadHandlerFile` — no `byte[]` is ever materialized in managed heap
+and no synchronous `File.WriteAllBytes` runs on the main thread. This
+keeps the UI responsive even when extracting hundred-megabyte models,
+and avoids heap spikes that could OOM on low-memory devices. Partial
+files are removed automatically on cancellation (via
+`DownloadHandlerFile.removeFileOnAbort`) and on HTTP errors.
+
 **You must use `InitializeAsync()` on Android.** The synchronous `Initialize()`
 cannot extract files from the APK.
 
@@ -701,29 +731,34 @@ cannot extract files from the APK.
 (configurable via constructor parameter `requestPermission`). If permission is
 denied, `StartRecordingAsync()` returns `false`.
 
-### Native AudioRecord Fallback (Android)
+### Sample-Rate Resampling (Android)
 
-On some Android devices (e.g. certain Samsung models), Unity's `Microphone` API
-returns silence. `MicrophoneSource` automatically detects this and falls back to
-a native `AudioRecord` implementation via JNI. The fallback tries multiple audio
-sources: `VOICE_RECOGNITION` → `VOICE_COMMUNICATION` → `MIC`.
+`Microphone.Start(rate=16000)` on Android often returns an `AudioClip` whose
+`frequency` is the device's native rate (44.1 / 48 kHz), not the requested one.
+`MicrophoneSource` reads `AudioClip.frequency` after start and resamples to
+`MicrophoneSettingsData.sampleRate` before publishing samples. When the device
+already captures at the requested rate the resample step is a no-op.
 
-Audio processing effects (NoiseSuppressor, AGC, AcousticEchoCanceler) are
-disabled on the native path to get a clean signal.
+The algorithm is selected by `MicrophoneSettingsData.resamplingMode`:
+
+- `Linear` — pure linear interpolation. Cheapest, fine for ASR/VAD.
+- `Lowpass` — single-pole RC pre-filter at the target Nyquist, then linear
+  interpolation. Cleaner downsampling at slightly higher CPU cost.
 
 ### Microphone Settings
 
 Configure microphone behavior via `SherpaOnnx/microphone-settings.json` in
-StreamingAssets:
+StreamingAssets, or via `Edit → Project Settings → Sherpa-ONNX → Microphone`:
 
 ```json
 {
     "sampleRate": 16000,
     "clipLengthSec": 10,
     "micStartTimeoutSec": 2.0,
-    "silenceThreshold": 0.05,
-    "silenceFrameLimit": 90,
-    "diagFrameCount": 5
+    "resamplingMode": 0,
+    "manageAudioSession": true,
+    "androidReturnToNormalOnStop": false,
+    "androidAudioSessionSettleMs": 500
 }
 ```
 
@@ -732,19 +767,153 @@ StreamingAssets:
 | `sampleRate` | 16000 | Capture sample rate in Hz |
 | `clipLengthSec` | 10 | Circular buffer length in seconds |
 | `micStartTimeoutSec` | 2.0 | Max wait for microphone to start producing samples |
-| `silenceThreshold` | 0.05 | Amplitude below this is treated as silence |
-| `silenceFrameLimit` | 90 | Silent frames before fallback triggers (~3s at 30fps) |
-| `diagFrameCount` | 5 | Diagnostic log frames at recording start |
+| `resamplingMode` | `Linear` (0) | Resampling algorithm: `Linear` or `Lowpass` |
+| `manageAudioSession` | `true` | Auto-configure platform audio session on start/stop (see below). Disable when the host project drives the audio session itself. |
+| `androidReturnToNormalOnStop` | `false` | Android-only. When `true`, restore `MODE_NORMAL` + speakerphone-off on stop. Off by default — switching modes mid-session triggers a route change that can break the next capture. |
+| `androidAudioSessionSettleMs` | 500 | Android-only. Delay (ms) between switching `AudioManager` mode and `Microphone.Start`, applied **only on the first capture**. Without it, the mic starts on the old route and produces no samples until routing settles, often exceeding `micStartTimeoutSec`. Raise to 800–1000 if you still see "device did not start within Ns" on the first record. |
 
-### Progress Tracking
+### Audio Session (TTS + STT coexistence)
 
-Monitor extraction progress on Android (useful for loading screens):
+`AudioSessionBridge` configures the platform audio session so TTS playback
+and microphone capture can coexist without the mic returning silence:
+
+- **iOS** — switches `AVAudioSession` between `PlayAndRecord` (recording)
+  and `Playback` (idle). Without this, after the first capture the session
+  stays in `PlayAndRecord` and TTS may route through the voice receiver.
+- **Android** — sets `AudioManager.MODE_IN_COMMUNICATION` + speakerphone
+  the first time recording starts. This engages the platform AEC/AGC.
+  Without it, many devices return near-silent capture while TTS uses the
+  media stream — the most common cause of "voice not recognized" on Android.
+
+When `manageAudioSession` is `true` (default), `MicrophoneSource` calls
+`AudioSessionBridge.ConfigureForRecording()` on start and
+`AudioSessionBridge.RestoreForPlayback(androidReturnToNormalOnStop)` on stop.
+
+`AudioSessionBridge.ConfigureForRecording()` returns `true` on Android
+when the audio mode was just applied — `MicrophoneSource` then waits
+`androidAudioSessionSettleMs` before `Microphone.Start` so the platform
+route change can complete. Subsequent captures see `false` (mode already
+in place) and start immediately.
+
+Drive it manually when integrating with an external audio session manager:
 
 ```csharp
-var progress = new Progress<float>(p =>
-    Debug.Log($"Extracting: {p:P0}"));
+var settings = await MicrophoneSettingsLoader.LoadAsync();
+settings.manageAudioSession = false;
+var mic = new MicrophoneSource(settings);
 
-await _asr.InitializeAsync(progress);
+bool androidModeApplied = AudioSessionBridge.ConfigureForRecording();
+if (androidModeApplied)
+    await UniTask.Delay(500); // let the Android route change settle
+
+await mic.StartRecordingAsync();
+// ...
+mic.StopRecording();
+AudioSessionBridge.RestoreForPlayback();
+```
+
+> ⏳ On iOS, `MicrophonePermission.RequestAsync()` waits 1s after the
+> permission dialog dismisses before returning, so the AVAudioSession can
+> settle (route changes + reactivation) before capture starts.
+
+### Initialization Progress (`ProfileReadyEvent`)
+
+Both `IAsrService.InitializeAsync` and
+`IOnlineAsrService.InitializeAsync` accept a single semantic callback:
+
+```csharp
+UniTask InitializeAsync(
+    Action<ProfileReadyEvent> onEvent = null,
+    CancellationToken ct = default);
+```
+
+Phases fire in order — `Download` (Remote only) → `Extract` (Remote /
+LocalZip / Local-on-Android) → `Init` — each carrying its own 0..100
+percent in `Percent`. Terminal phases are `Ready` (success) and
+`Failed` (retries exhausted or unrecoverable I/O error).
+
+| Phase | When | Notes |
+|-------|------|-------|
+| `Download` | Remote profile, every chunk written to disk | `Url` set; `Percent` 0..100 |
+| `DownloadRetrying` | Network error before retry | `RetryAttempt` 1..N, `Message` = previous error |
+| `Extract` | Decompressing zip / tar.gz | Tar streams report 0% then 100%; zips report per-entry |
+| `Init` | Native engine ctor on the thread pool | Single 0% before, 100% after |
+| `Failed` | Pipeline aborted | `Error` + `Message` describe what |
+| `Ready` | Service fully usable | `Percent = 100` |
+
+`ProfileReadyEvent` is a `readonly struct` — zero allocation per event.
+
+#### Per-phase status text
+
+```csharp
+await _asr.InitializeAsync(OnAsrEvent);
+
+void OnAsrEvent(ProfileReadyEvent e)
+{
+    string text = e.Phase switch
+    {
+        ProfileReadyPhase.Download         => $"Downloading model: {e.Percent}%",
+        ProfileReadyPhase.DownloadRetrying => $"Network issue, retrying ({e.RetryAttempt})…",
+        ProfileReadyPhase.Extract          => $"Extracting model: {e.Percent}%",
+        ProfileReadyPhase.Init             => "Initializing engine…",
+        ProfileReadyPhase.Failed           => $"Failed: {e.Message}",
+        ProfileReadyPhase.Ready            => "Ready",
+        _ => null,
+    };
+    _statusLabel.text = text;
+}
+```
+
+#### Single 0..100 unified bar
+
+For a loading screen with one progress bar, weight the phases. Extract
+is the longest step (ASR encoder/decoder bundles are typically the
+heaviest unzip step), so it gets the largest weight:
+
+```csharp
+const float DownloadWeight = 0.20f;
+const float ExtractWeight  = 0.70f;
+const float InitWeight     = 0.10f;
+
+float _downloadDone, _extractDone, _initDone;
+
+void OnAsrEvent(ProfileReadyEvent e)
+{
+    switch (e.Phase)
+    {
+        case ProfileReadyPhase.Download: _downloadDone = e.Percent / 100f; break;
+        case ProfileReadyPhase.Extract:  _extractDone  = e.Percent / 100f; break;
+        case ProfileReadyPhase.Init:     _initDone     = e.Percent / 100f; break;
+        case ProfileReadyPhase.Ready:    _downloadDone = _extractDone = _initDone = 1f; break;
+    }
+
+    float total =
+        _downloadDone * DownloadWeight +
+        _extractDone  * ExtractWeight  +
+        _initDone     * InitWeight;
+
+    _progressBar.value = Mathf.Clamp01(total) * 100f;
+}
+```
+
+For `Local` or `LocalZip` profiles where there is no download, drop
+`DownloadWeight` to `0` and rebalance Extract / Init (e.g. `0.85` /
+`0.15`). When initializing offline + online ASR back-to-back, run two
+independent bars or weight each pipeline by half of the total budget.
+
+#### Failure handling
+
+```csharp
+await _asr.InitializeAsync(e =>
+{
+    if (e.Phase == ProfileReadyPhase.Failed)
+        Debug.LogError($"[ASR] {e.Message}\n{e.Error}");
+});
+
+if (!_asr.IsReady)
+{
+    // Show a retry button — InitializeAsync can be called again.
+}
 ```
 
 ---
@@ -756,10 +925,13 @@ await _asr.InitializeAsync(progress);
 | Category | Method | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific profile |
-| | `SwitchProfile(index)` | Switch by index |
-| | `SwitchProfile(name)` | Switch by name |
+| | `SwitchProfile(index)` | Switch by index (sync). |
+| | `SwitchProfile(name)` | Switch by name (sync). |
+| | `SwitchProfileAsync(index, ct)` | Async switch — native engine ctor on the thread pool, UI thread stays free. Re-emits `ProfileReadyEvent` (Init / Ready / Failed). |
+| | `SwitchProfileAsync(name, ct)` | Async switch by name. |
+| | `IsProfileAvailable(name)` | `true` when the profile is reachable on disk (or downloadable for Remote with a URL). |
 | **Properties** | `IsReady` | `true` when engine is loaded |
 | | `ActiveProfile` | Current `AsrProfile` |
 | | `Settings` | All loaded `AsrSettingsData` |
@@ -772,10 +944,13 @@ await _asr.InitializeAsync(progress);
 | Category | Method | Description |
 |----------|--------|-------------|
 | **Lifecycle** | `Initialize()` | Sync init (Desktop only) |
-| | `InitializeAsync(progress, ct)` | Async init (all platforms, required on Android) |
+| | `InitializeAsync(onEvent, ct)` | Async init (all platforms, required on Android). `onEvent` receives `ProfileReadyEvent` (Download / Extract / Init / Ready / Failed). |
 | | `LoadProfile(profile)` | Load a specific profile |
-| | `SwitchProfile(index)` | Switch by index |
-| | `SwitchProfile(name)` | Switch by name |
+| | `SwitchProfile(index)` | Switch by index (sync). |
+| | `SwitchProfile(name)` | Switch by name (sync). |
+| | `SwitchProfileAsync(index, ct)` | Async switch — native engine ctor on the thread pool, UI thread stays free. Re-emits `ProfileReadyEvent` (Init / Ready / Failed). |
+| | `SwitchProfileAsync(name, ct)` | Async switch by name. |
+| | `IsProfileAvailable(name)` | `true` when the profile is reachable on disk (or downloadable for Remote with a URL). |
 | **Properties** | `IsReady` | `true` when engine is loaded |
 | | `IsSessionActive` | `true` during active recognition session |
 | | `ActiveProfile` | Current `OnlineAsrProfile` |
@@ -827,7 +1002,6 @@ Settings are loaded from `SherpaOnnx/microphone-settings.json` in StreamingAsset
 | | `Dispose()` | Stop and release resources |
 | **Events** | `SamplesAvailable` | Push model: fires each frame with new PCM samples |
 | | `RecordingStopped` | Fires when recording stops |
-| | `SilenceDetected` | Fires with diagnostics when sustained silence is detected |
 
 ### AsrOrchestrator (MonoBehaviour)
 
@@ -865,6 +1039,6 @@ Settings are loaded from `SherpaOnnx/microphone-settings.json` in StreamingAsset
 | No partial results appear | Ensure `StartSession()` is called and `SamplesAvailable` is wired |
 | Endpoint never fires | Check endpoint detection settings in the online profile |
 | `Recognize()` returns null | Check logs for engine errors; verify model files exist |
-| Audio sounds too slow/fast | Use `AudioResampler` to match the model's expected sample rate |
-| Android mic silence (SilenceDetected fires) | Device HAL issue; native fallback activates automatically. Check logcat for diagnostics |
-| Fallback triggers during speech pauses | Increase `silenceFrameLimit` in `microphone-settings.json` |
+| Audio sounds too slow/fast | Check `clipFreq` in the `MicrophoneSource: started` log; if it differs from `sampleRate`, the resampler should handle it. Try `Lowpass` mode if you hear aliasing |
+| Android mic returns silence | Verify microphone permission, that no other app is holding the mic exclusively, and that the global mic privacy toggle (Android 12+) is off. If silence appears only while/after TTS plays, make sure `manageAudioSession` is enabled — `AudioSessionBridge` switches the device into `MODE_IN_COMMUNICATION` + speakerphone so the platform AEC/AGC engages |
+| iOS TTS plays through earpiece after first STT | Ensure `manageAudioSession` is enabled, or call `AudioSessionBridge.RestoreForPlayback()` manually after stopping the mic — otherwise AVAudioSession stays in `PlayAndRecord` |

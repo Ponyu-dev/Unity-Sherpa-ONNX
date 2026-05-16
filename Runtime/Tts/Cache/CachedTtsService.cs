@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Cysharp.Threading.Tasks;
 using PonyuDev.SherpaOnnx.Common;
+using PonyuDev.SherpaOnnx.Common.Platform;
 using PonyuDev.SherpaOnnx.Tts.Data;
 using PonyuDev.SherpaOnnx.Tts.Engine;
 using UnityEngine;
@@ -59,6 +61,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         public bool IsReady => _inner.IsReady;
         public TtsProfile ActiveProfile => _inner.ActiveProfile;
         public TtsSettingsData Settings => _inner.Settings;
+        public int SampleRate => _inner.SampleRate;
 
         public int EnginePoolSize
         {
@@ -74,10 +77,10 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         }
 
         public async UniTask InitializeAsync(
-            IProgress<float> progress = null,
+            Action<ProfileReadyEvent> onEvent = null,
             CancellationToken ct = default)
         {
-            await _inner.InitializeAsync(progress, ct);
+            await _inner.InitializeAsync(onEvent, ct);
         }
 
         public void LoadProfile(TtsProfile profile)
@@ -97,6 +100,21 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
             _inner.SwitchProfile(profileName);
             _resultCache.Clear();
         }
+
+        public async UniTask SwitchProfileAsync(int index, CancellationToken ct = default)
+        {
+            await _inner.SwitchProfileAsync(index, ct);
+            _resultCache.Clear();
+        }
+
+        public async UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default)
+        {
+            await _inner.SwitchProfileAsync(profileName, ct);
+            _resultCache.Clear();
+        }
+
+        public bool IsProfileAvailable(string profileName)
+            => _inner.IsProfileAvailable(profileName);
 
         // ── Cached generation ──
 
@@ -118,23 +136,25 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
                 () => _inner.Generate(text, speed, speakerId));
         }
 
-        public Task<TtsResult> GenerateAsync(string text)
+        public Task<TtsResult> GenerateAsync(
+            string text, CancellationToken ct = default)
         {
             if (!_inner.IsReady)
-                return _inner.GenerateAsync(text);
+                return _inner.GenerateAsync(text, ct);
 
             var profile = _inner.ActiveProfile;
             return CachedGenerateAsync(
                 text, profile.speed, profile.speakerId,
-                () => _inner.GenerateAsync(text));
+                () => _inner.GenerateAsync(text, ct), ct);
         }
 
         public Task<TtsResult> GenerateAsync(
-            string text, float speed, int speakerId)
+            string text, float speed, int speakerId,
+            CancellationToken ct = default)
         {
             return CachedGenerateAsync(
                 text, speed, speakerId,
-                () => _inner.GenerateAsync(text, speed, speakerId));
+                () => _inner.GenerateAsync(text, speed, speakerId, ct), ct);
         }
 
         // ── Callback methods (forwarded, not cached) ──
@@ -161,26 +181,43 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
         }
 
         public Task<TtsResult> GenerateWithCallbackAsync(
-            string text, float speed, int speakerId, TtsCallback callback)
+            string text, float speed, int speakerId, TtsCallback callback,
+            CancellationToken ct = default)
         {
             return _inner.GenerateWithCallbackAsync(
-                text, speed, speakerId, callback);
+                text, speed, speakerId, callback, ct);
         }
 
         public Task<TtsResult> GenerateWithCallbackProgressAsync(
             string text, float speed, int speakerId,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
             return _inner.GenerateWithCallbackProgressAsync(
-                text, speed, speakerId, callback);
+                text, speed, speakerId, callback, ct);
         }
 
         public Task<TtsResult> GenerateWithConfigAsync(
             string text, TtsGenerationConfig config,
-            TtsCallbackProgress callback)
+            TtsCallbackProgress callback,
+            CancellationToken ct = default)
         {
-            return _inner.GenerateWithConfigAsync(text, config, callback);
+            return _inner.GenerateWithConfigAsync(text, config, callback, ct);
         }
+
+        // ── IModelDiskUsage (forwarded to inner) ──
+
+        public IReadOnlyList<string> GetExtractedProfiles()
+            => _inner.GetExtractedProfiles();
+
+        public long GetExtractedProfileSizeBytes(string profileName)
+            => _inner.GetExtractedProfileSizeBytes(profileName);
+
+        public bool TryDeleteExtractedProfile(string profileName)
+            => _inner.TryDeleteExtractedProfile(profileName);
+
+        public int CleanupUnusedExtractedProfiles()
+            => _inner.CleanupUnusedExtractedProfiles();
 
         // ── ITtsCacheControl: enable/disable ──
 
@@ -338,7 +375,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
 
         private async Task<TtsResult> CachedGenerateAsync(
             string text, float speed, int speakerId,
-            Func<Task<TtsResult>> generateAsync)
+            Func<Task<TtsResult>> generateAsync,
+            CancellationToken ct)
         {
             if (!_resultCacheEnabled)
                 return await generateAsync();
@@ -347,6 +385,7 @@ namespace PonyuDev.SherpaOnnx.Tts.Cache
             var cached = _resultCache.TryGet(key);
             if (cached != null)
             {
+                ct.ThrowIfCancellationRequested();
                 SherpaOnnxLog.RuntimeLog(
                     "[SherpaOnnx] Cache hit: " + key);
                 return cached;

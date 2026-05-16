@@ -20,10 +20,9 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
         private readonly string _archiveName;
         private readonly Func<string, string> _getModelDir;
 
-        internal string DestinationDirectory { get; private set; }
+        public string DestinationDirectory { get; private set; }
 
-        internal ModelContentHandler(
-            string archiveName, Func<string, string> getModelDir)
+        internal ModelContentHandler(string archiveName, Func<string, string> getModelDir)
         {
             if (string.IsNullOrEmpty(archiveName))
                 throw new ArgumentNullException(nameof(archiveName));
@@ -48,13 +47,11 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
 
             Directory.CreateDirectory(destDir);
 
-            string[] files = Directory.GetFiles(
-                sourceDir, "*", SearchOption.AllDirectories);
+            string[] files = Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories);
 
             if (files.Length == 0)
             {
-                string msg = "No files found in extracted directory: "
-                    + sourceDir;
+                string msg = "No files found in extracted directory: " + sourceDir;
                 OnError?.Invoke(msg);
                 throw new FileNotFoundException(msg);
             }
@@ -65,8 +62,7 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
 
                 string relativePath = files[i]
                     .Substring(sourceDir.Length)
-                    .TrimStart(Path.DirectorySeparatorChar,
-                        Path.AltDirectorySeparatorChar);
+                    .TrimStart(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
 
                 string destPath = Path.Combine(destDir, relativePath);
                 string destSubDir = Path.GetDirectoryName(destPath);
@@ -85,15 +81,27 @@ namespace PonyuDev.SherpaOnnx.Editor.Common.Import
             return Task.CompletedTask;
         }
 
-        private static string FindModelRoot(string extractedDir)
+        /// <summary>
+        /// Walks down wrapper directories until it finds model files.
+        /// Unwraps up to 3 levels of single-subdirectory nesting.
+        /// </summary>
+        internal static string FindModelRoot(string extractedDir)
         {
-            string[] topFiles = Directory.GetFiles(extractedDir);
-            string[] topDirs = Directory.GetDirectories(extractedDir);
+            const int maxDepth = 3;
+            string current = extractedDir;
 
-            if (topFiles.Length == 0 && topDirs.Length == 1)
-                return topDirs[0];
+            for (int i = 0; i < maxDepth; i++)
+            {
+                string[] files = Directory.GetFiles(current);
+                string[] dirs = Directory.GetDirectories(current);
 
-            return extractedDir;
+                if (files.Length > 0 || dirs.Length != 1)
+                    break;
+
+                current = dirs[0];
+            }
+
+            return current;
         }
     }
 }

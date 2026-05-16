@@ -50,6 +50,10 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
                 case AsrModelType.MedAsr: return IsInt8(profile.medAsrModel);
                 case AsrModelType.FunAsrNano:
                     return IsInt8(profile.funAsrNanoEncoderAdaptor) || IsInt8(profile.funAsrNanoLlm);
+                case AsrModelType.Qwen3Asr:
+                    return IsInt8(profile.qwen3Encoder) || IsInt8(profile.qwen3Decoder);
+                case AsrModelType.CohereTranscribe:
+                    return IsInt8(profile.cohereEncoder) || IsInt8(profile.cohereDecoder);
                 default: return false;
             }
         }

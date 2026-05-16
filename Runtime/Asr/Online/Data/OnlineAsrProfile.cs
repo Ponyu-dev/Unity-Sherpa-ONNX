@@ -9,7 +9,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
     /// unused fields are ignored at runtime.
     /// </summary>
     [Serializable]
-    public sealed class OnlineAsrProfile : IProfileData
+    public sealed class OnlineAsrProfile : IModelProfile
     {
         public string ProfileName
         {
@@ -21,12 +21,34 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
 
         public string profileName = "New Online Profile";
         public OnlineAsrModelType modelType = OnlineAsrModelType.Transducer;
+        public ModelSource modelSource = ModelSource.Local;
+        public string sourceUrl = "";
+
+        ModelSource IModelProfile.ModelSource
+        {
+            get => modelSource;
+            set => modelSource = value;
+        }
+
+        string IModelProfile.SourceUrl => sourceUrl;
+        string IModelProfile.RemoteBaseUrl => remoteBaseUrl;
 
         // ── Common (OnlineModelConfig) ──
 
         public int numThreads = 1;
         public string provider = "cpu";
         public string tokens = "";
+
+        // ── Safety ──
+
+        /// <summary>
+        /// Allow loading INT8 quantized models. Disabled by default
+        /// because INT8 models crash on devices without INT8 ONNX
+        /// operator support (segfault inside the native constructor).
+        /// Enable only if you are certain your target platform
+        /// supports INT8 inference.
+        /// </summary>
+        public bool allowInt8;
 
         // ── FeatureConfig ──
 
@@ -77,5 +99,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
         // ── ToneCtc ──
 
         public string toneCtcModel = "";
+
+        // ── Remote ──
+
+        public string remoteBaseUrl = "";
     }
 }

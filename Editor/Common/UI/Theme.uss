@@ -1,0 +1,46 @@
+/* ══════════════════════════════════════════════
+   Theme palette.
+   Variables resolve from the nearest ancestor with
+   the `theme-dark` or `theme-light` class. The class
+   is applied in C# from EditorGUIUtility.isProSkin.
+   ══════════════════════════════════════════════ */
+
+.theme-light {
+    --platform-row-bg: rgb(220, 220, 220);
+    --btn-primary-bg: rgb(170, 215, 180);
+    --btn-secondary-bg: rgb(220, 195, 195);
+    --btn-warning-bg: rgb(230, 210, 130);
+    --btn-accent-bg: rgb(180, 200, 220);
+    --link-color: rgb(20, 70, 160);
+    --link-hover-color: rgb(45, 100, 195);
+
+    --status-installed: rgb(40, 130, 60);
+    --status-notinstalled: rgb(180, 60, 60);
+    --status-update: rgb(160, 130, 30);
+
+    --section-bg: rgba(0, 0, 0, 0.05);
+    --section-border: rgba(0, 0, 0, 0.15);
+    --separator-color: rgba(0, 0, 0, 0.1);
+    --tab-active-bg: rgba(80, 150, 100, 0.5);
+    --progress-bar-bg: rgb(140, 200, 160);
+}
+
+.theme-dark {
+    --platform-row-bg: rgb(32, 32, 32);
+    --btn-primary-bg: rgb(47, 95, 63);
+    --btn-secondary-bg: rgb(58, 48, 48);
+    --btn-warning-bg: rgb(140, 120, 40);
+    --btn-accent-bg: rgb(47, 74, 95);
+    --link-color: rgb(115, 166, 255);
+    --link-hover-color: rgb(153, 204, 255);
+
+    --status-installed: rgb(128, 208, 128);
+    --status-notinstalled: rgb(208, 128, 128);
+    --status-update: rgb(220, 200, 100);
+
+    --section-bg: rgba(0, 0, 0, 0.08);
+    --section-border: rgb(48, 48, 48);
+    --separator-color: rgba(255, 255, 255, 0.08);
+    --tab-active-bg: rgba(47, 95, 63, 0.6);
+    --progress-bar-bg: rgb(37, 89, 27);
+}

@@ -8,6 +8,7 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
     {
         // Identity
         ProfileName,
+        SourceUrl,
 
         // Common
         SampleRate,
@@ -25,6 +26,9 @@ namespace PonyuDev.SherpaOnnx.Editor.VadInstall.Presenters
         WindowSize,
 
         // Buffer
-        BufferSizeInSeconds
+        BufferSizeInSeconds,
+
+        // Remote
+        RemoteBaseUrl
     }
 }

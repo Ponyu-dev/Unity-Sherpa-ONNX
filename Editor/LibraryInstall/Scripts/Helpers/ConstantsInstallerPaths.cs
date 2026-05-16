@@ -4,6 +4,7 @@ namespace PonyuDev.SherpaOnnx.Editor.LibraryInstall.Helpers
     {
         public const string AssetsPluginsSherpaOnnx = "Assets/Plugins/SherpaOnnx";
         public const string ManagedDllFileName = "sherpa-onnx.dll";
+        public const string IosManagedDllSubDir = "iOS";
         public const string NuGetManagedDllSubPath = "lib/netstandard2.0/" + ManagedDllFileName;
     }
 }

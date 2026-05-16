@@ -14,6 +14,13 @@ namespace PonyuDev.SherpaOnnx.Common.InstallPipeline
         event Action<float> OnProgress01;
         event Action<string> OnError;
 
+        /// <summary>
+        /// Final destination directory where files are copied.
+        /// Available after <see cref="HandleAsync"/> completes.
+        /// May be null if the handler does not copy files to a final destination.
+        /// </summary>
+        string DestinationDirectory { get; }
+
         Task HandleAsync(string extractedDirectory, CancellationToken cancellationToken);
     }
 }

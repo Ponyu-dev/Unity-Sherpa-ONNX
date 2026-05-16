@@ -15,6 +15,13 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Import
         {
             FillCommonFields(profile, modelDir);
             FillByModelType(profile, modelDir, useInt8);
+
+            // If the archive ships only INT8 variants the int8 toggle is
+            // hidden by the UI and the user has no way to opt in. Treat the
+            // import itself as implicit consent so the runtime guard does
+            // not block loading.
+            if (OnlineAsrInt8Switcher.IsUsingInt8(profile))
+                profile.allowInt8 = true;
         }
 
         private static void FillCommonFields(

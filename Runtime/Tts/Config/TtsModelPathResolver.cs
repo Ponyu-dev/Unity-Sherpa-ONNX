@@ -1,4 +1,5 @@
 using System.IO;
+using PonyuDev.SherpaOnnx.Common.Data;
 using PonyuDev.SherpaOnnx.Common.Platform;
 using UnityEngine;
 
@@ -11,7 +12,8 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
     /// </summary>
     public static class TtsModelPathResolver
     {
-        private const string TtsModelsFolder = "SherpaOnnx/tts-models";
+        internal const string ModelsSubfolder = "tts-models";
+        private const string TtsModelsFolder = "SherpaOnnx/" + ModelsSubfolder;
 
         /// <summary>
         /// Returns the absolute directory for a given profile name.
@@ -20,10 +22,32 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
         /// </summary>
         public static string GetModelDirectory(string profileName)
         {
-            return Path.Combine(
+            string path = Path.Combine(
                 StreamingAssetsCopier.GetResolvedStreamingAssetsPath(),
                 TtsModelsFolder,
                 profileName);
+            return NativePathSanitizer.Sanitize(path);
+        }
+
+        /// <summary>
+        /// Returns the model directory based on <paramref name="source"/>.
+        /// For <see cref="ModelSource.LocalZip"/> returns the extracted
+        /// directory under persistentDataPath.
+        ///
+        /// In Editor every source resolves to the StreamingAssets path,
+        /// matching <see cref="ProfileSourceResolver"/>'s "non-Local =
+        /// Local in Editor" rule — no LocalZip extraction in Editor,
+        /// so the persistentDataPath copy never exists.
+        /// </summary>
+        public static string GetModelDirectory(string profileName, ModelSource source)
+        {
+            if (Application.isEditor)
+                return GetModelDirectory(profileName);
+
+            if (source == ModelSource.LocalZip)
+                return LocalZipExtractor.GetExtractedModelDirectory(ModelsSubfolder, profileName);
+
+            return GetModelDirectory(profileName);
         }
 
         /// <summary>

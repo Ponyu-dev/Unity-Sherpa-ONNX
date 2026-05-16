@@ -14,6 +14,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
             switch (f)
             {
                 case OnlineAsrProfileField.ProfileName: p.profileName = v; break;
+                case OnlineAsrProfileField.SourceUrl: p.sourceUrl = v; break;
                 case OnlineAsrProfileField.Provider: p.provider = v; break;
                 case OnlineAsrProfileField.Tokens: p.tokens = v; break;
                 case OnlineAsrProfileField.DecodingMethod: p.decodingMethod = v; break;
@@ -35,6 +36,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
                 case OnlineAsrProfileField.Zipformer2CtcModel: p.zipformer2CtcModel = v; break;
                 case OnlineAsrProfileField.NemoCtcModel: p.nemoCtcModel = v; break;
                 case OnlineAsrProfileField.ToneCtcModel: p.toneCtcModel = v; break;
+
+                // Remote
+                case OnlineAsrProfileField.RemoteBaseUrl: p.remoteBaseUrl = v; break;
             }
         }
 

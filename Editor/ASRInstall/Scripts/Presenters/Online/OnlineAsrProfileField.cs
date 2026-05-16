@@ -8,6 +8,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
     {
         // Identity
         ProfileName,
+        SourceUrl,
 
         // Common
         NumThreads,
@@ -52,6 +53,9 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Online
         NemoCtcModel,
 
         // ToneCtc
-        ToneCtcModel
+        ToneCtcModel,
+
+        // Remote
+        RemoteBaseUrl
     }
 }

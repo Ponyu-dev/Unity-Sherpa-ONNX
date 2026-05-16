@@ -1,5 +1,6 @@
 using PonyuDev.SherpaOnnx.Asr.Offline.Data;
 using PonyuDev.SherpaOnnx.Editor.AsrInstall.Settings;
+using PonyuDev.SherpaOnnx.Editor.Common.UI;
 using UnityEngine.UIElements;
 
 namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
@@ -12,16 +13,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
     {
         internal readonly AsrProfile Profile;
         private readonly AsrProjectSettings _settings;
+        private readonly string _modelDir;
 
-        internal AsrProfileFieldBinder(
-            AsrProfile profile, AsrProjectSettings settings)
+        internal AsrProfileFieldBinder(AsrProfile profile, AsrProjectSettings settings, string modelDir)
         {
             Profile = profile;
             _settings = settings;
+            _modelDir = modelDir;
         }
 
-        internal TextField BindText(
-            string label, string value, AsrProfileField field)
+        internal TextField BindText(string label, string value, AsrProfileField field)
         {
             var textField = new TextField(label) { value = value };
             var handler = new TextHandler(Profile, _settings, field);
@@ -29,8 +30,27 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             return textField;
         }
 
-        internal FloatField BindFloat(
-            string label, float value, AsrProfileField field)
+        internal ModelObjectField BindFile(string label, string value, AsrProfileField field,
+            string extension = "onnx", string keyword = "", bool isRequired = false)
+        {
+            var picker = new ModelObjectField(label, value, _modelDir, extension, keyword,
+                isRequired: isRequired);
+            var handler = new TextHandler(Profile, _settings, field);
+            picker.RegisterFileChangedCallback(handler.SetValue);
+            return picker;
+        }
+
+        internal ModelObjectField BindFolder(string label, string value, AsrProfileField field,
+            string keyword = "", bool isRequired = false)
+        {
+            var picker = new ModelObjectField(label, value, _modelDir, keyword: keyword,
+                isFolder: true, isRequired: isRequired);
+            var handler = new TextHandler(Profile, _settings, field);
+            picker.RegisterFileChangedCallback(handler.SetValue);
+            return picker;
+        }
+
+        internal FloatField BindFloat(string label, float value, AsrProfileField field)
         {
             var floatField = new FloatField(label) { value = value };
             var handler = new FloatHandler(Profile, _settings, field);
@@ -38,13 +58,20 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             return floatField;
         }
 
-        internal IntegerField BindInt(
-            string label, int value, AsrProfileField field)
+        internal IntegerField BindInt(string label, int value, AsrProfileField field)
         {
             var intField = new IntegerField(label) { value = value };
             var handler = new IntHandler(Profile, _settings, field);
             intField.RegisterValueChangedCallback(handler.Handle);
             return intField;
+        }
+
+        internal Toggle BindBool(string label, bool value, AsrProfileField field)
+        {
+            var toggle = new Toggle(label) { value = value };
+            var handler = new BoolHandler(Profile, _settings, field);
+            toggle.RegisterValueChangedCallback(handler.Handle);
+            return toggle;
         }
 
         // ── Handlers ──
@@ -55,15 +82,16 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             private readonly AsrProjectSettings _s;
             private readonly AsrProfileField _f;
 
-            internal TextHandler(
-                AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            internal TextHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
-            internal void Handle(ChangeEvent<string> evt)
+            internal void SetValue(string value)
             {
-                AsrProfileFieldSetter.SetString(_p, _f, evt.newValue);
+                AsrProfileFieldSetter.SetString(_p, _f, value);
                 _s.SaveSettings();
             }
+
+            internal void Handle(ChangeEvent<string> evt) => SetValue(evt.newValue);
         }
 
         private sealed class FloatHandler
@@ -72,8 +100,7 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             private readonly AsrProjectSettings _s;
             private readonly AsrProfileField _f;
 
-            internal FloatHandler(
-                AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            internal FloatHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<float> evt)
@@ -89,13 +116,28 @@ namespace PonyuDev.SherpaOnnx.Editor.AsrInstall.Presenters.Offline
             private readonly AsrProjectSettings _s;
             private readonly AsrProfileField _f;
 
-            internal IntHandler(
-                AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            internal IntHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
             { _p = p; _s = s; _f = f; }
 
             internal void Handle(ChangeEvent<int> evt)
             {
                 AsrProfileFieldSetter.SetInt(_p, _f, evt.newValue);
+                _s.SaveSettings();
+            }
+        }
+
+        private sealed class BoolHandler
+        {
+            private readonly AsrProfile _p;
+            private readonly AsrProjectSettings _s;
+            private readonly AsrProfileField _f;
+
+            internal BoolHandler(AsrProfile p, AsrProjectSettings s, AsrProfileField f)
+            { _p = p; _s = s; _f = f; }
+
+            internal void Handle(ChangeEvent<bool> evt)
+            {
+                AsrProfileFieldSetter.SetBool(_p, _f, evt.newValue);
                 _s.SaveSettings();
             }
         }

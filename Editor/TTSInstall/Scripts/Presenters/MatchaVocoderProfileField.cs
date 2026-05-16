@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading;
 using PonyuDev.SherpaOnnx.Common;
 using PonyuDev.SherpaOnnx.Editor.Common;
+using PonyuDev.SherpaOnnx.Editor.Common.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Import;
 using PonyuDev.SherpaOnnx.Editor.TtsInstall.Settings;
 using PonyuDev.SherpaOnnx.Tts.Data;
@@ -85,7 +86,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.Presenters
         {
             if (_cts != null) return;
 
-            string modelDir = TtsModelPaths.GetModelDir(_profile.profileName);
+            string modelDir = ModelPaths.GetTtsModelDir(_profile.profileName);
             _cts = new CancellationTokenSource();
             _downloadButton.SetEnabled(false);
             SherpaOnnxLog.EditorLog("[SherpaOnnx] Vocoder download started.");
