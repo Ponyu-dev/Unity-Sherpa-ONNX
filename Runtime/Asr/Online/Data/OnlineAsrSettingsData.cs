@@ -15,12 +15,14 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
         public int activeProfileIndex = -1;
 
         /// <summary>
-        /// When <c>true</c>, switching to a different profile deletes the
-        /// extracted directory of the previously active profile if it was
-        /// a <see cref="Common.Data.ModelSource.LocalZip"/>. Only runs
-        /// after the new profile loads successfully. Default <c>false</c>.
+        /// When <c>true</c>, the runtime keeps only the active online
+        /// ASR profile's extracted directory; every other extraction is
+        /// removed after a successful <c>InitializeAsync</c> and after
+        /// every successful <c>SwitchProfile</c>. Failed loads leave
+        /// the previous on-disk state intact. Implied automatically
+        /// when <see cref="buildOnlyActiveProfile"/> is on.
         /// </summary>
-        public bool autoDeletePreviousProfile;
+        public bool keepOnlyActiveProfile;
 
         /// <summary>
         /// When <c>true</c>, the Editor build pipeline temporarily moves
@@ -33,7 +35,9 @@ namespace PonyuDev.SherpaOnnx.Asr.Online.Data
         /// restored after the build finishes; a defensive restore on
         /// Editor reload covers crashes / cancellations. Default
         /// <c>false</c>: every profile in <see cref="profiles"/> ships
-        /// into the build.
+        /// into the build. Implies <see cref="keepOnlyActiveProfile"/>
+        /// at runtime — services treat this flag as if both were
+        /// checked.
         /// </summary>
         public bool buildOnlyActiveProfile;
 

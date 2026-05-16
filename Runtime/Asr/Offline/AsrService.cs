@@ -25,6 +25,13 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         private AsrSettingsData _settings;
         private IAsrEngine _engine;
         private AsrProfile _activeProfile;
+        // Last InitializeAsync's onEvent — re-fired by SwitchProfile so
+        // bus subscribers see profile changes after the initial load.
+        private Action<ProfileReadyEvent> _onEvent;
+        // True while a profile switch is mid-flight. CheckReady bails
+        // so Recognize / RecognizeAsync return null instead of racing
+        // against the native engine being torn down.
+        private volatile bool _isSwitching;
         private AsrProfile _profilePendingLoad;
 
         // Method-group target for UniTask.RunOnThreadPool inside
@@ -59,6 +66,24 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
 
         /// <summary>All loaded profiles (available after Initialize).</summary>
         public AsrSettingsData Settings => _settings;
+
+        /// <inheritdoc />
+        public bool IsProfileAvailable(string profileName)
+        {
+            if (_settings?.profiles == null || string.IsNullOrEmpty(profileName))
+                return false;
+            if (_activeProfile != null
+                && string.Equals(_activeProfile.profileName, profileName, StringComparison.Ordinal))
+                return true;
+
+            var profile = _settings.profiles.FirstOrDefault(p => p.profileName == profileName);
+            if (profile == null)
+                return false;
+
+            string modelDir = AsrModelPathResolver.GetModelDirectory(
+                profile.profileName, profile.modelSource);
+            return ProfileAvailability.IsAvailable(profile, modelDir);
+        }
 
         /// <summary>Number of concurrent native engine instances.</summary>
         public int EnginePoolSize
@@ -113,6 +138,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
         {
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrService async initializing...");
 
+            _onEvent = onEvent;
             _settings = await AsrSettingsLoader.LoadAsync(ProfileReadyEvents.AsExtractProgress(onEvent), ct);
 
             var profile = AsrSettingsLoader.GetActiveProfile(_settings);
@@ -143,6 +169,12 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             }
 
             ProfileReadyEvents.EmitInit(onEvent, 100);
+
+            // Sweep stale on-disk extractions once we have a confirmed
+            // active profile. SwitchToProfile re-runs the same sweep
+            // each time the user picks a different profile.
+            EnforceKeepOnlyActive();
+
             ProfileReadyEvents.EmitReady(onEvent);
             SherpaOnnxLog.RuntimeLog("[SherpaOnnx] AsrService async initialized.");
         }
@@ -215,29 +247,144 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             SwitchToProfile(profile);
         }
 
-        // Captures the previously active profile, loads the new one, and —
-        // if the engine reports itself ready and AsrSettingsData.
-        // autoDeletePreviousProfile is set — frees the disk space used by
-        // the previous LocalZip extraction. Failed loads leave the old
-        // extraction intact.
+        /// <summary>
+        /// Async profile switch — native engine load runs on the
+        /// thread pool so the UI thread is free during the multi-
+        /// second sherpa-onnx OfflineRecognizer ctor.
+        /// </summary>
+        public async UniTask SwitchProfileAsync(int index, CancellationToken ct = default)
+        {
+            if (_settings?.profiles == null || _settings.profiles.Count == 0)
+            {
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService.SwitchProfileAsync: no profiles loaded.");
+                return;
+            }
+            if (index < 0 || index >= _settings.profiles.Count)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] AsrService.SwitchProfileAsync: " +
+                    $"index {index} out of range (0..{_settings.profiles.Count - 1}).");
+                return;
+            }
+            await SwitchToProfileAsync(_settings.profiles[index], ct);
+        }
+
+        /// <summary>Async profile switch by name.</summary>
+        public async UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default)
+        {
+            if (_settings?.profiles == null)
+            {
+                SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService.SwitchProfileAsync: no profiles loaded.");
+                return;
+            }
+            var profile = _settings.profiles.FirstOrDefault(p => p.profileName == profileName);
+            if (profile == null)
+            {
+                SherpaOnnxLog.RuntimeError(
+                    $"[SherpaOnnx] AsrService.SwitchProfileAsync: profile '{profileName}' not found.");
+                return;
+            }
+            await SwitchToProfileAsync(profile, ct);
+        }
+
+        // Loads the new profile and, on success, runs the keep-only-
+        // active sweep + re-fires Ready through the cached onEvent so
+        // bus subscribers re-render with the new ActiveProfile.
+        // Re-fires Failed if the load fails.
         private void SwitchToProfile(AsrProfile newProfile)
         {
-            var previous = _activeProfile;
-            LoadProfile(newProfile);
+            _isSwitching = true;
+            try
+            {
+                LoadProfile(newProfile);
 
-            if (!IsReady)
+                if (!IsReady)
+                {
+                    ProfileReadyEvents.EmitFailed(_onEvent, "Switch failed.");
+                    return;
+                }
+
+                EnforceKeepOnlyActive();
+                ProfileReadyEvents.EmitReady(_onEvent);
+            }
+            finally
+            {
+                _isSwitching = false;
+            }
+        }
+
+        // Async variant — offloads the native engine ctor to the thread
+        // pool through the same _profilePendingLoad / LoadPendingProfile
+        // path InitializeAsync uses, so the multi-second sherpa-onnx
+        // OfflineRecognizer ctor never runs on the main thread. The
+        // _isSwitching flag gates Recognize / RecognizeAsync for the
+        // duration so worker-thread recognitions don't race against
+        // the native engine reload.
+        private async UniTask SwitchToProfileAsync(AsrProfile newProfile, CancellationToken ct)
+        {
+            _isSwitching = true;
+            try
+            {
+                ProfileReadyEvents.EmitInit(_onEvent, 0);
+
+                _profilePendingLoad = newProfile;
+                await UniTask.RunOnThreadPool(LoadPendingProfile, cancellationToken: ct);
+
+                if (!IsReady)
+                {
+                    ProfileReadyEvents.EmitFailed(_onEvent, "Switch failed.");
+                    return;
+                }
+
+                ProfileReadyEvents.EmitInit(_onEvent, 100);
+                EnforceKeepOnlyActive();
+                ProfileReadyEvents.EmitReady(_onEvent);
+            }
+            finally
+            {
+                _isSwitching = false;
+            }
+        }
+
+        // When keepOnlyActiveProfile (or its build-time alias
+        // buildOnlyActiveProfile) is set, removes every extracted
+        // profile dir registered in this service's profile list
+        // except the currently-active one. Critical: iterates only
+        // OFFLINE profiles, never touches online-ASR extractions —
+        // both share asr-models/ on disk, and a directory-wide sweep
+        // would delete the other service's active model.
+        private void EnforceKeepOnlyActive()
+        {
+            if (_settings == null || _settings.profiles == null)
+                return;
+            if (!_settings.keepOnlyActiveProfile && !_settings.buildOnlyActiveProfile)
+                return;
+            if (_activeProfile == null || string.IsNullOrEmpty(_activeProfile.profileName))
                 return;
 
-            if (_settings != null
-                && _settings.autoDeletePreviousProfile
-                && previous != null
-                && !string.IsNullOrEmpty(previous.profileName)
-                && !string.Equals(previous.profileName, newProfile.profileName, StringComparison.Ordinal))
+            string keep = _activeProfile.profileName;
+            SherpaOnnxLog.RuntimeLog(
+                $"[SherpaOnnx] ASR (offline) keep-only-active: keeping " +
+                $"'{keep}', sweeping {_settings.profiles.Count - 1} other " +
+                "offline profile(s)…");
+
+            int removed = 0;
+            for (int i = 0; i < _settings.profiles.Count; i++)
             {
-                // Local / Remote / LocalZip all land in the same per-profile
-                // dir under persistentDataPath on Android — drop it.
-                LocalZipExtractor.TryDeleteExtractedModel(
-                    AsrModelPathResolver.ModelsSubfolder, previous.profileName);
+                var p = _settings.profiles[i];
+                if (p == null || string.IsNullOrEmpty(p.profileName))
+                    continue;
+                if (string.Equals(p.profileName, keep, StringComparison.Ordinal))
+                    continue;
+                if (LocalZipExtractor.TryDeleteExtractedModel(
+                    AsrModelPathResolver.ModelsSubfolder, p.profileName))
+                    removed++;
+            }
+
+            if (removed == 0)
+            {
+                SherpaOnnxLog.RuntimeLog(
+                    "[SherpaOnnx] ASR (offline) keep-only-active: nothing on disk to remove.");
             }
         }
 
@@ -309,6 +456,7 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
             _engine = null;
             _activeProfile = null;
             _settings = null;
+            _onEvent = null;
         }
 
         // ── Private ──
@@ -329,12 +477,18 @@ namespace PonyuDev.SherpaOnnx.Asr.Offline
 
         private bool CheckReady()
         {
+            if (_isSwitching)
+            {
+                SherpaOnnxLog.RuntimeWarning(
+                    "[SherpaOnnx] AsrService is busy switching profile — request ignored. " +
+                    "Wait for the next ProfileReadyPhase.Ready event before retrying.");
+                return false;
+            }
             if (_engine != null && _engine.IsLoaded)
                 return true;
-            
+
             SherpaOnnxLog.RuntimeError("[SherpaOnnx] AsrService is not initialized. Call Initialize() first.");
             return false;
-
         }
     }
 }

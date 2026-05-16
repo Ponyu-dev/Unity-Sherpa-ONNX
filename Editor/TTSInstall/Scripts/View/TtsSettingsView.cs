@@ -24,7 +24,7 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
 
         private readonly string _uxmlPath;
         private Toggle _ttsEnabledToggle;
-        private Toggle _autoDeletePreviousProfileToggle;
+        private Toggle _keepOnlyActiveProfileToggle;
         private Toggle _buildOnlyActiveProfileToggle;
 
         private ActiveProfilePresenter<TtsProfile> _activeProfilePresenter;
@@ -70,8 +70,8 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             _ttsEnabledToggle?.UnregisterValueChangedCallback(HandleTtsEnabledChanged);
             _ttsEnabledToggle = null;
 
-            _autoDeletePreviousProfileToggle?.UnregisterValueChangedCallback(HandleAutoDeletePreviousProfileChanged);
-            _autoDeletePreviousProfileToggle = null;
+            _keepOnlyActiveProfileToggle?.UnregisterValueChangedCallback(HandleKeepOnlyActiveProfileChanged);
+            _keepOnlyActiveProfileToggle = null;
 
             _buildOnlyActiveProfileToggle?.UnregisterValueChangedCallback(HandleBuildOnlyActiveProfileChanged);
             _buildOnlyActiveProfileToggle = null;
@@ -204,15 +204,15 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             var foldout = new Foldout { text = "Disk Usage" };
             foldout.AddToClassList("model-foldout");
 
-            _autoDeletePreviousProfileToggle = new Toggle(AutoDeletePreviousProfileToggle.Label)
+            _keepOnlyActiveProfileToggle = new Toggle(KeepOnlyActiveProfileToggle.Label)
             {
-                tooltip = AutoDeletePreviousProfileToggle.Tooltip,
-                value = settings.data.autoDeletePreviousProfile,
+                tooltip = KeepOnlyActiveProfileToggle.Tooltip,
+                value = settings.data.keepOnlyActiveProfile,
             };
-            _autoDeletePreviousProfileToggle.RegisterValueChangedCallback(
-                HandleAutoDeletePreviousProfileChanged);
+            _keepOnlyActiveProfileToggle.RegisterValueChangedCallback(
+                HandleKeepOnlyActiveProfileChanged);
 
-            foldout.Add(_autoDeletePreviousProfileToggle);
+            foldout.Add(_keepOnlyActiveProfileToggle);
 
             _buildOnlyActiveProfileToggle = new Toggle(OnlyActiveProfileInBuildToggle.Label)
             {
@@ -230,10 +230,10 @@ namespace PonyuDev.SherpaOnnx.Editor.TtsInstall.View
             container.Insert(idx, foldout);
         }
 
-        private static void HandleAutoDeletePreviousProfileChanged(ChangeEvent<bool> evt)
+        private static void HandleKeepOnlyActiveProfileChanged(ChangeEvent<bool> evt)
         {
             var s = TtsProjectSettings.instance;
-            s.data.autoDeletePreviousProfile = evt.newValue;
+            s.data.keepOnlyActiveProfile = evt.newValue;
             s.SaveSettings();
         }
 

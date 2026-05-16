@@ -301,11 +301,12 @@ int removed = vad.CleanupUnusedExtractedProfiles();
 marker on disk regardless of source (LocalZip's `.zip-extracted` and
 Local/Remote's `.profile-extracted` are both recognised).
 
-**Auto-delete on switch.** Toggle **Project Settings → Sherpa-ONNX → VAD →
-Disk Usage → Auto-delete previous profile on switch**. Then every
-successful `SwitchProfile(...)` to a different profile drops the previous
-extraction. Off by default. On non-Android platforms nothing is
-extracted, so the toggle is a no-op.
+**Keep only active on disk.** Toggle **Project Settings → Sherpa-ONNX → VAD
+→ Disk Usage → Keep only active profile on disk**. On every successful
+`InitializeAsync` and on every `SwitchProfile(...)` the runtime removes
+every registered profile's extraction except the active one. Off by
+default. Implied automatically when **Only active profile in build** is on.
+On non-Android platforms nothing is extracted, so the toggle is a no-op.
 
 > ⚠️ **After upgrading the plugin from a pre-per-profile-extraction
 > version**, regenerate the manifest once via

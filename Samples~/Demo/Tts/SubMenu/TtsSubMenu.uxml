@@ -1,0 +1,54 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../../UI/Shared.uss"/>
+    <Style src="TtsSubMenu.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="← Back" class="sample-back-btn"/>
+        <ui:Label text="TTS Samples" class="sample-title"/>
+        <ui:Label text="Choose an example to run:" class="sample-info"
+                  style="margin-bottom: 16px;"/>
+
+        <ui:VisualElement class="profile-picker-card">
+            <ui:Label text="Active TTS profile" class="profile-picker-card-label"/>
+            <ui:DropdownField name="profilePicker" class="profile-picker-card-dropdown"/>
+        </ui:VisualElement>
+
+        <ui:Button name="btnSimple" class="menu-card">
+            <ui:Label text="Simple TTS" class="menu-card-title"/>
+            <ui:Label text="Basic GenerateAsync — enter text, pick speed and speaker, play result."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnProgress" class="menu-card">
+            <ui:Label text="TTS with Progress" class="menu-card-title"/>
+            <ui:Label text="GenerateWithCallbackProgress — real-time progress bar and chunk counter."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnConfig" class="menu-card">
+            <ui:Label text="TTS with Config" class="menu-card-title"/>
+            <ui:Label text="GenerateWithConfig — advanced: silence scale, num steps, extra params."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnCache" class="menu-card">
+            <ui:Label text="Cache Control" class="menu-card-title"/>
+            <ui:Label text="Toggle result/clip/source caches at runtime, generate and observe stats live."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnControls" class="menu-card">
+            <ui:Label text="Runtime Controls" class="menu-card-title"/>
+            <ui:Label text="Handle-based playback: cancel a generation, stop with fade-out, StopAll across parallel handles."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnStreaming" class="menu-card">
+            <ui:Label text="Streaming TTS" class="menu-card-title"/>
+            <ui:Label text="SpeakStreamingAsync — first audio plays as soon as the first chunk arrives. See first-chunk latency live."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Label name="infoLabel" class="sample-info"
+                  style="margin-top: 24px;"/>
+    </ui:VisualElement>
+</ui:UXML>

@@ -159,6 +159,14 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
 
                 await UniTask.RunOnThreadPool(new ExtractWork(extractor, archivePath, profileDir, ct).Run, cancellationToken: ct);
 
+                // Sherpa-onnx tar archives almost always nest every
+                // file under one top-level folder named after the
+                // model. Without this strip step the runtime path
+                // resolver would look for "<profileDir>/model.onnx"
+                // while the actual file lives at
+                // "<profileDir>/<profileName>/model.onnx".
+                StripSingleTopLevelFolder(profileDir);
+
                 WriteMarker(profileDir, urlHash);
             }
             catch (OperationCanceledException)
@@ -205,8 +213,19 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
             string markerPath = Path.Combine(profileDir, ExtractedMarker);
             if (!File.Exists(markerPath))
                 return false;
+
+            // The marker on its own is not enough — past versions of
+            // the extractor swallowed errors and stamped the marker on
+            // an empty / partially-written directory, leaving a stale
+            // "ready" state that crashed native LoadProfile when no
+            // real model files were on disk. Re-validate by counting
+            // non-marker files; treat empty / marker-only directories
+            // as not-extracted.
             try
             {
+                if (!HasAnyNonMarkerFile(profileDir))
+                    return false;
+
                 string existing = File.ReadAllText(markerPath).Trim();
                 return existing == urlHash;
             }
@@ -214,6 +233,49 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
             {
                 return false;
             }
+        }
+
+        private static bool HasAnyNonMarkerFile(string profileDir)
+        {
+            if (!Directory.Exists(profileDir))
+                return false;
+            string[] files = Directory.GetFiles(profileDir, "*", SearchOption.AllDirectories);
+            for (int i = 0; i < files.Length; i++)
+            {
+                string name = Path.GetFileName(files[i]);
+                if (name == ExtractedMarker)
+                    continue;
+                return true;
+            }
+            return false;
+        }
+
+        // If the extracted directory contains exactly one entry — a
+        // sub-directory holding everything — promote that sub-directory's
+        // children to the top level and delete the now-empty wrapper.
+        // Mirrors `tar --strip-components=1`. Safe no-op when the
+        // archive already extracts at the top level (e.g. user-built
+        // LocalZip uploads).
+        private static void StripSingleTopLevelFolder(string profileDir)
+        {
+            string[] entries = Directory.GetFileSystemEntries(profileDir);
+            if (entries.Length != 1)
+                return;
+            string sole = entries[0];
+            if (!Directory.Exists(sole))
+                return;
+
+            string[] inner = Directory.GetFileSystemEntries(sole);
+            for (int i = 0; i < inner.Length; i++)
+            {
+                string fileName = Path.GetFileName(inner[i]);
+                string newPath = Path.Combine(profileDir, fileName);
+                if (Directory.Exists(inner[i]))
+                    Directory.Move(inner[i], newPath);
+                else
+                    File.Move(inner[i], newPath);
+            }
+            Directory.Delete(sole, recursive: true);
         }
 
         private static void WriteMarker(string profileDir, string urlHash)
@@ -437,10 +499,12 @@ namespace PonyuDev.SherpaOnnx.Common.Networking
             {
                 // ArchiveExtractor.ExtractAsync returns a Task; we are
                 // already on a worker thread inside RunOnThreadPool, so
-                // a synchronous .Wait() is the simplest way to block
-                // this worker until extraction completes without ever
-                // touching the main thread.
-                _extractor.ExtractAsync(_archivePath, _destDir, _ct).Wait();
+                // blocking it synchronously is the simplest way to wait
+                // for extraction. Use GetAwaiter().GetResult() rather
+                // than .Wait() so any extractor exception bubbles up
+                // unwrapped instead of as AggregateException — the
+                // outer catch in EnsureDownloadedAsync logs ex.Message.
+                _extractor.ExtractAsync(_archivePath, _destDir, _ct).GetAwaiter().GetResult();
             }
         }
     }

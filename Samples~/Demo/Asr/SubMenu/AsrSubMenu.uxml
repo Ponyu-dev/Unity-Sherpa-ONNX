@@ -1,0 +1,40 @@
+<ui:UXML xmlns:ui="UnityEngine.UIElements" editor-extension-mode="False">
+    <Style src="../../UI/Shared.uss"/>
+    <Style src="AsrSubMenu.uss"/>
+    <ui:VisualElement class="sample-root">
+        <ui:Button name="backButton" text="← Back" class="sample-back-btn"/>
+        <ui:Label text="ASR Samples" class="sample-title"/>
+        <ui:Label text="Choose an example to run:" class="sample-info"
+                  style="margin-bottom: 16px;"/>
+
+        <ui:VisualElement class="profile-picker-card">
+            <ui:Label text="Active offline profile" class="profile-picker-card-label"/>
+            <ui:DropdownField name="offlineProfilePicker" class="profile-picker-card-dropdown"/>
+        </ui:VisualElement>
+        <ui:VisualElement class="profile-picker-card">
+            <ui:Label text="Active online profile" class="profile-picker-card-label"/>
+            <ui:DropdownField name="onlineProfilePicker" class="profile-picker-card-dropdown"/>
+        </ui:VisualElement>
+
+        <ui:Button name="btnFile" class="menu-card">
+            <ui:Label text="File Recognition" class="menu-card-title"/>
+            <ui:Label text="Offline ASR — recognize speech from a pre-loaded AudioClip."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnStream" class="menu-card">
+            <ui:Label text="Streaming Recognition" class="menu-card-title"/>
+            <ui:Label text="Online ASR — real-time microphone capture with partial and final results."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Button name="btnCombined" class="menu-card">
+            <ui:Label text="Concurrent Audio Test" class="menu-card-title"/>
+            <ui:Label text="Music loop + SFX + TTS playback running together with STT capture — verifies the mic stays alive on iOS / Android."
+                      class="menu-card-desc"/>
+        </ui:Button>
+
+        <ui:Label name="infoLabel" class="sample-info"
+                  style="margin-top: 24px;"/>
+    </ui:VisualElement>
+</ui:UXML>

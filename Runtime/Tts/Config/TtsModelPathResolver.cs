@@ -33,9 +33,17 @@ namespace PonyuDev.SherpaOnnx.Tts.Config
         /// Returns the model directory based on <paramref name="source"/>.
         /// For <see cref="ModelSource.LocalZip"/> returns the extracted
         /// directory under persistentDataPath.
+        ///
+        /// In Editor every source resolves to the StreamingAssets path,
+        /// matching <see cref="ProfileSourceResolver"/>'s "non-Local =
+        /// Local in Editor" rule — no LocalZip extraction in Editor,
+        /// so the persistentDataPath copy never exists.
         /// </summary>
         public static string GetModelDirectory(string profileName, ModelSource source)
         {
+            if (Application.isEditor)
+                return GetModelDirectory(profileName);
+
             if (source == ModelSource.LocalZip)
                 return LocalZipExtractor.GetExtractedModelDirectory(ModelsSubfolder, profileName);
 

@@ -46,6 +46,9 @@ namespace PonyuDev.SherpaOnnx.Tests.Stubs
 
         public void SwitchProfile(int index) { }
         public void SwitchProfile(string profileName) { }
+        public UniTask SwitchProfileAsync(int index, CancellationToken ct = default) => UniTask.CompletedTask;
+        public UniTask SwitchProfileAsync(string profileName, CancellationToken ct = default) => UniTask.CompletedTask;
+        public bool IsProfileAvailable(string profileName) => true;
 
         public void AcceptWaveform(float[] samples)
         {

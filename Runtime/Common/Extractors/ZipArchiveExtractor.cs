@@ -76,11 +76,15 @@ namespace PonyuDev.SherpaOnnx.Common.Extractors
             {
                 SherpaOnnxLog.RuntimeWarning("[SherpaOnnx] Zip extraction canceled.");
                 RaiseError("Extraction canceled.");
+                throw;
             }
             catch (Exception ex)
             {
                 SherpaOnnxLog.RuntimeError($"[SherpaOnnx] Zip extraction error: {ex}");
                 RaiseError(ex.Message);
+                // Bubble up so the caller treats the archive as broken
+                // and does not declare success on an empty directory.
+                throw;
             }
         }
 
